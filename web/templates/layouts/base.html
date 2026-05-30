@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{.Title}} - Angazia</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="/static/css/custom.css" rel="stylesheet">
+<link href="/static/css/landing.css" rel="stylesheet">
+</head>
+<body{{if .IsLanding}} class="landing-page"{{end}}>
+
+<nav id="nav">
+  <a href="{{if .IsLanding}}/{{else}}/app{{end}}" class="logo">ang<span>azia</span></a>
+  <ul>
+    {{if .IsLanding}}
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#sources">Sources</a></li>
+    {{else}}
+    <li><a href="/app" class="{{if eq .Page "index"}}active{{end}}">Dashboard</a></li>
+    <li><a href="/jobs" class="{{if eq .Page "jobs"}}active{{end}}">Jobs</a></li>
+    <li><a href="/tracker" class="{{if eq .Page "tracker"}}active{{end}}">Tracker</a></li>
+    <li><a href="/analyzer" class="{{if eq .Page "analyzer"}}active{{end}}">Analyzer</a></li>
+    {{end}}
+  </ul>
+  {{if .IsLanding}}
+  <button class="nav-cta" onclick="document.getElementById('waitlist')?.scrollIntoView({behavior:'smooth'})">Early Access</button>
+  {{end}}
+</nav>
+
+{{if .IsLanding}}
+{{block "content" .}}{{end}}
+{{else}}
+<main class="container">
+  {{block "content" .}}{{end}}
+</main>
+{{end}}
+
+<footer>
+  <div class="footer-logo">ang<span>azia</span></div>
+  <nav>
+    <ul>
+      <li><a href="#">Privacy</a></li>
+      <li><a href="#">Terms</a></li>
+      <li><a href="#">GitHub</a></li>
+      <li><a href="#">Contact</a></li>
+    </ul>
+  </nav>
+  <p class="footer-copy">&copy; 2025 Angazia &middot; Built in Kenya</p>
+</footer>
+
+<script src="/static/js/main.js"></script>
+<script>
+window.addEventListener('scroll',function(){
+  var nav=document.getElementById('nav');
+  if(nav) nav.classList.toggle('scrolled',window.scrollY>60);
+});
+</script>
+</body>
+</html>

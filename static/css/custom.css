@@ -36,64 +36,9 @@ body {
   padding: 0 1rem;
 }
 
-/* Navigation */
-.navbar {
-  background: white;
-  border-bottom: 1px solid var(--gray-200);
-  padding: 1rem 0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  backdrop-filter: blur(8px);
-}
-
-.nav-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--primary);
-  text-decoration: none;
-}
-
-.nav-links {
-  display: flex;
-  gap: 2rem;
-  list-style: none;
-}
-
-.nav-links a {
-  color: var(--gray-600);
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-
-.nav-links a:hover,
-.nav-links a.active {
-  color: var(--primary);
-}
-
-.mobile-menu-btn {
-  display: none;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: var(--gray-600);
-}
-
-/* Footer */
-.footer {
-  background: var(--gray-50);
-  padding: 2rem 0;
-  margin-top: 4rem;
-  text-align: center;
-  color: var(--gray-600);
+/* Container */
+.main {
+  min-height: calc(100vh - 200px);
 }
 
 /* Page Headers */
