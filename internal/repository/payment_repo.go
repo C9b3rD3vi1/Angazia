@@ -11,6 +11,15 @@ import (
 )
 
 type PaymentRepository interface {
+	// Payment Methods
+	CreatePaymentMethod(ctx context.Context, pm *models.PaymentMethod) error
+	GetPaymentMethod(ctx context.Context, id string) (*models.PaymentMethod, error)
+	ListUserPaymentMethods(ctx context.Context, userID string) ([]*models.PaymentMethod, error)
+	UpdatePaymentMethod(ctx context.Context, pm *models.PaymentMethod) error
+	DeletePaymentMethod(ctx context.Context, id string) error
+	SetDefaultPaymentMethod(ctx context.Context, userID, id string) error
+	GetDefaultPaymentMethod(ctx context.Context, userID string) (*models.PaymentMethod, error)
+
 	// Payments
 	CreatePayment(ctx context.Context, payment *models.Payment) error
 	GetPayment(ctx context.Context, id string) (*models.Payment, error)
@@ -47,6 +56,68 @@ type PaymentRepositoryImpl struct {
 
 func NewPaymentRepository(db *gorm.DB) PaymentRepository {
 	return &PaymentRepositoryImpl{db: db}
+}
+
+func (r *PaymentRepositoryImpl) CreatePaymentMethod(ctx context.Context, pm *models.PaymentMethod) error {
+	pm.ID = uuid.New().String()
+	pm.CreatedAt = time.Now()
+	pm.UpdatedAt = time.Now()
+	return r.db.WithContext(ctx).Create(pm).Error
+}
+
+func (r *PaymentRepositoryImpl) GetPaymentMethod(ctx context.Context, id string) (*models.PaymentMethod, error) {
+	var pm models.PaymentMethod
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&pm).Error
+	if err != nil {
+		return nil, err
+	}
+	return &pm, nil
+}
+
+func (r *PaymentRepositoryImpl) ListUserPaymentMethods(ctx context.Context, userID string) ([]*models.PaymentMethod, error) {
+	var methods []*models.PaymentMethod
+	err := r.db.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("is_default DESC, created_at DESC").
+		Find(&methods).Error
+	return methods, err
+}
+
+func (r *PaymentRepositoryImpl) UpdatePaymentMethod(ctx context.Context, pm *models.PaymentMethod) error {
+	pm.UpdatedAt = time.Now()
+	return r.db.WithContext(ctx).Save(pm).Error
+}
+
+func (r *PaymentRepositoryImpl) DeletePaymentMethod(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&models.PaymentMethod{}, "id = ?", id).Error
+}
+
+func (r *PaymentRepositoryImpl) SetDefaultPaymentMethod(ctx context.Context, userID, id string) error {
+	tx := r.db.WithContext(ctx).Begin()
+	if err := tx.Model(&models.PaymentMethod{}).
+		Where("user_id = ?", userID).
+		Update("is_default", false).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Model(&models.PaymentMethod{}).
+		Where("id = ? AND user_id = ?", id, userID).
+		Update("is_default", true).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit().Error
+}
+
+func (r *PaymentRepositoryImpl) GetDefaultPaymentMethod(ctx context.Context, userID string) (*models.PaymentMethod, error) {
+	var pm models.PaymentMethod
+	err := r.db.WithContext(ctx).
+		Where("user_id = ? AND is_default = ?", userID, true).
+		First(&pm).Error
+	if err != nil {
+		return nil, err
+	}
+	return &pm, nil
 }
 
 func (r *PaymentRepositoryImpl) CreatePayment(ctx context.Context, payment *models.Payment) error {

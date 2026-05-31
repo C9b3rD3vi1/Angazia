@@ -10,6 +10,30 @@ import (
 	"github.com/C9b3rD3vi1/Angazia/internal/repository"
 )
 
+type PaymentRetryState string
+
+const (
+	PaymentRetryNone    PaymentRetryState = ""
+	PaymentRetryFirst   PaymentRetryState = "first_retry"
+	PaymentRetrySecond  PaymentRetryState = "second_retry"
+	PaymentRetryFinal   PaymentRetryState = "final_retry"
+)
+
+type AddPaymentMethodRequest struct {
+	Type        string `json:"type" validate:"required"`        // mpesa, card, bank
+	PhoneNumber string `json:"phone_number"`
+	CardToken   string `json:"card_token"`
+	SetDefault  bool   `json:"set_default"`
+}
+
+type CalculateProrationResult struct {
+	CreditAmount float64 `json:"credit_amount"`
+	NewAmount    float64 `json:"new_amount"`
+	DueNow       float64 `json:"due_now"`
+	DaysLeft     int     `json:"days_left"`
+	TotalDays    int     `json:"total_days"`
+}
+
 type SubscriptionService interface {
 	// Plan management
 	GetPlans(ctx context.Context) ([]*models.SubscriptionPlan, error)
@@ -39,6 +63,31 @@ type SubscriptionService interface {
 	ExpireSubscriptions(ctx context.Context) error
 	UpgradeSubscription(ctx context.Context, userID, subscriptionID, newPlanID string) (*models.Subscription, error)
 	DowngradeSubscription(ctx context.Context, userID, subscriptionID, newPlanID string) (*models.Subscription, error)
+	ReactivateSubscription(ctx context.Context, userID, subscriptionID string) (*models.Subscription, error)
+	
+	// Payment methods
+	GetPaymentMethods(ctx context.Context, userID string) ([]*models.PaymentMethod, error)
+	AddPaymentMethod(ctx context.Context, userID string, req *AddPaymentMethodRequest) (*models.PaymentMethod, error)
+	RemovePaymentMethod(ctx context.Context, userID, methodID string) error
+	SetDefaultPaymentMethod(ctx context.Context, userID, methodID string) error
+	
+	// Payment processing
+	SubscribeWithNewPayment(ctx context.Context, userID, planID, phoneNumber string) (*models.Subscription, *IntaSendChargeResponse, error)
+	VerifyPayment(ctx context.Context, transactionID, reference string) (*models.Payment, error)
+	RetryPayment(ctx context.Context, subscriptionID string) error
+	ProcessPaymentRetries(ctx context.Context) error
+	
+	// Webhook
+	HandleWebhook(ctx context.Context, payload *models.IntaSendWebhookPayload) error
+
+	// Proration
+	CalculateProration(ctx context.Context, subscriptionID, newPlanID string) (*CalculateProrationResult, error)
+	
+	// Invoice
+	GenerateInvoicePDF(ctx context.Context, invoiceID string) (string, error)
+	
+	// Plans
+	GetPlanFeatures(ctx context.Context, planID string) ([]*models.SubscriptionPlanFeature, error)
 	
 	// Admin
 	GetAllSubscriptions(ctx context.Context, filters map[string]interface{}, page, limit int) ([]*models.Subscription, int64, error)
@@ -84,6 +133,7 @@ type SubscriptionServiceImpl struct {
 	paymentRepo      repository.PaymentRepository
 	userRepo         repository.UserRepository
 	jobRepo          repository.JobRepository
+	intaSend         *IntaSendClient
 }
 
 func NewSubscriptionService(
@@ -99,6 +149,7 @@ func NewSubscriptionService(
 		paymentRepo:      paymentRepo,
 		userRepo:         userRepo,
 		jobRepo:          jobRepo,
+		intaSend:         NewIntaSendClient(cfg),
 	}
 }
 
@@ -640,6 +691,435 @@ func (s *SubscriptionServiceImpl) DowngradeSubscription(ctx context.Context, use
 	return sub, nil
 }
 
+// ========== REACTIVATE ==========
+
+func (s *SubscriptionServiceImpl) ReactivateSubscription(ctx context.Context, userID, subscriptionID string) (*models.Subscription, error) {
+	sub, err := s.subscriptionRepo.GetSubscription(ctx, subscriptionID)
+	if err != nil {
+		return nil, err
+	}
+
+	if sub.UserID != userID {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	if sub.Status != "cancelled" && sub.Status != "expired" {
+		return nil, fmt.Errorf("subscription is not cancelled or expired")
+	}
+
+	now := time.Now()
+	newPeriodEnd := s.calculatePeriodEnd(now, sub.Interval, 1)
+
+	sub.Status = "active"
+	sub.CancelledAt = nil
+	sub.StartDate = now
+	sub.EndDate = newPeriodEnd
+	sub.CurrentPeriodStart = now
+	sub.CurrentPeriodEnd = newPeriodEnd
+	sub.AutoRenew = true
+	sub.UpdatedAt = now
+
+	if err := s.subscriptionRepo.UpdateSubscription(ctx, sub); err != nil {
+		return nil, err
+	}
+
+	history := &models.SubscriptionHistory{
+		SubscriptionID: sub.ID,
+		UserID:         userID,
+		NewPlanID:      sub.PlanID,
+		NewAmount:      sub.Amount,
+		Action:         "reactivated",
+	}
+	s.subscriptionRepo.AddHistory(ctx, history)
+
+	return sub, nil
+}
+
+// ========== PAYMENT METHODS ==========
+
+func (s *SubscriptionServiceImpl) GetPaymentMethods(ctx context.Context, userID string) ([]*models.PaymentMethod, error) {
+	return s.paymentRepo.ListUserPaymentMethods(ctx, userID)
+}
+
+func (s *SubscriptionServiceImpl) AddPaymentMethod(ctx context.Context, userID string, req *AddPaymentMethodRequest) (*models.PaymentMethod, error) {
+	pm := &models.PaymentMethod{
+		UserID:      userID,
+		Type:        req.Type,
+		PhoneNumber: req.PhoneNumber,
+		IsDefault:   req.SetDefault,
+		IsValid:     true,
+	}
+
+	if err := s.paymentRepo.CreatePaymentMethod(ctx, pm); err != nil {
+		return nil, err
+	}
+
+	if req.SetDefault {
+		s.paymentRepo.SetDefaultPaymentMethod(ctx, userID, pm.ID)
+	}
+
+	return pm, nil
+}
+
+func (s *SubscriptionServiceImpl) RemovePaymentMethod(ctx context.Context, userID, methodID string) error {
+	pm, err := s.paymentRepo.GetPaymentMethod(ctx, methodID)
+	if err != nil {
+		return err
+	}
+	if pm.UserID != userID {
+		return fmt.Errorf("unauthorized")
+	}
+	return s.paymentRepo.DeletePaymentMethod(ctx, methodID)
+}
+
+func (s *SubscriptionServiceImpl) SetDefaultPaymentMethod(ctx context.Context, userID, methodID string) error {
+	return s.paymentRepo.SetDefaultPaymentMethod(ctx, userID, methodID)
+}
+
+// ========== PAYMENT PROCESSING ==========
+
+func (s *SubscriptionServiceImpl) SubscribeWithNewPayment(ctx context.Context, userID, planID, phoneNumber string) (*models.Subscription, *IntaSendChargeResponse, error) {
+	plan, err := s.subscriptionRepo.GetPlanByPlanID(ctx, planID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("plan not found: %w", err)
+	}
+
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("user not found: %w", err)
+	}
+
+	reference := fmt.Sprintf("SUB-%s-%d", userID[:8], time.Now().Unix())
+	chargeReq := &IntaSendChargeRequest{
+		Amount:      plan.Price,
+		Currency:    plan.Currency,
+		Email:       user.Email,
+		PhoneNumber: phoneNumber,
+		Reference:   reference,
+		Narrative:   fmt.Sprintf("%s %s Subscription", plan.Name, plan.Interval),
+		WebhookURL:  s.cfg.AppURL + "/api/v1/payments/webhook",
+		RedirectURL: s.cfg.AppURL + "/subscriptions/success",
+	}
+
+	chargeResp, err := s.intaSend.CreateCharge(chargeReq)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create charge: %w", err)
+	}
+
+	now := time.Now()
+	expiresAt := now.Add(30 * time.Minute)
+	intent := &models.PaymentIntent{
+		UserID:      userID,
+		Amount:      plan.Price,
+		Currency:    plan.Currency,
+		PlanID:      plan.PlanID,
+		Status:      "pending",
+		InvoiceID:   chargeResp.InvoiceID,
+		RedirectURL: chargeResp.RedirectURL,
+		ExpiresAt:   expiresAt,
+	}
+	s.paymentRepo.CreatePaymentIntent(ctx, intent)
+
+	payment := &models.Payment{
+		UserID:        userID,
+		Amount:        plan.Price,
+		Currency:      plan.Currency,
+		Status:        "pending",
+		PaymentMethod: "mpesa",
+		Reference:     reference,
+		Description:   fmt.Sprintf("%s %s - %s", plan.Name, plan.Interval, plan.PlanID),
+	}
+	s.paymentRepo.CreatePayment(ctx, payment)
+
+	var subscription *models.Subscription
+	if chargeResp.Status == "completed" || chargeResp.Status == "success" {
+		subscription, err = s.Subscribe(ctx, userID, &SubscribeRequest{
+			PlanID:    plan.PlanID,
+			PaymentID: payment.ID,
+			AutoRenew: true,
+		})
+		if err != nil {
+			return nil, chargeResp, fmt.Errorf("subscription creation failed: %w", err)
+		}
+	}
+
+	return subscription, chargeResp, nil
+}
+
+func (s *SubscriptionServiceImpl) VerifyPayment(ctx context.Context, transactionID, reference string) (*models.Payment, error) {
+	if transactionID != "" {
+		payment, err := s.paymentRepo.GetPaymentByTransactionID(ctx, transactionID)
+		if err == nil {
+			return payment, nil
+		}
+
+		statusResp, err := s.intaSend.GetPaymentStatus(transactionID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify payment: %w", err)
+		}
+
+		now := time.Now()
+		if statusResp.Status == "completed" || statusResp.Status == "success" {
+			if err := s.paymentRepo.UpdatePaymentStatus(ctx, payment.ID, "completed", transactionID, &now); err != nil {
+				return nil, err
+			}
+			payment.Status = "completed"
+			payment.TransactionID = transactionID
+			payment.PaidAt = &now
+		}
+		return payment, nil
+	}
+
+	if reference != "" {
+		payment, err := s.paymentRepo.GetPaymentByReference(ctx, reference)
+		if err != nil {
+			return nil, err
+		}
+		return payment, nil
+	}
+
+	return nil, fmt.Errorf("either transaction_id or reference is required")
+}
+
+func (s *SubscriptionServiceImpl) RetryPayment(ctx context.Context, subscriptionID string) error {
+	sub, err := s.subscriptionRepo.GetSubscription(ctx, subscriptionID)
+	if err != nil {
+		return err
+	}
+
+	if sub.Status != "past_due" {
+		return fmt.Errorf("subscription is not past_due")
+	}
+
+	user, err := s.userRepo.GetByID(ctx, sub.UserID)
+	if err != nil {
+		return err
+	}
+
+	pm, err := s.paymentRepo.GetDefaultPaymentMethod(ctx, sub.UserID)
+	if err != nil {
+		return fmt.Errorf("no default payment method: %w", err)
+	}
+
+	reference := fmt.Sprintf("RETRY-%s-%d", sub.ID[:8], time.Now().Unix())
+	phoneNumber := pm.PhoneNumber
+
+	chargeReq := &IntaSendChargeRequest{
+		Amount:      sub.Amount,
+		Currency:    sub.Currency,
+		Email:       user.Email,
+		PhoneNumber: phoneNumber,
+		Reference:   reference,
+		Narrative:   fmt.Sprintf("Retry payment - %s", sub.PlanName),
+		WebhookURL:  s.cfg.AppURL + "/api/v1/payments/webhook",
+		RedirectURL: s.cfg.AppURL + "/subscriptions/success",
+	}
+
+	_, err = s.intaSend.CreateCharge(chargeReq)
+	if err != nil {
+		return fmt.Errorf("retry charge failed: %w", err)
+	}
+
+	payment := &models.Payment{
+		UserID:        sub.UserID,
+		SubscriptionID: &sub.ID,
+		Amount:        sub.Amount,
+		Currency:      sub.Currency,
+		Status:        "pending",
+		PaymentMethod: string(pm.Type),
+		Reference:     reference,
+		Description:   fmt.Sprintf("Retry: %s Subscription", sub.PlanName),
+	}
+	return s.paymentRepo.CreatePayment(ctx, payment)
+}
+
+func (s *SubscriptionServiceImpl) ProcessPaymentRetries(ctx context.Context) error {
+	expiring, err := s.subscriptionRepo.GetExpiringSoonSubscriptions(ctx, 1)
+	if err != nil {
+		return err
+	}
+
+	for _, sub := range expiring {
+		s.RetryPayment(ctx, sub.ID)
+	}
+
+	history, _, _ := s.subscriptionRepo.GetSubscriptionHistory(ctx, "", 1, 1000)
+	for _, h := range history {
+		if h.Action == "payment_failed" {
+			sub, err := s.subscriptionRepo.GetSubscription(ctx, h.SubscriptionID)
+			if err != nil || sub.Status != "past_due" {
+				continue
+			}
+			s.RetryPayment(ctx, sub.ID)
+		}
+	}
+
+	return nil
+}
+
+// ========== WEBHOOK ==========
+
+func (s *SubscriptionServiceImpl) HandleWebhook(ctx context.Context, payload *models.IntaSendWebhookPayload) error {
+	switch payload.Event {
+	case "payment.completed":
+		return s.handlePaymentCompleted(ctx, payload.Data)
+	case "payment.failed":
+		return s.handlePaymentFailed(ctx, payload.Data)
+	case "refund.completed":
+		return s.handleRefundCompleted(ctx, payload.Data)
+	default:
+		return fmt.Errorf("unknown webhook event: %s", payload.Event)
+	}
+}
+
+func (s *SubscriptionServiceImpl) handlePaymentCompleted(ctx context.Context, data map[string]interface{}) error {
+	transactionID, _ := data["transaction_id"].(string)
+	reference, _ := data["reference"].(string)
+
+	if reference == "" || transactionID == "" {
+		return fmt.Errorf("missing reference or transaction_id")
+	}
+
+	payment, err := s.paymentRepo.GetPaymentByReference(ctx, reference)
+	if err != nil {
+		return fmt.Errorf("payment not found for reference %s: %w", reference, err)
+	}
+
+	now := time.Now()
+	if err := s.paymentRepo.UpdatePaymentStatus(ctx, payment.ID, "completed", transactionID, &now); err != nil {
+		return err
+	}
+
+	invoice, err := s.GenerateInvoice(ctx, payment.ID, payment.ID)
+	if err != nil {
+		return fmt.Errorf("invoice generation failed: %w", err)
+	}
+
+	if payment.SubscriptionID != nil {
+		sub, _ := s.subscriptionRepo.GetSubscription(ctx, *payment.SubscriptionID)
+		if sub != nil && sub.Status == "past_due" {
+			sub.Status = "active"
+			s.subscriptionRepo.UpdateSubscription(ctx, sub)
+		}
+	}
+
+	_ = invoice
+	return nil
+}
+
+func (s *SubscriptionServiceImpl) handlePaymentFailed(ctx context.Context, data map[string]interface{}) error {
+	reference, _ := data["reference"].(string)
+
+	payment, err := s.paymentRepo.GetPaymentByReference(ctx, reference)
+	if err != nil {
+		return fmt.Errorf("payment not found: %w", err)
+	}
+
+	now := time.Now()
+	s.paymentRepo.UpdatePaymentStatus(ctx, payment.ID, "failed", "", &now)
+
+	if payment.SubscriptionID != nil {
+		sub, err := s.subscriptionRepo.GetSubscription(ctx, *payment.SubscriptionID)
+		if err == nil && sub.Status == "active" {
+			sub.Status = "past_due"
+			sub.UpdatedAt = time.Now()
+			s.subscriptionRepo.UpdateSubscription(ctx, sub)
+
+			history := &models.SubscriptionHistory{
+				SubscriptionID: sub.ID,
+				UserID:         sub.UserID,
+				Action:         "payment_failed",
+				Reason:         "Payment gateway declined transaction",
+			}
+			s.subscriptionRepo.AddHistory(ctx, history)
+		}
+	}
+
+	return nil
+}
+
+func (s *SubscriptionServiceImpl) handleRefundCompleted(ctx context.Context, data map[string]interface{}) error {
+	transactionID, _ := data["transaction_id"].(string)
+
+	payment, err := s.paymentRepo.GetPaymentByTransactionID(ctx, transactionID)
+	if err != nil {
+		return fmt.Errorf("payment not found: %w", err)
+	}
+
+	now := time.Now()
+	return s.paymentRepo.UpdatePaymentStatus(ctx, payment.ID, "refunded", transactionID, &now)
+}
+
+// ========== PRORATION ==========
+
+func (s *SubscriptionServiceImpl) CalculateProration(ctx context.Context, subscriptionID, newPlanID string) (*CalculateProrationResult, error) {
+	sub, err := s.subscriptionRepo.GetSubscription(ctx, subscriptionID)
+	if err != nil {
+		return nil, err
+	}
+
+	newPlan, err := s.subscriptionRepo.GetPlanByPlanID(ctx, newPlanID)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	totalDays := int(sub.CurrentPeriodEnd.Sub(sub.CurrentPeriodStart).Hours() / 24)
+	daysLeft := int(sub.CurrentPeriodEnd.Sub(now).Hours() / 24)
+	if daysLeft < 0 {
+		daysLeft = 0
+	}
+	if totalDays <= 0 {
+		totalDays = 30
+	}
+
+	dailyRate := sub.Amount / float64(totalDays)
+	creditAmount := dailyRate * float64(daysLeft)
+
+	newDailyRate := newPlan.Price / float64(totalDays)
+	newAmount := newDailyRate * float64(daysLeft)
+
+	dueNow := newAmount - creditAmount
+	if dueNow < 0 {
+		dueNow = 0
+	}
+
+	return &CalculateProrationResult{
+		CreditAmount: creditAmount,
+		NewAmount:    newAmount,
+		DueNow:       dueNow,
+		DaysLeft:     daysLeft,
+		TotalDays:    totalDays,
+	}, nil
+}
+
+// ========== INVOICE PDF ==========
+
+func (s *SubscriptionServiceImpl) GenerateInvoicePDF(ctx context.Context, invoiceID string) (string, error) {
+	invoice, err := s.paymentRepo.GetInvoice(ctx, invoiceID)
+	if err != nil {
+		return "", err
+	}
+
+	items, err := s.paymentRepo.GetInvoiceItems(ctx, invoiceID)
+	if err != nil {
+		return "", err
+	}
+
+	pdfURL := fmt.Sprintf("%s/invoices/%s/view", s.cfg.AppURL, invoice.ID)
+
+	s.paymentRepo.UpdateInvoicePDF(ctx, invoiceID, pdfURL)
+
+	_ = items
+	return pdfURL, nil
+}
+
+// ========== PLANS ==========
+
+func (s *SubscriptionServiceImpl) GetPlanFeatures(ctx context.Context, planID string) ([]*models.SubscriptionPlanFeature, error) {
+	return s.subscriptionRepo.GetPlanFeatures(ctx, planID)
+}
+
 // ========== ADMIN ==========
 
 func (s *SubscriptionServiceImpl) GetAllSubscriptions(ctx context.Context, filters map[string]interface{}, page, limit int) ([]*models.Subscription, int64, error) {
@@ -681,7 +1161,7 @@ func (s *SubscriptionServiceImpl) createUsageRecords(ctx context.Context, subscr
 		{"job_posts", plan.JobPostLimit},
 		{"api_calls", 1000},
 	}
-	
+
 	for _, m := range metrics {
 		s.subscriptionRepo.GetOrCreateUsage(ctx, subscriptionID, userID, m.key, m.limit, time.Now(), time.Now())
 	}

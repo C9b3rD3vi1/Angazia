@@ -56,6 +56,13 @@ type EmailService interface {
 	SendTeamInvitationExistingUser(to, companyName, role, token string)
 	SendTeamInvitationNewUser(to, companyName, role, token string)
 
+	// Billing and payment emails
+	SendPaymentConfirmationEmail(to, planName, amount, currency, invoiceNumber, email string)
+	SendPaymentFailedEmail(to, planName, amount, currency, reason, email string)
+	SendSubscriptionCancelledEmail(to, planName, endDate, email string)
+	SendSubscriptionReactivatedEmail(to, planName, email string)
+	SendRenewalReminderEmail(to string, planName string, amount string, currency string, daysUntilRenewal int, email string)
+	SendInvoiceAvailableEmail(to, invoiceNumber, amount, currency, invoiceURL, email string)
 }
 
 type EmailServiceImpl struct {
@@ -811,4 +818,159 @@ func (s *EmailServiceImpl) SendTeamInvitationNewUser(to, companyName, role, toke
 
 	textBody := fmt.Sprintf("You've been invited to join %s as %s. Create your account: %s/register?email=%s&invite=%s", companyName, role, s.cfg.AppURL, to, token)
 	s.sendEmail(to, data.Subject, htmlBody, textBody, to)
+}
+
+func (s *EmailServiceImpl) SendPaymentConfirmationEmail(to, planName, amount, currency, invoiceNumber, email string) {
+	data := &EmailData{
+		AppName:     s.cfg.AppName,
+		AppURL:      s.cfg.AppURL,
+		AppDomain:   s.cfg.AppDomain,
+		Year:        time.Now().Year(),
+		Email:       email,
+		Subject:     fmt.Sprintf("Payment Confirmed - %s", s.cfg.AppName),
+		HeaderTitle: "Payment Successful!",
+		HeaderColor: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+		ButtonColor: "#10b981",
+		Name:        planName,
+		Company:     fmt.Sprintf("%s %s", amount, currency),
+		Status:      invoiceNumber,
+	}
+
+	htmlBody, err := s.renderTemplate("payment_confirmation", data)
+	if err != nil {
+		fmt.Printf("Failed to render payment confirmation email: %v\n", err)
+		return
+	}
+
+	textBody := fmt.Sprintf("Your payment of %s %s for %s has been confirmed. Invoice: %s.", amount, currency, planName, invoiceNumber)
+	s.sendEmail(to, data.Subject, htmlBody, textBody, email)
+}
+
+func (s *EmailServiceImpl) SendPaymentFailedEmail(to, planName, amount, currency, reason, email string) {
+	data := &EmailData{
+		AppName:     s.cfg.AppName,
+		AppURL:      s.cfg.AppURL,
+		AppDomain:   s.cfg.AppDomain,
+		Year:        time.Now().Year(),
+		Email:       email,
+		Subject:     fmt.Sprintf("Payment Failed - %s", s.cfg.AppName),
+		HeaderTitle: "Payment Failed",
+		HeaderColor: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+		ButtonColor: "#ef4444",
+		LinkColor:   "#ef4444",
+		Name:        planName,
+		Company:     fmt.Sprintf("%s %s", amount, currency),
+		Reason:      reason,
+	}
+
+	htmlBody, err := s.renderTemplate("payment_failed", data)
+	if err != nil {
+		fmt.Printf("Failed to render payment failed email: %v\n", err)
+		return
+	}
+
+	textBody := fmt.Sprintf("Your payment of %s %s for %s has failed. Reason: %s. Please update your payment method.", amount, currency, planName, reason)
+	s.sendEmail(to, data.Subject, htmlBody, textBody, email)
+}
+
+func (s *EmailServiceImpl) SendSubscriptionCancelledEmail(to, planName, endDate, email string) {
+	data := &EmailData{
+		AppName:     s.cfg.AppName,
+		AppURL:      s.cfg.AppURL,
+		AppDomain:   s.cfg.AppDomain,
+		Year:        time.Now().Year(),
+		Email:       email,
+		Subject:     fmt.Sprintf("Subscription Cancelled - %s", s.cfg.AppName),
+		HeaderTitle: "Subscription Cancelled",
+		HeaderColor: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+		ButtonColor: "#f59e0b",
+		Name:        planName,
+		Status:      endDate,
+	}
+
+	htmlBody, err := s.renderTemplate("subscription_cancelled", data)
+	if err != nil {
+		fmt.Printf("Failed to render subscription cancelled email: %v\n", err)
+		return
+	}
+
+	textBody := fmt.Sprintf("Your %s subscription has been cancelled. You will have access until %s.", planName, endDate)
+	s.sendEmail(to, data.Subject, htmlBody, textBody, email)
+}
+
+func (s *EmailServiceImpl) SendSubscriptionReactivatedEmail(to, planName, email string) {
+	data := &EmailData{
+		AppName:     s.cfg.AppName,
+		AppURL:      s.cfg.AppURL,
+		AppDomain:   s.cfg.AppDomain,
+		Year:        time.Now().Year(),
+		Email:       email,
+		Subject:     fmt.Sprintf("Subscription Reactivated - %s", s.cfg.AppName),
+		HeaderTitle: "Welcome Back!",
+		HeaderColor: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+		ButtonColor: "#667eea",
+		Name:        planName,
+	}
+
+	htmlBody, err := s.renderTemplate("subscription_reactivated", data)
+	if err != nil {
+		fmt.Printf("Failed to render subscription reactivated email: %v\n", err)
+		return
+	}
+
+	textBody := fmt.Sprintf("Your %s subscription has been reactivated.", planName)
+	s.sendEmail(to, data.Subject, htmlBody, textBody, email)
+}
+
+func (s *EmailServiceImpl) SendRenewalReminderEmail(to, planName, amount, currency string, daysUntilRenewal int, email string) {
+	data := &EmailData{
+		AppName:     s.cfg.AppName,
+		AppURL:      s.cfg.AppURL,
+		AppDomain:   s.cfg.AppDomain,
+		Year:        time.Now().Year(),
+		Email:       email,
+		Subject:     fmt.Sprintf("Subscription Renewal Reminder - %s", s.cfg.AppName),
+		HeaderTitle: "Renewal Reminder",
+		HeaderColor: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+		ButtonColor: "#3b82f6",
+		Name:        planName,
+		Company:     fmt.Sprintf("%s %s", amount, currency),
+		Count:       daysUntilRenewal,
+	}
+
+	htmlBody, err := s.renderTemplate("renewal_reminder", data)
+	if err != nil {
+		fmt.Printf("Failed to render renewal reminder email: %v\n", err)
+		return
+	}
+
+	textBody := fmt.Sprintf("Your %s subscription will renew in %d days for %s %s.", planName, daysUntilRenewal, amount, currency)
+	s.sendEmail(to, data.Subject, htmlBody, textBody, email)
+}
+
+func (s *EmailServiceImpl) SendInvoiceAvailableEmail(to, invoiceNumber, amount, currency, invoiceURL, email string) {
+	data := &EmailData{
+		AppName:     s.cfg.AppName,
+		AppURL:      s.cfg.AppURL,
+		AppDomain:   s.cfg.AppDomain,
+		Year:        time.Now().Year(),
+		Email:       email,
+		Subject:     fmt.Sprintf("Invoice Available - %s", invoiceNumber),
+		HeaderTitle: "Invoice Available",
+		HeaderColor: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+		ButtonColor: "#8b5cf6",
+		LinkColor:   "#8b5cf6",
+		Name:        invoiceNumber,
+		Company:     fmt.Sprintf("%s %s", amount, currency),
+		VerificationURL: invoiceURL,
+	}
+
+	htmlBody, err := s.renderTemplate("invoice_available", data)
+	if err != nil {
+		fmt.Printf("Failed to render invoice email: %v\n", err)
+		return
+	}
+
+	textBody := fmt.Sprintf("Invoice %s for %s %s is now available. View: %s", invoiceNumber, amount, currency, invoiceURL)
+	s.sendEmail(to, data.Subject, htmlBody, textBody, email)
 }
