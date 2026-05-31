@@ -1,0 +1,53 @@
+{{define "payment_receipt"}}
+<h2>Payment Receipt</h2>
+
+<p>Dear {{.Name}},</p>
+
+<p>Thank you for your payment. Your transaction has been completed successfully.</p>
+
+<div class="success-box">
+    <p><strong>Payment Details:</strong></p>
+    <table style="width: 100%; margin: 10px 0;">
+        <tr>
+            <td><strong>Invoice Number:</strong></td>
+            <td>{{.InvoiceNumber}}</td>
+        </tr>
+        <tr>
+            <td><strong>Payment Date:</strong></td>
+            <td>{{.PaymentDate}}</td>
+        </tr>
+        <tr>
+            <td><strong>Payment Method:</strong></td>
+            <td>{{.PaymentMethod}}</td>
+        </tr>
+        <tr>
+            <td><strong>Transaction ID:</strong></td>
+            <td>{{.TransactionID}}</td>
+        </tr>
+        <tr>
+            <td><strong>Subscription:</strong></td>
+            <td>{{.PlanName}}</td>
+        </tr>
+        <tr>
+            <td><strong>Amount:</strong></td>
+            <td>{{.Currency}} {{.Amount}}</td>
+        </tr>
+        <tr>
+            <td><strong>Tax (VAT 16%):</strong></td>
+            <td>{{.Currency}} {{.Tax}}</td>
+        </tr>
+        <tr>
+            <td><strong>Total:</strong></td>
+            <td><strong>{{.Currency}} {{.Total}}</strong></td>
+        </tr>
+    </table>
+</div>
+
+<div class="text-center">
+    <a href="{{.InvoiceURL}}" class="button">Download Invoice (PDF)</a>
+</div>
+
+<hr>
+
+<p class="text-muted">This is your official payment receipt. Please keep it for your records.</p>
+{{end}}

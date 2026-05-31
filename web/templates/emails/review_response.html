@@ -1,0 +1,21 @@
+{{define "review_response"}}
+<h2>Thank You for Your Review!</h2>
+
+<p>Thank you for sharing your experience with <strong>{{.CompanyName}}</strong>.</p>
+
+<p>Your review helps other job seekers make informed decisions and encourages companies to provide better experiences.</p>
+
+<div class="info-box">
+    <p><strong>Your Review Summary:</strong></p>
+    <p>Rating: {{"★"}}{{range $i := .RatingStars}}★{{end}}</p>
+    <p>{{.ReviewContent}}</p>
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/companies/{{.CompanyID}}/reviews" class="button">View Your Review</a>
+</div>
+
+<hr>
+
+<p class="text-muted">Your feedback makes our community stronger!</p>
+{{end}}

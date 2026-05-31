@@ -2,22 +2,23 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/Angazia/internal/handlers"
+	"github.com/C9b3rD3vi1/Angazia/internal/handlers"
+	"github.com/C9b3rD3vi1/Angazia/internal/middleware"
 )
 
-// SetupMatchRoutes configures AI matching endpoints
-func SetupMatchRoutes(router fiber.Router) {
-	// For employees
-	router.Get("/jobs", handlers.GetRecommendedJobs)
-	router.Get("/jobs/:id/analysis", handlers.GetJobFitAnalysis)
-	router.Post("/analyze-skills", handlers.AnalyzeSkillsGap)
+func SetupMatchingRoutes(router fiber.Router, matchingHandler *handlers.MatchingHandler) {
+	// Protected routes (authentication required)
+	protected := router.Group("/", middleware.AuthMiddleware())
 	
-	// For employers
-	router.Get("/candidates", handlers.GetRecommendedCandidates)
-	router.Get("/candidates/:id/analysis", handlers.GetCandidateFitAnalysis)
-	router.Post("/jobs/:id/match-candidates", handlers.MatchCandidatesForJob)
+	// Candidate matching endpoints
+	employee := protected.Group("/employee", middleware.RequireRole("employee"))
+	employee.Get("/matches/jobs", matchingHandler.GetJobMatches)
+	employee.Post("/matches/cover-letter", matchingHandler.GenerateCoverLetter)
+	employee.Get("/matches/skills-gap/:jobId", matchingHandler.AnalyzeSkillsGap)
+	employee.Get("/matches/analysis/:jobId/:employeeId", matchingHandler.GetDetailedMatchAnalysis)
 	
-	// Match feedback and improvement
-	router.Post("/feedback", handlers.SubmitMatchFeedback)
-	router.Get("/insights", handlers.GetMatchInsights)
+	// Employer matching endpoints
+	employer := protected.Group("/employer", middleware.RequireRole("employer"))
+	employer.Get("/matches/candidates/:jobId", matchingHandler.GetCandidateMatches)
+	employer.Get("/matches/interview-questions/:jobId", matchingHandler.GenerateInterviewQuestions)
 }

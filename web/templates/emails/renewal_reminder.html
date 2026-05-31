@@ -1,0 +1,35 @@
+{{define "renewal_reminder"}}
+<h2>Your Subscription is Renewing Soon</h2>
+
+<p>Dear {{.Name}},</p>
+
+<p>Your <strong>{{.PlanName}}</strong> subscription is set to renew on <strong>{{.RenewalDate}}</strong>.</p>
+
+<div class="info-box">
+    <p><strong>Subscription Details:</strong></p>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Plan: {{.PlanName}}</li>
+        <li>Amount: {{.Currency}} {{.Amount}}</li>
+        <li>Renewal Date: {{.RenewalDate}}</li>
+        <li>Auto-Renew: {{if .AutoRenew}}Enabled{{else}}Disabled{{end}}</li>
+    </ul>
+</div>
+
+<div class="warning-box">
+    <strong>⚠️ Need to make changes?</strong>
+    <p style="margin-top: 10px;">You can manage your subscription settings at any time:</p>
+    <ul style="margin: 10px 0 0 20px;">
+        <li><a href="{{.AppURL}}/subscriptions/cancel">Cancel auto-renewal</a></li>
+        <li><a href="{{.AppURL}}/subscriptions/upgrade">Upgrade your plan</a></li>
+        <li><a href="{{.AppURL}}/payment-methods">Update payment method</a></li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/subscriptions" class="button">Manage Subscription</a>
+</div>
+
+<hr>
+
+<p class="text-muted">If you have any questions, please contact our support team.</p>
+{{end}}

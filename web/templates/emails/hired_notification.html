@@ -1,0 +1,32 @@
+{{define "hired_notification"}}
+<div class="celebration">
+    🎊 🎈 🎉
+</div>
+
+<h2 style="margin-top: 0; text-align: center;">You're Hired!</h2>
+
+<p style="text-align: center; font-size: 18px;">We're thrilled to offer you the position of <strong>{{.JobTitle}}</strong> at <strong>{{.Company}}</strong>!</p>
+
+<div class="success-box">
+    <strong>📋 Next Steps:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Complete your onboarding paperwork</li>
+        <li>Review the employee handbook</li>
+        <li>Set up your company accounts</li>
+        <li>Schedule your first day orientation</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.OnboardingURL}}" class="button">Start Onboarding</a>
+</div>
+
+<div class="warning-box">
+    <strong>📞 Need Help?</strong>
+    <p style="margin: 10px 0 0 0;">Contact HR at <a href="mailto:hr@{{.AppDomain}}">hr@{{.AppDomain}}</a> for any questions.</p>
+</div>
+
+<hr>
+
+<p class="text-muted">We're excited to have you on board!</p>
+{{end}}

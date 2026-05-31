@@ -1,0 +1,22 @@
+{{define "verification"}}
+<h2 style="margin-top: 0;">Verify Your Email Address</h2>
+
+<p>Thanks for signing up for <strong>{{.AppName}}</strong>! Please verify your email address to get started with your job search.</p>
+
+<div class="text-center">
+    <a href="{{.VerificationURL}}" class="button">Verify Email Address</a>
+</div>
+
+<p>Or copy and paste this link into your browser:</p>
+<p style="word-break: break-all; background: #f3f4f6; padding: 10px; border-radius: 6px; font-size: 12px;">
+    <a href="{{.VerificationURL}}" class="link">{{.VerificationURL}}</a>
+</p>
+
+<div class="warning-box">
+    <strong>⚠️ Note:</strong> This link will expire in 24 hours.
+</div>
+
+<hr>
+
+<p class="text-muted">If you didn't create an account with {{.AppName}}, you can safely ignore this email.</p>
+{{end}}

@@ -1,0 +1,57 @@
+-- migrations/007_create_alert_tables.sql
+
+-- Saved searches table
+CREATE TABLE IF NOT EXISTS saved_searches (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    filters JSONB NOT NULL,
+    frequency VARCHAR(50) NOT NULL DEFAULT 'daily',
+    is_active BOOLEAN DEFAULT TRUE,
+    last_sent_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    INDEX idx_saved_searches_user_id (user_id),
+    INDEX idx_saved_searches_is_active (is_active),
+    INDEX idx_saved_searches_frequency (frequency)
+);
+
+-- Alert history table
+CREATE TABLE IF NOT EXISTS alert_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    saved_search_id UUID NOT NULL REFERENCES saved_searches(id) ON DELETE CASCADE,
+    jobs_found INT DEFAULT 0,
+    jobs_sent INT DEFAULT 0,
+    job_ids JSONB,
+    sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    INDEX idx_alert_history_saved_search_id (saved_search_id),
+    INDEX idx_alert_history_sent_at (sent_at)
+);
+
+-- Alert settings table
+CREATE TABLE IF NOT EXISTS alert_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    email_enabled BOOLEAN DEFAULT TRUE,
+    push_enabled BOOLEAN DEFAULT FALSE,
+    new_job_alerts BOOLEAN DEFAULT TRUE,
+    application_updates BOOLEAN DEFAULT TRUE,
+    marketing_emails BOOLEAN DEFAULT FALSE,
+    email_digest_hour INT DEFAULT 8,
+    email_digest_day INT DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    INDEX idx_alert_settings_user_id (user_id)
+);
+
+-- Create trigger for updated_at
+CREATE TRIGGER update_saved_searches_updated_at 
+    BEFORE UPDATE ON saved_searches 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_alert_settings_updated_at 
+    BEFORE UPDATE ON alert_settings 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

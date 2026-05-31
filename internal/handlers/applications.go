@@ -1,1 +1,584 @@
 package handlers
+
+import (
+	"strconv"
+	"time"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v2"
+	
+	"github.com/C9b3rD3vi1/Angazia/internal/services"
+)
+
+type ApplicationHandler struct {
+	applicationService services.ApplicationService
+	validator          *validator.Validate
+}
+
+type ApplyRequest struct {
+	JobID       string `json:"job_id" validate:"required"`
+	CoverLetter string `json:"cover_letter" validate:"required,min=50"`
+	ResumeURL   string `json:"resume_url"`
+	PortfolioURL string `json:"portfolio_url"`
+}
+
+type ScheduleInterviewRequest struct {
+	InterviewDate time.Time `json:"interview_date" validate:"required"`
+	InterviewType string    `json:"interview_type" validate:"required,oneof=phone technical onsite final"`
+	Notes         string    `json:"notes"`
+}
+
+func NewApplicationHandler(applicationService services.ApplicationService) *ApplicationHandler {
+	return &ApplicationHandler{
+		applicationService: applicationService,
+		validator:          validator.New(),
+	}
+}
+
+// Apply submits a job application
+// @Summary Apply for a job
+// @Description Submit application for a job
+// @Tags Applications
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body ApplyRequest true "Application details"
+// @Success 201 {object} APIResponse
+// @Failure 400 {object} APIResponse
+// @Failure 401 {object} APIResponse
+// @Router /applications [post]
+func (h *ApplicationHandler) Apply(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
+			Success: false,
+			Error:   "unauthorized",
+			Message: "User not authenticated",
+		})
+	}
+	
+	var req ApplyRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
+			Success: false,
+			Error:   "invalid_request",
+			Message: err.Error(),
+		})
+	}
+	
+	if err := h.validator.Struct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
+			Success: false,
+			Error:   "validation_failed",
+			Message: err.Error(),
+		})
+	}
+	
+	application, err := h.applicationService.Apply(c.Context(), userID.(string), &services.ApplyRequest{
+		JobID:       req.JobID,
+		CoverLetter: req.CoverLetter,
+		ResumeURL:   req.ResumeURL,
+		PortfolioURL: req.PortfolioURL,
+	})
+	if err != nil {
+		status := fiber.StatusInternalServerError
+		if err.Error() == "job not found" {
+			status = fiber.StatusNotFound
+		} else if err.Error() == "you have already applied for this job" {
+			status = fiber.StatusConflict
+		}
+		return c.Status(status).JSON(APIResponse{
+			Success: false,
+			Error:   "application_failed",
+			Message: err.Error(),
+		})
+	}
+	
+	return c.Status(fiber.StatusCreated).JSON(APIResponse{
+		Success: true,
+		Message: "Application submitted successfully",
+		Data:    application,
+	})
+}
+
+// WithdrawApplication withdraws an application
+// @Summary Withdraw application
+// @Description Withdraw a submitted application
+// @Tags Applications
+// @Security BearerAuth
+// @Param id path string true "Application ID"
+// @Success 200 {object} APIResponse
+// @Failure 401 {object} APIResponse
+// @Failure 404 {object} APIResponse
+// @Router /applications/{id}/withdraw [post]
+func (h *ApplicationHandler) WithdrawApplication(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
+			Success: false,
+			Error:   "unauthorized",
+			Message: "User not authenticated",
+		})
+	}
+	
+	applicationID := c.Params("id")
+	if applicationID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
+			Success: false,
+			Error:   "missing_id",
+			Message: "Application ID is required",
+		})
+	}
+	
+	if err := h.applicationService.WithdrawApplication(c.Context(), applicationID, userID.(string)); err != nil {
+		status := fiber.StatusInternalServerError
+		if err.Error() == "application not found" {
+			status = fiber.StatusNotFound
+		}
+		return c.Status(status).JSON(APIResponse{
+			Success: false,
+			Error:   "withdrawal_failed",
+			Message: err.Error(),
+		})
+	}
+	
+	return c.Status(fiber.StatusOK).JSON(APIResponse{
+		Success: true,
+		Message: "Application withdrawn successfully",
+	})
+}
+
+// GetApplication retrieves application details
+// @Summary Get application details
+// @Description Get detailed application information
+// @Tags Applications
+// @Security BearerAuth
+// @Param id path string true "Application ID"
+// @Success 200 {object} APIResponse
+// @Failure 401 {object} APIResponse
+// @Failure 404 {object} APIResponse
+// @Router /applications/{id} [get]
+func (h *ApplicationHandler) GetApplication(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
+			Success: false,
+			Error:   "unauthorized",
+			Message: "User not authenticated",
+		})
+	}
+	role := c.Locals("user_role").(string)
+	
+	applicationID := c.Params("id")
+	if applicationID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
+			Success: false,
+			Error:   "missing_id",
+			Message: "Application ID is required",
+		})
+	}
+	
+	application, err := h.applicationService.GetApplication(c.Context(), applicationID, userID.(string), role)
+	if err != nil {
+		status := fiber.StatusInternalServerError
+		if err.Error() == "application not found" {
+			status = fiber.StatusNotFound
+		} else if err.Error() == "unauthorized" {
+			status = fiber.StatusForbidden
+		}
+		return c.Status(status).JSON(APIResponse{
+			Success: false,
+			Error:   "fetch_failed",
+			Message: err.Error(),
+		})
+	}
+	
+	return c.Status(fiber.StatusOK).JSON(APIResponse{
+		Success: true,
+		Data:    application,
+	})
+}
+
+// ListMyApplications lists applications for the authenticated candidate
+// @Summary List my applications
+// @Description Get all applications submitted by the candidate
+// @Tags Applications
+// @Security BearerAuth
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Items per page" default(20)
+// @Success 200 {object} APIResponse
+// @Router /employee/applications [get]
+func (h *ApplicationHandler) ListMyApplications(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
+			Success: false,
+			Error:   "unauthorized",
+			Message: "User not authenticated",
+		})
+	}
+	
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	
+	result, err := h.applicationService.ListMyApplications(c.Context(), userID.(string), page, limit)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
+			Success: false,
+			Error:   "list_failed",
+			Message: err.Error(),
+		})
+	}
+	
+	return c.Status(fiber.StatusOK).JSON(APIResponse{
+		Success: true,
+		Data:    result,
+	})
+}
+
+// ListJobApplications lists applications for a specific job (employer only)
+// @Summary List job applications
+// @Description Get all applications for a specific job
+// @Tags Applications
+// @Security BearerAuth
+// @Param jobId path string true "Job ID"
+// @Param status query string false "Filter by status"
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Items per page" default(20)
+// @Success 200 {object} APIResponse
+// @Router /employer/jobs/{jobId}/applications [get]
+func (h *ApplicationHandler) ListJobApplications(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
+			Success: false,
+			Error:   "unauthorized",
+			Message: "User not authenticated",
+		})
+	}
+	
+	jobID := c.Params("jobId")
+	if jobID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
+			Success: false,
+			Error:   "missing_job_id",
+			Message: "Job ID is required",
+		})
+	}
+	
+	status := c.Query("status", "")
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	
+	result, err := h.applicationService.ListJobApplications(c.Context(), jobID, userID.(string), status, page, limit)
+	if err != nil {
+		statusCode := fiber.StatusInternalServerError
+		if err.Error() == "job not found" {
+			statusCode = fiber.StatusNotFound
+		} else if err.Error() == "unauthorized" {
+			statusCode = fiber.StatusForbidden
+		}
+		return c.Status(statusCode).JSON(APIResponse{
+			Success: false,
+			Error:   "list_failed",
+			Message: err.Error(),
+		})
+	}
+	
+	return c.Status(fiber.StatusOK).JSON(APIResponse{
+		Success: true,
+		Data:    result,
+	})
+}
+
+// ListCompanyApplications lists all applications for the employer's company
+// @Summary List company applications
+// @Description Get all applications for all jobs posted by the employer
+// @Tags Applications
+// @Security BearerAuth
+// @Param status query string false "Filter by status"
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Items per page" default(20)
+// @Success 200 {object} APIResponse
+// @Router /employer/applications [get]
+func (h *ApplicationHandler) ListCompanyApplications(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
+			Success: false,
+			Error:   "unauthorized",
+			Message: "User not authenticated",
+		})
+	}
+	
+	status := c.Query("status", "")
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	
+	result, err := h.applicationService.ListCompanyApplications(c.Context(), userID.(string), status, page, limit)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
+			Success: false,
+			Error:   "list_failed",
+			Message: err.Error(),
+		})
+	}
+	
+	return c.Status(fiber.StatusOK).JSON(APIResponse{
+		Success: true,
+		Data:    result,
+	})
+}
+
+// ShortlistApplication shortlists an application
+// @Summary Shortlist application
+// @Description Mark an application as shortlisted
+// @Tags Applications
+// @Security BearerAuth
+// @Param id path string true "Application ID"
+// @Param notes body string false "Employer notes"
+// @Success 200 {object} APIResponse
+// @Router /employer/applications/{id}/shortlist [post]
+func (h *ApplicationHandler) ShortlistApplication(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
+			Success: false,
+			Error:   "unauthorized",
+			Message: "User not authenticated",
+		})
+	}
+	
+	applicationID := c.Params("id")
+	if applicationID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
+			Success: false,
+			Error:   "missing_id",
+			Message: "Application ID is required",
+		})
+	}
+	
+	var req struct {
+		Notes string `json:"notes"`
+	}
+	c.BodyParser(&req)
+	
+	if err := h.applicationService.ShortlistApplication(c.Context(), applicationID, userID.(string), req.Notes); err != nil {
+		statusCode := fiber.StatusInternalServerError
+		if err.Error() == "application not found" {
+			statusCode = fiber.StatusNotFound
+		} else if err.Error() == "unauthorized" {
+			statusCode = fiber.StatusForbidden
+		}
+		return c.Status(statusCode).JSON(APIResponse{
+			Success: false,
+			Error:   "shortlist_failed",
+			Message: err.Error(),
+		})
+	}
+	
+	return c.Status(fiber.StatusOK).JSON(APIResponse{
+		Success: true,
+		Message: "Application shortlisted successfully",
+	})
+}
+
+// RejectApplication rejects an application
+// @Summary Reject application
+// @Description Mark an application as rejected
+// @Tags Applications
+// @Security BearerAuth
+// @Param id path string true "Application ID"
+// @Param notes body string false "Rejection reason"
+// @Success 200 {object} APIResponse
+// @Router /employer/applications/{id}/reject [post]
+func (h *ApplicationHandler) RejectApplication(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
+			Success: false,
+			Error:   "unauthorized",
+			Message: "User not authenticated",
+		})
+	}
+	
+	applicationID := c.Params("id")
+	if applicationID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
+			Success: false,
+			Error:   "missing_id",
+			Message: "Application ID is required",
+		})
+	}
+	
+	var req struct {
+		Notes string `json:"notes"`
+	}
+	c.BodyParser(&req)
+	
+	if err := h.applicationService.RejectApplication(c.Context(), applicationID, userID.(string), req.Notes); err != nil {
+		statusCode := fiber.StatusInternalServerError
+		if err.Error() == "application not found" {
+			statusCode = fiber.StatusNotFound
+		} else if err.Error() == "unauthorized" {
+			statusCode = fiber.StatusForbidden
+		}
+		return c.Status(statusCode).JSON(APIResponse{
+			Success: false,
+			Error:   "reject_failed",
+			Message: err.Error(),
+		})
+	}
+	
+	return c.Status(fiber.StatusOK).JSON(APIResponse{
+		Success: true,
+		Message: "Application rejected",
+	})
+}
+
+// ScheduleInterview schedules an interview
+// @Summary Schedule interview
+// @Description Schedule an interview for an application
+// @Tags Applications
+// @Security BearerAuth
+// @Param id path string true "Application ID"
+// @Param request body ScheduleInterviewRequest true "Interview details"
+// @Success 200 {object} APIResponse
+// @Router /employer/applications/{id}/interview [post]
+func (h *ApplicationHandler) ScheduleInterview(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
+			Success: false,
+			Error:   "unauthorized",
+			Message: "User not authenticated",
+		})
+	}
+	
+	applicationID := c.Params("id")
+	if applicationID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
+			Success: false,
+			Error:   "missing_id",
+			Message: "Application ID is required",
+		})
+	}
+	
+	var req ScheduleInterviewRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
+			Success: false,
+			Error:   "invalid_request",
+			Message: err.Error(),
+		})
+	}
+	
+	if err := h.validator.Struct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
+			Success: false,
+			Error:   "validation_failed",
+			Message: err.Error(),
+		})
+	}
+	
+	if err := h.applicationService.ScheduleInterview(c.Context(), applicationID, userID.(string), req.InterviewDate, req.InterviewType); err != nil {
+		statusCode := fiber.StatusInternalServerError
+		if err.Error() == "application not found" {
+			statusCode = fiber.StatusNotFound
+		} else if err.Error() == "unauthorized" {
+			statusCode = fiber.StatusForbidden
+		}
+		return c.Status(statusCode).JSON(APIResponse{
+			Success: false,
+			Error:   "schedule_failed",
+			Message: err.Error(),
+		})
+	}
+	
+	return c.Status(fiber.StatusOK).JSON(APIResponse{
+		Success: true,
+		Message: "Interview scheduled successfully",
+	})
+}
+
+// GetApplicationStats returns application statistics
+// @Summary Get application statistics
+// @Description Get statistics about applications
+// @Tags Applications
+// @Security BearerAuth
+// @Success 200 {object} APIResponse
+// @Router /applications/stats [get]
+func (h *ApplicationHandler) GetApplicationStats(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
+			Success: false,
+			Error:   "unauthorized",
+			Message: "User not authenticated",
+		})
+	}
+	role := c.Locals("user_role").(string)
+	
+	stats, err := h.applicationService.GetApplicationStats(c.Context(), userID.(string), role)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
+			Success: false,
+			Error:   "stats_failed",
+			Message: err.Error(),
+		})
+	}
+	
+	return c.Status(fiber.StatusOK).JSON(APIResponse{
+		Success: true,
+		Data:    stats,
+	})
+}
+
+// BulkShortlist bulk shortlists applications
+// @Summary Bulk shortlist applications
+// @Description Shortlist multiple applications at once
+// @Tags Applications
+// @Security BearerAuth
+// @Param ids body []string true "Application IDs"
+// @Success 200 {object} APIResponse
+// @Router /employer/applications/bulk-shortlist [post]
+func (h *ApplicationHandler) BulkShortlist(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
+			Success: false,
+			Error:   "unauthorized",
+			Message: "User not authenticated",
+		})
+	}
+	
+	var ids []string
+	if err := c.BodyParser(&ids); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
+			Success: false,
+			Error:   "invalid_request",
+			Message: err.Error(),
+		})
+	}
+	
+	if len(ids) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
+			Success: false,
+			Error:   "empty_ids",
+			Message: "No application IDs provided",
+		})
+	}
+	
+	if err := h.applicationService.BulkShortlist(c.Context(), ids, userID.(string)); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
+			Success: false,
+			Error:   "bulk_shortlist_failed",
+			Message: err.Error(),
+		})
+	}
+	
+	return c.Status(fiber.StatusOK).JSON(APIResponse{
+		Success: true,
+		Message: "Applications shortlisted successfully",
+	})
+}

@@ -8,7 +8,7 @@ import (
 	"errors"
 	"io"
 	
-	"github.com/Angazia/internal/config"
+	"github.com/C9b3rD3vi1/Angazia/internal/config"
 )
 
 var encryptionKey []byte

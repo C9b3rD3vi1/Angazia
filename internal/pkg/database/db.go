@@ -9,8 +9,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	
-	"github.com/kenyan-dev-marketplace/internal/config"
-	"github.com/kenyan-dev-marketplace/internal/models"
+	"github.com/C9b3rD3vi1/Angazia/internal/config"
+	"github.com/C9b3rD3vi1/Angazia/internal/models"
 )
 
 var DB *gorm.DB

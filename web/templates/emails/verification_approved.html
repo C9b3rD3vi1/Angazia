@@ -1,0 +1,23 @@
+{{define "verification_approved"}}
+<h2>Congratulations! Your Company Has Been Verified</h2>
+
+<p>Great news! Your company <strong>{{.CompanyName}}</strong> has been successfully verified on {{.AppName}}.</p>
+
+<div class="success-box">
+    <strong>✅ What this means for you:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>A verified badge will appear on your company profile</li>
+        <li>Candidates trust verified employers more</li>
+        <li>Your job postings will be prioritized in search results</li>
+        <li>You can now post up to 20 active jobs</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/employer/dashboard" class="button">Go to Dashboard</a>
+</div>
+
+<hr>
+
+<p class="text-muted">Thank you for choosing {{.AppName}} to find top tech talent in Kenya.</p>
+{{end}}

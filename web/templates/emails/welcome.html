@@ -1,0 +1,26 @@
+{{define "welcome"}}
+<h2 style="margin-top: 0;">Welcome to {{.AppName}}, {{.Name}}! 🎉</h2>
+
+<p>We're excited to help you find your next great opportunity in tech!</p>
+
+<div class="feature-box">
+    <h3 style="margin-top: 0;">✨ Get Started in 3 Easy Steps:</h3>
+    <ol style="margin: 0; padding-left: 20px;">
+        <li><strong>Complete your profile</strong> - Add your skills and experience to get better job matches</li>
+        <li><strong>Connect your GitHub</strong> - Showcase your work and let employers see your code</li>
+        <li><strong>Browse matches</strong> - Our AI will recommend jobs that fit your profile</li>
+    </ol>
+</div>
+
+<div class="success-box">
+    <strong>🎯 Pro Tip:</strong> Complete your profile to 100% to get 3x more job matches!
+</div>
+
+<div class="text-center">
+    <a href="{{.DashboardURL}}" class="button">Go to Dashboard</a>
+</div>
+
+<hr>
+
+<p class="text-muted">Need help? Check out our <a href="{{.HelpURL}}" class="link">getting started guide</a> or <a href="{{.AppURL}}/contact" class="link">contact support</a>.</p>
+{{end}}

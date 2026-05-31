@@ -7,12 +7,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/Angazia/internal/config"
+	"golang.org/x/crypto/bcrypt"
+	
+	"github.com/C9b3rD3vi1/Angazia/internal/config"
 )
 
 type Claims struct {
 	UserID string `json:"user_id"`
 	Role   string `json:"role"`
+	Email  string `json:"email"`
 	jwt.RegisteredClaims
 }
 
@@ -22,12 +25,13 @@ func InitJWT(config *config.Config) {
 	cfg = config
 }
 
-func GenerateJWT(userID string, role string) (string, error) {
+func GenerateJWT(userID string, role string, email string) (string, error) {
 	expirationTime := time.Now().Add(time.Duration(cfg.JWTExpiryHours) * time.Hour)
 	
 	claims := &Claims{
 		UserID: userID,
 		Role:   role,
+		Email:  email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -77,7 +81,15 @@ func GetUserRoleFromContext(c *fiber.Ctx) string {
 }
 
 func HashPassword(password string) (string, error) {
-	// Implement bcrypt hashing
-	// This is a placeholder
-	return password, nil
+    // Generate salted hash with default cost (10)
+    hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+    if err != nil {
+        return "", err
+    }
+    return string(hashedBytes), nil
+}
+
+func CheckPasswordHash(password, hash string) bool {
+    err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+    return err == nil
 }

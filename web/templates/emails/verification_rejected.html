@@ -1,0 +1,27 @@
+{{define "verification_rejected"}}
+<h2>Company Verification Update</h2>
+
+<p>Thank you for submitting your verification documents for <strong>{{.CompanyName}}</strong>.</p>
+
+<div class="warning-box">
+    <strong>⚠️ Verification Status: Not Approved</strong>
+    <p style="margin-top: 10px;">Reason: {{.Reason}}</p>
+</div>
+
+<div class="info-box">
+    <strong>📋 Next Steps:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Review the rejection reason above</li>
+        <li>Update your documentation with the correct information</li>
+        <li>Submit a new verification request</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/employer/company/verification" class="button">Submit New Request</a>
+</div>
+
+<hr>
+
+<p class="text-muted">If you believe this is an error, please contact our support team.</p>
+{{end}}

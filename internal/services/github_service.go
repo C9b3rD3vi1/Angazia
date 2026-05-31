@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
-	//"github.com/google/uuid"
+	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 	
-	"github.com/Angazia/internal/config"
-	"github.com/Angazia/internal/models"
-	"github.com/Angazia/internal/pkg/github"
-	"github.com/Angazia/internal/pkg/utils"
-	"github.com/Angazia/internal/repository"
+	"github.com/C9b3rD3vi1/Angazia/internal/config"
+	"github.com/C9b3rD3vi1/Angazia/internal/models"
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/github"
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
+	"github.com/C9b3rD3vi1/Angazia/internal/repository"
 )
 
 type GitHubService interface {
@@ -61,19 +61,17 @@ type ContributionsResult struct {
 }
 
 type GitHubServiceImpl struct {
-	cfg              *config.Config
-	oauthConfig      *oauth2.Config
-	githubRepo       repository.GitHubRepository
-	userRepo         repository.UserRepository
-	githubClient     *github.Client
-	encryptionSvc    EncryptionService
+	cfg          *config.Config
+	oauthConfig  *oauth2.Config
+	githubRepo   repository.GitHubRepository
+	userRepo     repository.UserRepository
+	githubClient *github.Client
 }
 
 func NewGitHubService(
 	cfg *config.Config,
 	githubRepo repository.GitHubRepository,
 	userRepo repository.UserRepository,
-	encryptionSvc EncryptionService,
 ) GitHubService {
 	oauthConfig := &oauth2.Config{
 		ClientID:     cfg.GithubClientID,
@@ -93,11 +91,10 @@ func NewGitHubService(
 	}
 	
 	return &GitHubServiceImpl{
-		cfg:           cfg,
-		oauthConfig:   oauthConfig,
-		githubRepo:    githubRepo,
-		userRepo:      userRepo,
-		encryptionSvc: encryptionSvc,
+		cfg:         cfg,
+		oauthConfig: oauthConfig,
+		githubRepo:  githubRepo,
+		userRepo:    userRepo,
 	}
 }
 
@@ -214,6 +211,7 @@ func (s *GitHubServiceImpl) SyncGitHubData(ctx context.Context, userID string) e
 	
 	// Create sync log
 	syncLog := &models.GithubSyncLog{
+		ID:         uuid.New().String(),
 		EmployeeID: userID,
 		SyncType:   "full",
 		Status:     "processing",
@@ -233,6 +231,7 @@ func (s *GitHubServiceImpl) SyncGitHubData(ctx context.Context, userID string) e
 	modelRepos := make([]*models.GithubRepository, len(repos))
 	for i, repo := range repos {
 		modelRepos[i] = &models.GithubRepository{
+			ID:          uuid.New().String(),
 			EmployeeID:  userID,
 			RepoID:      repo.ID,
 			Name:        repo.Name,
@@ -250,8 +249,10 @@ func (s *GitHubServiceImpl) SyncGitHubData(ctx context.Context, userID string) e
 			PushedAt:    repo.PushedAt,
 			HasWiki:     repo.HasWiki,
 			HasProjects: repo.HasProjects,
-			License:     repo.License,
 			LastFetched: time.Now(),
+		}
+		if repo.License != nil {
+			modelRepos[i].License = repo.License.Name
 		}
 	}
 	
@@ -269,11 +270,12 @@ func (s *GitHubServiceImpl) SyncGitHubData(ctx context.Context, userID string) e
 		syncLog.Status = "partial"
 		syncLog.ErrorMessage = err.Error()
 		s.githubRepo.CreateSyncLog(ctx, syncLog)
-	} else {
+	} else if len(contributions) > 0 {
 		// Save contributions
 		modelContribs := make([]*models.GithubContribution, len(contributions))
 		for i, contrib := range contributions {
 			modelContribs[i] = &models.GithubContribution{
+				ID:         uuid.New().String(),
 				EmployeeID: userID,
 				Date:       contrib.Date,
 				Count:      contrib.Count,
@@ -291,8 +293,8 @@ func (s *GitHubServiceImpl) SyncGitHubData(ctx context.Context, userID string) e
 	
 	// Update profile stats
 	updates := map[string]interface{}{
-		"public_repos":    len(repos),
-		"last_synced_at":  time.Now(),
+		"public_repos":   len(repos),
+		"last_synced_at": time.Now(),
 	}
 	s.githubRepo.UpdateProfileStats(ctx, userID, updates)
 	
@@ -386,8 +388,8 @@ func (s *GitHubServiceImpl) GetValidAccessToken(ctx context.Context, userID stri
 		return "", err
 	}
 	
-	// Decrypt access token
-	accessToken, err := s.encryptionSvc.Decrypt(token.AccessToken)
+	// Decrypt access token using existing utils
+	accessToken, err := utils.DecryptString(token.AccessToken)
 	if err != nil {
 		return "", err
 	}
@@ -395,7 +397,7 @@ func (s *GitHubServiceImpl) GetValidAccessToken(ctx context.Context, userID stri
 	// Check if token is expired
 	if token.ExpiresAt.Before(time.Now().Add(5 * time.Minute)) {
 		// Refresh token
-		refreshToken, err := s.encryptionSvc.Decrypt(token.RefreshToken)
+		refreshToken, err := utils.DecryptString(token.RefreshToken)
 		if err != nil {
 			return "", err
 		}
@@ -406,8 +408,8 @@ func (s *GitHubServiceImpl) GetValidAccessToken(ctx context.Context, userID stri
 		}
 		
 		// Update stored token
-		encryptedAccess, _ := s.encryptionSvc.Encrypt(newToken.AccessToken)
-		encryptedRefresh, _ := s.encryptionSvc.Encrypt(newToken.RefreshToken)
+		encryptedAccess, _ := utils.EncryptString(newToken.AccessToken)
+		encryptedRefresh, _ := utils.EncryptString(newToken.RefreshToken)
 		
 		updates := map[string]interface{}{
 			"access_token":  encryptedAccess,
@@ -466,9 +468,9 @@ func (s *GitHubServiceImpl) connectGitHubToUser(ctx context.Context, userID stri
 		return err
 	}
 	
-	// Store OAuth token
-	encryptedAccess, _ := s.encryptionSvc.Encrypt(token.AccessToken)
-	encryptedRefresh, _ := s.encryptionSvc.Encrypt(token.RefreshToken)
+	// Store OAuth token with encryption using existing utils
+	encryptedAccess, _ := utils.EncryptString(token.AccessToken)
+	encryptedRefresh, _ := utils.EncryptString(token.RefreshToken)
 	
 	tokenDB := &repository.GitHubTokenDB{
 		EmployeeID:   userID,
@@ -514,11 +516,14 @@ func (s *GitHubServiceImpl) createUserFromGitHub(ctx context.Context, githubUser
 	
 	// Create user
 	user := &models.User{
+		ID:           uuid.New().String(),
 		Email:        email,
 		PasswordHash: hashedPassword,
 		Role:         models.RoleEmployee,
 		IsVerified:   true,
 		IsActive:     true,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 	
 	if err := s.userRepo.Create(ctx, user); err != nil {
@@ -536,6 +541,8 @@ func (s *GitHubServiceImpl) createUserFromGitHub(ctx context.Context, githubUser
 		GithubUsername:  githubUser.Login,
 		IsVisible:       true,
 		IsAvailable:     true,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 	}
 	
 	if employeeProfile.FullName == "" {
@@ -557,6 +564,7 @@ func (s *GitHubServiceImpl) createUserFromGitHub(ctx context.Context, githubUser
 
 func (s *GitHubServiceImpl) buildGithubProfile(employeeID string, githubUser *github.GitHubUser, email string) *models.GithubProfile {
 	profile := &models.GithubProfile{
+		ID:             uuid.New().String(),
 		EmployeeID:     employeeID,
 		GithubID:       githubUser.ID,
 		GithubUsername: githubUser.Login,
@@ -571,6 +579,8 @@ func (s *GitHubServiceImpl) buildGithubProfile(employeeID string, githubUser *gi
 		Followers:      githubUser.Followers,
 		Following:      githubUser.Following,
 		LastSyncedAt:   time.Now(),
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
 	}
 	
 	// Parse GitHub join date
@@ -675,9 +685,10 @@ func (s *GitHubServiceImpl) handlePushWebhook(ctx context.Context, payload map[s
 }
 
 func (s *GitHubServiceImpl) handleStarWebhook(ctx context.Context, payload map[string]interface{}) error {
-	// Similar to push webhook
+	fmt.Println("Star webhook received")
 	return nil
 }
+
 
 func (s *GitHubServiceImpl) calculateInitialActivityScore(profile *models.GithubProfile) int {
 	score := 0
@@ -726,7 +737,10 @@ func (s *GitHubServiceImpl) calculateInitialActivityScore(profile *models.Github
 		score += 10
 	}
 	
-	return min(score, 100)
+	if score > 100 {
+		return 100
+	}
+	return score
 }
 
 func (s *GitHubServiceImpl) calculateInitialQualityScore(profile *models.GithubProfile) int {
@@ -764,7 +778,10 @@ func (s *GitHubServiceImpl) calculateInitialQualityScore(profile *models.GithubP
 		score += 15
 	}
 	
-	return min(score, 100)
+	if score > 100 {
+		return 100
+	}
+	return score
 }
 
 // Helper functions
@@ -779,11 +796,4 @@ func truncateString(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen-3] + "..."
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

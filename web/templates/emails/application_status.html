@@ -1,0 +1,32 @@
+{{define "application_status"}}
+<h2 style="margin-top: 0;">Application Status Update</h2>
+
+<p>Your application for <strong>{{.JobTitle}}</strong> at <strong>{{.Company}}</strong> has been updated.</p>
+
+<div class="text-center" style="margin: 30px 0;">
+    <span class="status-badge">Status: {{.Status}}</span>
+</div>
+
+<div class="feature-box">
+    <h3 style="margin-top: 0;">📋 What's Next?</h3>
+    {{if eq .Status "Shortlisted 🎉"}}
+        <p>Congratulations! You've been shortlisted. Our team will contact you within 3-5 business days to schedule an interview.</p>
+    {{else if eq .Status "Interview Scheduled"}}
+        <p>Great news! An interview has been scheduled. Check your dashboard for details and prepare accordingly.</p>
+    {{else if eq .Status "Hired! 🎊"}}
+        <p>Amazing news! 🎉 Welcome to the team! You'll receive onboarding details via email within 24 hours.</p>
+    {{else if eq .Status "Not Selected"}}
+        <p>Thank you for your interest. While you weren't selected this time, we encourage you to apply for other positions that match your skills.</p>
+    {{else}}
+        <p>Your application is under review. We'll notify you once there's an update.</p>
+    {{end}}
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/applications" class="button">View My Applications</a>
+</div>
+
+<hr>
+
+<p class="text-muted">Log in to your dashboard for more details and to track all your applications.</p>
+{{end}}

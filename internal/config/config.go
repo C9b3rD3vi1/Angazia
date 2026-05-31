@@ -14,7 +14,8 @@ type Config struct {
 	// Server
 	Port        string
 	Environment string
-	
+	CORSAllowOrigins string
+	Version     string
 	// Database
 	DBHost     string
 	DBPort     string
@@ -32,6 +33,21 @@ type Config struct {
 	GithubClientSecret string
 	GithubRedirectURL  string
 	
+
+	// Email Provider Configuration
+	EmailProvider   string // sendgrid, resend, smtp
+	SendGridAPIKey  string
+	ResendAPIKey    string
+	
+	// Redis Configuration
+	RedisHost     string
+	RedisPort     string
+	RedisPassword string
+	RedisDB       int
+	
+	// Security
+	RequireEmailVerification bool
+	
 	// OpenAI
 	OpenAIAPIKey string
 	
@@ -40,6 +56,8 @@ type Config struct {
 	SMTPPort     string
 	SMTPUser     string
 	SMTPPassword string
+	SMTPFromName string
+	SMTPFromEmail string
 	
 	// M-Pesa (Future)
 	MPESAConsumerKey    string
@@ -47,9 +65,18 @@ type Config struct {
 	MPESAShortcode      string
 	MPESAPasskey        string
 	
+	// IntaSend Payment Gateway
+	IntaSendAPIKey         string
+	IntaSendAPISecret      string
+	IntaSendPublishableKey string
+
+	// Admin
+	AdminEmail string
+
 	// App Settings
 	AppName     string
 	AppURL      string
+	AppDomain   string
 	PageSize    int
 	MaxJobPosts int // Free tier limit
 }
@@ -64,6 +91,8 @@ func LoadConfig() (*Config, error) {
 		// Server defaults
 		Port:        getEnv("PORT", "3000"),
 		Environment: getEnv("ENVIRONMENT", "development"),
+		CORSAllowOrigins: getEnv("CORS_ALLOW_ORIGINS", ""),
+		Version:        getEnv("VERSION", ""),
 		
 		// Database defaults
 		DBHost:     getEnv("DB_HOST", "localhost"),
@@ -90,6 +119,20 @@ func LoadConfig() (*Config, error) {
 		SMTPPort:     getEnv("SMTP_PORT", "587"),
 		SMTPUser:     getEnv("SMTP_USER", ""),
 		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
+
+		SMTPFromName: getEnv("SMTP_FROM_NAME", ""),
+		SMTPFromEmail: getEnv("SMTP_FROM_EMAIL", ""),
+
+		// Email Provider
+		EmailProvider:   getEnv("EMAIL_PROVIDER", "smtp"),
+		SendGridAPIKey:  getEnv("SENDGRID_API_KEY", ""),
+		ResendAPIKey:    getEnv("RESEND_API_KEY", ""),
+
+		// Redis
+		RedisHost:     getEnv("REDIS_HOST", "localhost"),
+		RedisPort:     getEnv("REDIS_PORT", "6379"),
+		RedisPassword: getEnv("REDIS_PASSWORD", ""),
+		RedisDB:       getEnvAsInt("REDIS_DB", 0),
 		
 		// M-Pesa
 		MPESAConsumerKey:    getEnv("MPESA_CONSUMER_KEY", ""),
@@ -97,9 +140,18 @@ func LoadConfig() (*Config, error) {
 		MPESAShortcode:      getEnv("MPESA_SHORTCODE", ""),
 		MPESAPasskey:        getEnv("MPESA_PASSKEY", ""),
 		
+		// IntaSend
+		IntaSendAPIKey:         getEnv("INTASEND_API_KEY", ""),
+		IntaSendAPISecret:      getEnv("INTASEND_API_SECRET", ""),
+		IntaSendPublishableKey: getEnv("INTASEND_PUBLISHABLE_KEY", ""),
+
+		// Admin
+		AdminEmail: getEnv("ADMIN_EMAIL", ""),
+
 		// App Settings
 		AppName:     getEnv("APP_NAME", "Kenyan Dev Marketplace"),
 		AppURL:      getEnv("APP_URL", "http://localhost:3000"),
+		AppDomain:   getEnv("APP_DOMAIN", "localhost"),
 		PageSize:    getEnvAsInt("PAGE_SIZE", 20),
 		MaxJobPosts: getEnvAsInt("MAX_JOB_POSTS", 3),
 	}

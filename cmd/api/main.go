@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -8,14 +9,18 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 	
-	"github.com/Angazia/internal/config"
-	"github.com/Angazia/internal/handlers"
-	"github.com/Angazia/internal/pkg/database"
-	"github.com/Angazia/internal/pkg/utils"
-	"github.com/Angazia/internal/repository"
-	"github.com/Angazia/internal/routes"
-	"github.com/Angazia/internal/services"
+	"github.com/C9b3rD3vi1/Angazia/internal/config"
+	"github.com/C9b3rD3vi1/Angazia/internal/handlers"
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/ai"
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/database"
+	"github.com/C9b3rD3vi1/Angazia/internal/middleware"
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
+	"github.com/C9b3rD3vi1/Angazia/internal/repository"
+	"github.com/C9b3rD3vi1/Angazia/internal/routes"
+	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
 
 func main() {
@@ -25,10 +30,8 @@ func main() {
 		log.Fatal("Failed to load config:", err)
 	}
 	
-	// Initialize JWT utilities
+	// Initialize utilities
 	utils.InitJWT(cfg)
-	
-	// Initialize encryption utilities
 	utils.InitEncryption(cfg)
 	
 	// Initialize database
@@ -38,93 +41,110 @@ func main() {
 	
 	db := database.GetDB()
 	
-	// Enable PostgreSQL extensions
-	if err := database.EnableExtensions(); err != nil {
-		log.Println("Warning: Could not enable extensions:", err)
+	// Initialize Redis for token blacklisting
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     cfg.RedisHost + ":" + cfg.RedisPort,
+		Password: cfg.RedisPassword,
+		DB:       cfg.RedisDB,
+	})
+	
+	// Test Redis connection
+	if err := redisClient.Ping(context.Background()).Err(); err != nil {
+		log.Printf("Warning: Redis connection failed: %v. Token blacklisting will use database only.", err)
+		redisClient = nil
 	}
 	
-	// Run auto-migrations
-	if err := database.AutoMigrate(); err != nil {
-		log.Fatal("Failed to run migrations:", err)
+	// Run database migrations
+	if err := initializeDatabase(cfg, db); err != nil {
+		log.Fatal("Failed to initialize database:", err)
 	}
 	
-	// Create additional indexes
-	if err := database.CreateIndexes(); err != nil {
-		log.Println("Warning: Could not create indexes:", err)
-	}
-	
-	// Run manual migrations
-	if err := database.RunMigrations(); err != nil {
-		log.Println("Warning: Could not run manual migrations:", err)
-	}
-	
-	// Seed data in development
-	if cfg.IsDevelopment() {
-		if err := database.SeedData(); err != nil {
-			log.Println("Warning: Could not seed data:", err)
-		}
-	}
-	
-	// ========== INITIALIZE REPOSITORIES ==========
+	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	githubRepo := repository.NewGitHubRepository(db)
+	unsubscribeRepo := repository.NewUnsubscribeRepository(db)
+	// Initialize job repository and service
 	jobRepo := repository.NewJobRepository(db)
+	companyRepo := repository.NewCompanyRepository(db)
 	applicationRepo := repository.NewApplicationRepository(db)
+	matchRepo := repository.NewMatchRepository(db)
+	searchRepo := repository.NewSearchRepository(db)
+	adminRepo := repository.NewAdminRepository(db)
+	subscriptionRepo := repository.NewSubscriptionRepository(db)
+	paymentRepo := repository.NewPaymentRepository(db)
+	notificationRepo := repository.NewNotificationRepository(db)
+	analyticsRepo := repository.NewAnalyticsRepository(db)
+	talentRepo := repository.NewTalentPoolRepository(db)
+	alertRepo := repository.NewAlertRepository(db)
+	candidateAnalyticsRepo := repository.NewCandidateAnalyticsRepository(db)
 	
-	// ========== INITIALIZE SERVICES ==========
-	// Core services
-	encryptionSvc := services.NewEncryptionService(cfg)
-	emailSvc := services.NewEmailService(cfg)
+	// Initialize services
+	tokenService := services.NewTokenService(cfg)
+	jobSvc := services.NewJobService(cfg, jobRepo, userRepo)
+	emailSvc := services.NewEmailService(cfg, unsubscribeRepo, tokenService)
+	authSvc := services.NewAuthService(cfg, userRepo, db, emailSvc, redisClient)
+	githubSvc := services.NewGitHubService(cfg, githubRepo, userRepo)
+	companyService := services.NewCompanyService(cfg, companyRepo, userRepo, jobRepo, emailSvc)
 	
-	// Business services
-	authSvc := services.NewAuthService(cfg, userRepo, encryptionSvc, emailSvc)
-	githubSvc := services.NewGitHubService(cfg, githubRepo, userRepo, encryptionSvc)
-	jobSvc := services.NewJobService(cfg, jobRepo, applicationRepo, userRepo)
-	matchingSvc := services.NewMatchingService(cfg, jobRepo, userRepo, githubRepo)
+	// AI Provider
+	aiFactory := ai.NewProviderFactory(ai.DefaultConfig())
+	aiProvider, err := aiFactory.GetProvider()
+	if err != nil {
+		log.Printf("Warning: AI provider not available: %v. AI-powered matching features will be unavailable.", err)
+	}
 	
-	// ========== INITIALIZE HANDLERS ==========
+	// Additional services
+	applicationSvc := services.NewApplicationService(cfg, applicationRepo, jobRepo, userRepo, emailSvc)
+	notificationSvc := services.NewNotificationService(cfg, notificationRepo, emailSvc)
+	matchingSvc := services.NewMatchingService(cfg, aiProvider, jobRepo, userRepo, githubRepo, matchRepo)
+	alertSvc := services.NewAlertService(cfg, alertRepo, jobRepo, emailSvc)
+	searchSvc := services.NewSearchService(cfg, searchRepo, jobRepo, userRepo)
+	adminSvc := services.NewAdminService(cfg, adminRepo)
+	analyticsSvc := services.NewAnalyticsService(cfg, analyticsRepo)
+	candidateAnalyticsSvc := services.NewCandidateAnalyticsService(cfg, candidateAnalyticsRepo, jobRepo, applicationRepo, matchingSvc)
+	talentPoolSvc := services.NewTalentPoolService(cfg, talentRepo, userRepo, jobRepo, matchingSvc)
+	subscriptionSvc := services.NewSubscriptionService(cfg, subscriptionRepo, paymentRepo, userRepo, jobRepo)
+	profileSvc := services.NewProfileService(cfg, userRepo, githubRepo)
+	
+	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authSvc)
+	// Initialize job handler
+	jobHandler := handlers.NewJobHandler(jobSvc)
+
+	reviewHandler := handlers.NewReviewHandler(companyService)
 	githubHandler := handlers.NewGitHubHandler(githubSvc)
-	jobHandler := handlers.NewJobHandler(jobSvc, matchingSvc)
-	applicationHandler := handlers.NewApplicationHandler(jobSvc)
-	employeeHandler := handlers.NewEmployeeHandler(userRepo, matchingSvc)
-	employerHandler := handlers.NewEmployerHandler(jobSvc, userRepo)
-	webHandler := handlers.NewWebHandler(jobSvc, matchingSvc, userRepo)
+	unsubscribeHandler := handlers.NewUnsubscribeHandler(unsubscribeRepo, emailSvc)
+	applicationHandler := handlers.NewApplicationHandler(applicationSvc)
+	matchingHandler := handlers.NewMatchingHandler(matchingSvc)
+	searchHandler := handlers.NewSearchHandler(searchSvc)
+	adminHandler := handlers.NewAdminHandler(adminSvc)
+	analyticsHandler := handlers.NewAnalyticsHandler(analyticsSvc)
+	candidateAnalyticsHandler := handlers.NewCandidateAnalyticsHandler(candidateAnalyticsSvc)
+	talentPoolHandler := handlers.NewTalentPoolHandler(talentPoolSvc)
+	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionSvc)
+	notificationHandler := handlers.NewNotificationHandler(notificationSvc)
+	alertHandler := handlers.NewAlertHandler(alertSvc)
+	planHandler := handlers.NewAdminPlanHandler(subscriptionSvc)
+	webHandler := handlers.NewWebHandler()
+	companyHandler := handlers.NewCompanyHandler(companyService)
+	resumeHandler := handlers.NewResumeHandler(profileSvc)
+	websocketHandler := handlers.NewWebSocketHandler()
 	
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
 		AppName:               cfg.AppName,
 		Prefork:               cfg.IsProduction(),
-		ReadTimeout:           cfg.GetReadTimeout(),
-		WriteTimeout:          cfg.GetWriteTimeout(),
+		ReadTimeout:           30 * time.Second,
+		WriteTimeout:          30 * time.Second,
 		IdleTimeout:           120 * time.Second,
-		BodyLimit:             10 * 1024 * 1024, // 10 MB
+		BodyLimit:             10 * 1024 * 1024,
 		DisableStartupMessage: false,
-		JSONEncoder:           utils.JSONMarshal,
-		JSONDecoder:           utils.JSONUnmarshal,
 	})
 	
-	// Middleware
-	app.Use(logger.New(logger.Config{
-		Format:     "[${time}] ${status} - ${method} ${path} ${latency}\n",
-		TimeFormat: "2006-01-02 15:04:05",
-		TimeZone:   "Africa/Nairobi",
-	}))
+	// Setup middleware
+	setupMiddleware(app, cfg)
 	
-	app.Use(recover.New(recover.Config{
-		EnableStackTrace: cfg.IsDevelopment(),
-	}))
-	
-	app.Use(cors.New(cors.Config{
-		AllowOrigins:     cfg.CORSAllowOrigins,
-		AllowMethods:     "GET,POST,PUT,DELETE,PATCH,OPTIONS",
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, X-Requested-With",
-		ExposeHeaders:    "Content-Length, Content-Type",
-		AllowCredentials: true,
-		MaxAge:           86400,
-	}))
-	
-	// Static files with caching
+	// Static files
 	app.Static("/static", "./web/static", fiber.Static{
 		Compress:      true,
 		ByteRange:     true,
@@ -133,7 +153,141 @@ func main() {
 		MaxAge:        86400,
 	})
 	
-	// Health check endpoint (no auth)
+	// Health check endpoints
+	setupHealthEndpoints(app, cfg, db)
+	
+	// API routes
+	api := app.Group("/api/v1")
+	
+	// Auth routes
+	routes.SetupAuthRoutes(api, authHandler)
+	
+	// GitHub routes
+	routes.SetupGitHubRoutes(api, githubHandler)
+	
+	// Unsubscribe routes
+	routes.SetupUnsubscribeRoutes(api, unsubscribeHandler)
+
+	// Job routes
+	routes.SetupJobRoutes(api, jobHandler)
+
+	// Setup review routes
+	routes.SetupReviewRoutes(api, reviewHandler)
+	
+	// Application routes
+	routes.SetupApplicationRoutes(api, applicationHandler)
+	
+	// Matching routes
+	routes.SetupMatchingRoutes(api, matchingHandler)
+	
+	// Search routes
+	routes.SetupSearchRoutes(api, searchHandler)
+	
+	// Notification routes
+	routes.SetupNotificationRoutes(api, notificationHandler)
+	
+	// Alert routes
+	routes.SetupAlertRoutes(api, alertHandler)
+	
+	// Company routes
+	routes.SetupCompanyRoutes(api, companyHandler)
+	
+	// Resume routes
+	routes.SetupResumeRoutes(api, resumeHandler)
+	
+	// Analytics routes
+	routes.SetupAnalyticsRoutes(api, analyticsHandler)
+	
+	// Candidate analytics routes
+	routes.SetupCandidateAnalyticsRoutes(api, candidateAnalyticsHandler)
+	
+	// Talent pool routes
+	routes.SetupTalentPoolRoutes(api, talentPoolHandler)
+	
+	// Admin routes
+	routes.SetupAdminRoutes(api, adminHandler)
+	
+	// Subscription routes
+	routes.SetupSubscriptionRoutes(api, subscriptionHandler)
+	
+	// Plan routes (public + admin)
+	routes.SetupPublicPlanRoutes(api, planHandler)
+	routes.SetupAdminPlanRoutes(api, planHandler)
+	
+	// Web routes (HTML pages)
+	routes.SetupWebRoutes(app, webHandler)
+	
+	// WebSocket routes
+	routes.SetupWebSocketRoutes(app, websocketHandler)
+	
+	// Start server
+	log.Printf("🚀 Server starting on port %s", cfg.Port)
+	log.Printf("🌐 Environment: %s", cfg.Environment)
+	log.Printf("🔗 URL: http://localhost:%s", cfg.Port)
+	log.Printf("📧 Email Provider: %s", cfg.EmailProvider)
+	log.Printf("📊 GitHub OAuth: %s", boolToString(cfg.GithubClientID != ""))
+	
+	// Start server with graceful shutdown
+	go func() {
+		if err := app.Listen(":" + cfg.Port); err != nil {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+	
+	// Wait for interrupt signal
+	utils.WaitForShutdown(app)
+}
+
+func initializeDatabase(cfg *config.Config, db *gorm.DB) error {
+	if err := database.EnableExtensions(); err != nil {
+		log.Println("Warning: Could not enable extensions:", err)
+	}
+	
+	if err := database.AutoMigrate(); err != nil {
+		return err
+	}
+	
+	if err := database.CreateIndexes(); err != nil {
+		log.Println("Warning: Could not create indexes:", err)
+	}
+	
+	if err := database.RunMigrations(); err != nil {
+		log.Println("Warning: Could not run manual migrations:", err)
+	}
+	
+	if cfg.IsDevelopment() {
+		if err := database.SeedData(); err != nil {
+			log.Println("Warning: Could not seed data:", err)
+		}
+	}
+	
+	return nil
+}
+
+func setupMiddleware(app *fiber.App, cfg *config.Config) {
+	app.Use(logger.New(logger.Config{
+		Format:     "[${time}] ${status} - ${method} ${path} ${latency}\n",
+		TimeFormat: "2006-01-02 15:04:05",
+		TimeZone:   "Africa/Nairobi",
+	}))
+
+	rateLimitConfig := middleware.DefaultRateLimitConfig()
+	app.Use(middleware.RateLimit(rateLimitConfig))
+	app.Use(recover.New(recover.Config{
+		EnableStackTrace: cfg.IsDevelopment(),
+	}))
+	
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     cfg.CORSAllowOrigins,
+		AllowMethods:     "GET,POST,PUT,DELETE,PATCH,OPTIONS",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, X-Requested-With, X-Client-Type",
+		ExposeHeaders:    "Content-Length, Content-Type",
+		AllowCredentials: true,
+		MaxAge:           86400,
+	}))
+}
+
+func setupHealthEndpoints(app *fiber.App, cfg *config.Config, db *gorm.DB) {
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"status":      "healthy",
@@ -143,9 +297,7 @@ func main() {
 		})
 	})
 	
-	// Readiness check (for k8s)
 	app.Get("/ready", func(c *fiber.Ctx) error {
-		// Check database connection
 		sqlDB, err := db.DB()
 		if err != nil || sqlDB.Ping() != nil {
 			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
@@ -158,27 +310,6 @@ func main() {
 			"status": "ready",
 		})
 	})
-	
-	// Setup all routes with handlers
-	routes.SetupRoutes(app, cfg, authHandler, githubHandler, jobHandler, applicationHandler, employeeHandler, employerHandler, webHandler)
-	
-	// Start server
-	log.Printf("🚀 Server starting on port %s", cfg.Port)
-	log.Printf("🌐 Environment: %s", cfg.Environment)
-	log.Printf("🔗 URL: http://localhost:%s", cfg.Port)
-	log.Printf("📊 GitHub OAuth: %s", boolToString(cfg.GithubClientID != ""))
-	log.Printf("🤖 OpenAI: %s", boolToString(cfg.OpenAIAPIKey != ""))
-	log.Printf("📧 Email Service: %s", boolToString(cfg.SMTPHost != ""))
-	
-	// Graceful shutdown
-	go func() {
-		if err := app.Listen(":" + cfg.Port); err != nil {
-			log.Fatalf("Failed to start server: %v", err)
-		}
-	}()
-	
-	// Wait for interrupt signal
-	utils.WaitForShutdown(app)
 }
 
 func boolToString(b bool) string {

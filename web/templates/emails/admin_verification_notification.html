@@ -1,0 +1,20 @@
+{{define "admin_verification_notification"}}
+<h2>New Company Verification Request</h2>
+
+<p>A company has submitted verification documents for review.</p>
+
+<div class="info-box">
+    <p><strong>Company ID:</strong> {{.CompanyID}}</p>
+    <p><strong>Registration Number:</strong> {{.RegistrationNumber}}</p>
+    <p><strong>Tax ID:</strong> {{.TaxID}}</p>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{.AppURL}}/admin/verifications/{{.VerificationID}}/approve" class="button" style="background: #10b981;">Approve</a>
+    <a href="{{.AppURL}}/admin/verifications/{{.VerificationID}}/reject" class="button" style="background: #ef4444;">Reject</a>
+</div>
+
+<hr>
+
+<p class="text-muted">Please review the submitted documents and take action.</p>
+{{end}}

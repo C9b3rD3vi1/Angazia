@@ -2,49 +2,37 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/Angazia/internal/handlers"
+	"github.com/C9b3rD3vi1/Angazia/internal/handlers"
+	"github.com/C9b3rD3vi1/Angazia/internal/middleware"
 )
 
-func setupWebRoutes(app *fiber.App, webHandler *handlers.WebHandler) {
-	// Landing page
+func SetupWebRoutes(app *fiber.App, webHandler *handlers.WebHandler) {
+	// Public pages
 	app.Get("/", webHandler.HomePage)
+	app.Get("/jobs", webHandler.JobsPage)
+	app.Get("/jobs/:id", webHandler.JobDetailPage)
+	app.Get("/companies/:id", webHandler.CompanyPage)
+	app.Get("/about", webHandler.AboutPage)
+	app.Get("/contact", webHandler.ContactPage)
+	app.Get("/pricing", webHandler.PricingPage)
 	
-	// Authentication pages
+	// Auth pages
 	app.Get("/login", webHandler.LoginPage)
 	app.Get("/register", webHandler.RegisterPage)
 	app.Get("/forgot-password", webHandler.ForgotPasswordPage)
 	app.Get("/reset-password", webHandler.ResetPasswordPage)
 	app.Get("/verify-email", webHandler.VerifyEmailPage)
 	
-	// GitHub setup page
-	app.Get("/github-setup", webHandler.GitHubSetupPage)
+	// Protected dashboard pages
+	employee := app.Group("/employee", middleware.AuthMiddleware(), middleware.RequireRole("employee"))
+	employee.Get("/dashboard", webHandler.EmployeeDashboardPage)
+	// Add other employee routes...
 	
-	// Employee pages
-	app.Get("/employee/dashboard", webHandler.EmployeeDashboardPage)
-	app.Get("/employee/profile", webHandler.EmployeeProfilePage)
-	app.Get("/employee/profile/edit", webHandler.EmployeeProfileEditPage)
-	app.Get("/employee/matches", webHandler.MatchesPage)
-	app.Get("/employee/applications", webHandler.ApplicationsPage)
-	app.Get("/employee/saved-jobs", webHandler.SavedJobsPage)
-	app.Get("/employee/settings", webHandler.EmployeeSettingsPage)
+	employer := app.Group("/employer", middleware.AuthMiddleware(), middleware.RequireRole("employer"))
+	employer.Get("/dashboard", webHandler.EmployerDashboardPage)
+	// Add other employer routes...
 	
-	// Employer pages
-	app.Get("/employer/dashboard", webHandler.EmployerDashboardPage)
-	app.Get("/employer/company", webHandler.CompanyProfilePage)
-	app.Get("/employer/jobs", webHandler.EmployerJobsPage)
-	app.Get("/employer/jobs/post", webHandler.PostJobPage)
-	app.Get("/employer/jobs/:id/edit", webHandler.EditJobPage)
-	app.Get("/employer/jobs/:id/applicants", webHandler.ApplicantsPage)
-	app.Get("/employer/talent-pool", webHandler.TalentPoolPage)
-	app.Get("/employer/billing", webHandler.BillingPage)
-	
-	// Shared pages
-	app.Get("/jobs", webHandler.JobsPage)
-	app.Get("/jobs/:id", webHandler.JobDetailPage)
-	app.Get("/companies/:name", webHandler.CompanyPage)
-	app.Get("/search", webHandler.SearchPage)
-	
-	// Error pages
-	app.Get("/404", webHandler.NotFoundPage)
-	app.Get("/500", webHandler.ErrorPage)
+	admin := app.Group("/admin", middleware.AuthMiddleware(), middleware.RequireRole("admin"))
+	admin.Get("/dashboard", webHandler.AdminDashboardPage)
+	// Add other admin routes...
 }

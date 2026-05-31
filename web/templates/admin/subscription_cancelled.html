@@ -1,0 +1,34 @@
+{{define "subscription_cancelled"}}
+<h2>Subscription Cancelled</h2>
+
+<p>Dear {{.Name}},</p>
+
+<p>Your <strong>{{.PlanName}}</strong> subscription has been cancelled as requested.</p>
+
+<div class="info-box">
+    <p><strong>Cancellation Details:</strong></p>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Plan: {{.PlanName}}</li>
+        <li>Cancellation Date: {{.CancelledDate}}</li>
+        <li>Access Until: {{.AccessUntil}}</li>
+    </ul>
+</div>
+
+<div class="success-box">
+    <strong>✅ What happens next?</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>You'll have access to premium features until {{.AccessUntil}}</li>
+        <li>After that, your account will revert to the Free plan</li>
+        <li>Your data will be preserved if you choose to reactivate</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/plans" class="button">View Plans</a>
+    <a href="{{.AppURL}}/subscriptions/reactivate" class="button" style="background: #10b981;">Reactivate Subscription</a>
+</div>
+
+<hr>
+
+<p class="text-muted">We're sad to see you go! Please share your feedback to help us improve.</p>
+{{end}}

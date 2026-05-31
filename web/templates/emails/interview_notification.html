@@ -1,0 +1,30 @@
+{{define "interview_invitation"}}
+<h2 style="margin-top: 0;">You're Invited to an Interview!</h2>
+
+<p>Congratulations! Your application for <strong>{{.JobTitle}}</strong> at <strong>{{.Company}}</strong> has progressed to the next stage.</p>
+
+<div class="interview-details">
+    <h3 style="margin-top: 0;">📅 Interview Details:</h3>
+    <p><strong>Type:</strong> {{.InterviewType}}</p>
+    <p><strong>Date & Time:</strong> {{.InterviewDate}}</p>
+    <p><strong>Duration:</strong> Approximately 45-60 minutes</p>
+</div>
+
+<div style="text-align: center;">
+    <a href="{{.AppURL}}/applications/{{.ApplicationID}}/confirm-interview" class="button">Confirm Availability</a>
+</div>
+
+<div class="warning-box">
+    <strong>💡 Tips for Success:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Research the company beforehand</li>
+        <li>Prepare examples of your work</li>
+        <li>Test your equipment (if remote)</li>
+        <li>Prepare questions to ask</li>
+    </ul>
+</div>
+
+<hr>
+
+<p class="text-muted">Please confirm your availability at least 24 hours in advance.</p>
+{{end}}

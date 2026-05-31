@@ -1,0 +1,41 @@
+{{define "employer_welcome"}}
+<h2 style="margin-top: 0;">Welcome to {{.AppName}}, {{.CompanyName}}! 🚀</h2>
+
+<p>We're excited to help you find the perfect candidates for your team and grow your company with top tech talent!</p>
+
+<div class="feature-box">
+    <h3 style="margin-top: 0;">✨ Powerful Features for Employers:</h3>
+    <ul style="margin: 0; padding-left: 20px;">
+        <li><strong>Post jobs</strong> - Reach qualified developers across Kenya</li>
+        <li><strong>AI-powered matching</strong> - Get recommended candidates automatically</li>
+        <li><strong>GitHub profiles</strong> - See real code and contributions</li>
+        <li><strong>Application tracking</strong> - Manage candidates efficiently</li>
+        <li><strong>Talent pool</strong> - Save promising candidates for future roles</li>
+    </ul>
+</div>
+
+<div class="success-box">
+    <strong>🎯 Quick Start:</strong> Post your first job today and get up to 50% more qualified applicants!
+</div>
+
+<div class="text-center">
+    <a href="{{.PostJobURL}}" class="button">Post Your First Job</a>
+</div>
+
+<div class="feature-box" style="background: #e0f2fe;">
+    <h3 style="margin-top: 0;">📈 Hiring Statistics (Last Month):</h3>
+    <ul style="margin: 0; padding-left: 20px;">
+        <li>📊 1,200+ active job seekers</li>
+        <li>🚀 300+ jobs posted</li>
+        <li>✅ 85% employer satisfaction rate</li>
+        <li>⚡ Average time to hire: 14 days</li>
+    </ul>
+</div>
+
+<hr>
+
+<p class="text-muted">
+    Need help? Check out our <a href="{{.HelpURL}}" class="link">employer guide</a> or 
+    <a href="{{.AppURL}}/contact" class="link">schedule a demo</a> with our team.
+</p>
+{{end}}

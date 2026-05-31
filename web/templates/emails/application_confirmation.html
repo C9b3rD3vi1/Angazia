@@ -1,0 +1,22 @@
+{{define "application_confirmation"}}
+<h2 style="margin-top: 0;">Application Submitted Successfully!</h2>
+
+<p>Thank you for applying for <strong>{{.JobTitle}}</strong> at <strong>{{.Company}}</strong>.</p>
+
+<div class="success-box">
+    <strong>✅ What happens next?</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>The employer will review your application</li>
+        <li>You'll receive updates on your application status</li>
+        <li>If shortlisted, you'll be contacted for an interview</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.ApplicationURL}}" class="button">View Your Application</a>
+</div>
+
+<hr>
+
+<p class="text-muted">You can track all your applications in your dashboard.</p>
+{{end}}

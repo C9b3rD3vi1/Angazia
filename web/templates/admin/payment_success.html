@@ -1,0 +1,35 @@
+{{define "payment_success"}}
+<h2>Payment Successful! 🎉</h2>
+
+<p>Dear {{.Name}},</p>
+
+<p>Your payment has been processed successfully. Thank you for your subscription!</p>
+
+<div class="success-box">
+    <strong>✅ Payment Confirmed:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Plan: {{.PlanName}}</li>
+        <li>Amount: {{.Currency}} {{.Amount}}</li>
+        <li>Valid Until: {{.ValidUntil}}</li>
+    </ul>
+</div>
+
+<div class="info-box">
+    <strong>🚀 What's Next?</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Post more jobs with your increased limits</li>
+        <li>Access advanced analytics dashboard</li>
+        <li>Get priority support</li>
+        <li>Use featured job listings</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/employer/dashboard" class="button">Go to Dashboard</a>
+    <a href="{{.AppURL}}/employer/jobs/post" class="button" style="background: #10b981;">Post a Job</a>
+</div>
+
+<hr>
+
+<p class="text-muted">Need help? Check our <a href="{{.AppURL}}/help">help center</a> or contact support.</p>
+{{end}}

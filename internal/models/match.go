@@ -92,38 +92,6 @@ type MatchSettings struct {
 	Employee        *EmployeeProfile `json:"employee,omitempty" gorm:"foreignKey:EmployeeID"`
 }
 
-// TalentPool is a collection of top candidates for employers
-type TalentPool struct {
-	ID          string    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	EmployerID  string    `json:"employer_id" gorm:"type:uuid;not null;index"`
-	Name        string    `json:"name" gorm:"size:255;not null"`
-	Description string    `json:"description" gorm:"type:text"`
-	
-	// Search criteria (stored as JSON for flexibility)
-	Criteria    JSONMap   `json:"criteria" gorm:"type:jsonb"`
-	
-	// Statistics
-	CandidateCount int     `json:"candidate_count" gorm:"default:0"`
-	IsActive     bool      `json:"is_active" gorm:"default:true"`
-	CreatedAt    time.Time `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt    time.Time `json:"updated_at" gorm:"autoUpdateTime"`
-	
-	// Relationship
-	Employer     *EmployerProfile `json:"employer,omitempty" gorm:"foreignKey:EmployerID"`
-	Candidates   []*TalentPoolCandidate `json:"candidates,omitempty" gorm:"foreignKey:TalentPoolID"`
-}
-
-// TalentPoolCandidate adds employees to employer talent pools
-type TalentPoolCandidate struct {
-	ID           string    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	TalentPoolID string    `json:"talent_pool_id" gorm:"type:uuid;not null;index"`
-	EmployeeID   string    `json:"employee_id" gorm:"type:uuid;not null;index"`
-	MatchScore   int       `json:"match_score"` // Score at time of addition
-	Notes        string    `json:"notes" gorm:"type:text"`
-	IsContacted  bool      `json:"is_contacted" gorm:"default:false"`
-	AddedAt      time.Time `json:"added_at" gorm:"autoCreateTime"`
-	LastNotified *time.Time `json:"last_notified,omitempty"`
-}
 
 // SearchHistory tracks what users search for (improves recommendations)
 type SearchHistory struct {
@@ -147,14 +115,6 @@ func (MatchFeedback) TableName() string {
 
 func (MatchSettings) TableName() string {
 	return "match_settings"
-}
-
-func (TalentPool) TableName() string {
-	return "talent_pools"
-}
-
-func (TalentPoolCandidate) TableName() string {
-	return "talent_pool_candidates"
 }
 
 func (SearchHistory) TableName() string {

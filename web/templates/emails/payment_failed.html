@@ -1,0 +1,36 @@
+{{define "payment_failed"}}
+<h2>Payment Failed</h2>
+
+<p>Dear {{.Name}},</p>
+
+<p>We were unable to process your payment for the <strong>{{.PlanName}}</strong> subscription.</p>
+
+<div class="alert-box">
+    <strong>❌ Payment Details:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Amount: {{.Currency}} {{.Amount}}</li>
+        <li>Due Date: {{.DueDate}}</li>
+        <li>Failure Reason: {{.FailureReason}}</li>
+    </ul>
+</div>
+
+<div class="warning-box">
+    <strong>⚠️ Action Required:</strong>
+    <p>Please update your payment information to avoid service interruption.</p>
+    <p>Your account will have limited access until payment is resolved.</p>
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/payment-methods" class="button">Update Payment Method</a>
+    <a href="{{.AppURL}}/subscriptions/retry-payment" class="button" style="background: #f59e0b;">Retry Payment</a>
+</div>
+
+<div class="info-box">
+    <strong>📞 Need Help?</strong>
+    <p>Contact our support team at <a href="mailto:support@{{.AppDomain}}">support@{{.AppDomain}}</a></p>
+</div>
+
+<hr>
+
+<p class="text-muted">We'll automatically retry the payment in 3 days.</p>
+{{end}}

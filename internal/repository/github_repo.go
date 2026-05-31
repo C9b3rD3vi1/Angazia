@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 //	"github.com/google/uuid"
 	
-	"github.com/Angazia/internal/models"
+	"github.com/C9b3rD3vi1/Angazia/internal/models"
 )
 
 type GitHubRepository interface {

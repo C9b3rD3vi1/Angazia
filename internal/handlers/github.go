@@ -1,13 +1,14 @@
 package handlers
 
 import (
-	"net/http"
 	"context"
+	"encoding/json"
+	
 
 	"github.com/gofiber/fiber/v2"
 	
-	"github.com/Angazia/internal/services"
-	"github.com/Angazia/internal/pkg/utils"
+	"github.com/C9b3rD3vi1/Angazia/internal/services"
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 )
 
 type GitHubHandler struct {
@@ -30,7 +31,7 @@ func (h *GitHubHandler) Login(c *fiber.Ctx) error {
 		Name:     "github_oauth_state",
 		Value:    state,
 		HTTPOnly: true,
-		Secure:   fiber.IsProduction(),
+		Secure:   utils.IsProduction(),
 		SameSite: "Lax",
 		MaxAge:   600,
 		Path:     "/",
@@ -40,7 +41,7 @@ func (h *GitHubHandler) Login(c *fiber.Ctx) error {
 		Name:     "github_oauth_redirect",
 		Value:    redirectTo,
 		HTTPOnly: true,
-		Secure:   fiber.IsProduction(),
+		Secure:   utils.IsProduction(),
 		MaxAge:   600,
 		Path:     "/",
 	})
@@ -110,7 +111,7 @@ func (h *GitHubHandler) Callback(c *fiber.Ctx) error {
 	// Generate JWT token for new users
 	var jwtToken string
 	if result.IsNewUser {
-		jwtToken, err = utils.GenerateJWT(result.UserID, "employee")
+		jwtToken, err = utils.GenerateJWT(result.UserID, "employee", result.Email)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error":   "token_generation_failed",
@@ -122,7 +123,7 @@ func (h *GitHubHandler) Callback(c *fiber.Ctx) error {
 			Name:     "auth_token",
 			Value:    jwtToken,
 			HTTPOnly: true,
-			Secure:   fiber.IsProduction(),
+			Secure:   utils.IsProduction(),
 			MaxAge:   86400,
 			Path:     "/",
 		})
