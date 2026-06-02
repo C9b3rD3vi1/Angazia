@@ -40,6 +40,12 @@ type AdminRepository interface {
 	SetSetting(ctx context.Context, key, value, settingType, category, description string, isPublic bool) error
 	UpdateSetting(ctx context.Context, key, value string) error
 	
+	// Company verification
+	ApproveCompanyVerification(ctx context.Context, companyID, adminID string) error
+	RejectCompanyVerification(ctx context.Context, companyID, reason, adminID string) error
+	GetPendingVerifications(ctx context.Context, page, limit int) ([]*models.CompanyVerification, int64, error)
+	GetVerificationByCompanyID(ctx context.Context, companyID string) (*models.CompanyVerification, error)
+
 	// Report reasons
 	GetReportReasons(ctx context.Context, entityType string) ([]*models.ReportReason, error)
 	CreateReportReason(ctx context.Context, reason *models.ReportReason) error
@@ -421,6 +427,53 @@ func (r *AdminRepositoryImpl) UpdateSetting(ctx context.Context, key, value stri
 		Model(&models.SystemSetting{}).
 		Where("key = ?", key).
 		Update("value", value).Error
+}
+
+func (r *AdminRepositoryImpl) RejectCompanyVerification(ctx context.Context, companyID, reason, adminID string) error {
+	return r.db.WithContext(ctx).
+		Model(&models.CompanyVerification{}).
+		Where("company_id = ? AND status = ?", companyID, "pending").
+		Updates(map[string]interface{}{
+			"status":           "rejected",
+			"rejection_reason": reason,
+			"updated_at":       time.Now(),
+		}).Error
+}
+
+func (r *AdminRepositoryImpl) ApproveCompanyVerification(ctx context.Context, companyID, adminID string) error {
+	return r.db.WithContext(ctx).
+		Model(&models.CompanyVerification{}).
+		Where("company_id = ? AND status = ?", companyID, "pending").
+		Updates(map[string]interface{}{
+			"status":      "approved",
+			"verified_by": adminID,
+			"verified_at": time.Now(),
+			"updated_at":  time.Now(),
+		}).Error
+}
+
+func (r *AdminRepositoryImpl) GetPendingVerifications(ctx context.Context, page, limit int) ([]*models.CompanyVerification, int64, error) {
+	var verifications []*models.CompanyVerification
+	var total int64
+	query := r.db.WithContext(ctx).Model(&models.CompanyVerification{}).
+		Where("status = ?", "pending").
+		Preload("Company").
+		Preload("Company.User")
+	query.Count(&total)
+	offset := (page - 1) * limit
+	err := query.Offset(offset).Limit(limit).Order("submitted_at DESC").Find(&verifications).Error
+	return verifications, total, err
+}
+
+func (r *AdminRepositoryImpl) GetVerificationByCompanyID(ctx context.Context, companyID string) (*models.CompanyVerification, error) {
+	var verification models.CompanyVerification
+	err := r.db.WithContext(ctx).
+		Where("company_id = ?", companyID).
+		First(&verification).Error
+	if err != nil {
+		return nil, err
+	}
+	return &verification, nil
 }
 
 func (r *AdminRepositoryImpl) GetReportReasons(ctx context.Context, entityType string) ([]*models.ReportReason, error) {

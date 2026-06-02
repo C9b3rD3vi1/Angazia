@@ -9,7 +9,7 @@
   </div>
 
   <section class="emp-section">
-    <form method="POST" action="/employer/company-edit" class="emp-form" enctype="multipart/form-data">
+    <form id="form-company-edit" class="emp-form">
       <div class="emp-form-section">
         <h3 class="emp-form-section-title">Company Identity</h3>
 
@@ -175,3 +175,59 @@
   .emp-form-footer { flex-direction: column; align-items: stretch; }
 }
 </style>
+
+<script>
+(function () {
+  function toast(msg, type) {
+    if (window.AngaziaApp && AngaziaApp.showToast) {
+      AngaziaApp.showToast(msg, type);
+    } else {
+      alert((type === 'error' ? 'Error: ' : '') + msg);
+    }
+  }
+
+  var form = document.getElementById('form-company-edit');
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var fd = new FormData(form);
+
+      var data = {
+        company_name: fd.get('company_name'),
+        company_website: fd.get('website'),
+        company_linkedin: fd.get('linkedin'),
+        company_description: fd.get('description'),
+        industry: fd.get('industry'),
+        company_size: fd.get('company_size'),
+        location: fd.get('location'),
+      };
+
+      var logoFile = fd.get('logo');
+      var btn = form.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      var savePromise;
+      if (logoFile && logoFile.size > 0) {
+        var logoFd = new FormData();
+        logoFd.append('logo', logoFile);
+        savePromise = AngaziaAPI.companies.uploadLogo(logoFd).then(function () {
+          return AngaziaAPI.companies.updateCompany(data);
+        });
+      } else {
+        savePromise = AngaziaAPI.companies.updateCompany(data);
+      }
+
+      savePromise.then(function () {
+        toast('Company profile saved!', 'success');
+        window.location.href = '/employer/company';
+      }).catch(function (err) {
+        toast(err.message || 'Failed to save company profile', 'error');
+      }).then(function () {
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+      });
+    });
+  }
+})();
+</script>

@@ -17,7 +17,7 @@
     </div>
     {{end}}
 
-    <form method="POST" action="/employer/job-post" class="emp-form">
+    <form id="form-job-post" class="emp-form">
       <div class="emp-form-section">
         <h3 class="emp-form-section-title">Basic Information</h3>
 
@@ -296,3 +296,62 @@
   .emp-form-note { margin-left: 0; text-align: center; }
 }
 </style>
+
+<script>
+(function () {
+  function toast(msg, type) {
+    if (window.AngaziaApp && AngaziaApp.showToast) {
+      AngaziaApp.showToast(msg, type);
+    } else {
+      alert((type === 'error' ? 'Error: ' : '') + msg);
+    }
+  }
+
+  var form = document.getElementById('form-job-post');
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var fd = new FormData(form);
+
+      var data = {
+        title: fd.get('title'),
+        description: fd.get('description'),
+        requirements: fd.get('requirements'),
+        location: fd.get('location'),
+        employment_type: fd.get('type'),
+        experience_level: fd.get('experience_level'),
+        salary_currency: 'KES',
+      };
+
+      var skills = fd.get('skills');
+      if (skills) data.required_skills = skills.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+
+      var salaryMin = fd.get('salary_min');
+      if (salaryMin) data.salary_min = parseInt(salaryMin, 10);
+      var salaryMax = fd.get('salary_max');
+      if (salaryMax) data.salary_max = parseInt(salaryMax, 10);
+
+      var workType = fd.get('work_type');
+      data.is_remote = workType === 'remote';
+      data.is_hybrid = workType === 'hybrid';
+
+      var deadline = fd.get('deadline');
+      if (deadline) data.expires_at = deadline;
+
+      var btn = form.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = 'Publishing...';
+
+      AngaziaAPI.jobs.create(data).then(function () {
+        toast('Job posted successfully!', 'success');
+        window.location.href = '/employer/jobs';
+      }).catch(function (err) {
+        toast(err.message || 'Failed to post job', 'error');
+      }).then(function () {
+        btn.disabled = false;
+        btn.textContent = 'Publish Job';
+      });
+    });
+  }
+})();
+</script>

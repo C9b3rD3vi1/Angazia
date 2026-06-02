@@ -10,7 +10,7 @@ import (
 func SetupWebRoutes(
 	app *fiber.App,
 	webHandler *handlers.WebHandler,
-	webAuthHandler *handlers.WebAuthHandler,
+	authHandler *handlers.AuthHandler,
 	authService services.AuthService,
 ) {
 	// Public pages
@@ -28,8 +28,8 @@ func SetupWebRoutes(
 	app.Get("/forgot-password", webHandler.ForgotPasswordPage)
 	app.Get("/reset-password", webHandler.ResetPasswordPage)
 	app.Get("/verify-email", webHandler.VerifyEmailPage)
-	app.Post("/logout", webAuthHandler.Logout)
-	app.Get("/logout", webAuthHandler.Logout)
+	app.Post("/logout", authHandler.WebLogout)
+	app.Get("/logout", authHandler.WebLogout)
 
 	// Employee pages
 	employee := app.Group("/employee",
@@ -44,9 +44,6 @@ func SetupWebRoutes(
 	employee.Get("/alerts", webHandler.EmployeeJobAlertsPage)
 	employee.Get("/skills", webHandler.EmployeeSkillsPage)
 	employee.Get("/settings", webHandler.EmployeeSettingsPage)
-	employee.Post("/settings", webAuthHandler.UpdateProfile)
-	employee.Post("/settings/password", webAuthHandler.ChangePassword)
-	employee.Post("/settings/notifications", webAuthHandler.NotificationPreferences)
 
 	// Employer pages
 	employer := app.Group("/employer",
@@ -63,8 +60,6 @@ func SetupWebRoutes(
 	employer.Get("/company-edit", webHandler.EmployerCompanyEditPage)
 	employer.Get("/matches", webHandler.EmployerMatchesPage)
 	employer.Get("/job-post", webHandler.EmployerJobPostPage)
-	employer.Post("/job-post", webHandler.EmployerJobPostSubmit)
-	employer.Post("/company-edit", webHandler.EmployerCompanyEditSubmit)
 	employer.Get("/billing", webHandler.EmployerBillingPage)
 
 	// Admin pages

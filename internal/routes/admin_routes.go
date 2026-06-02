@@ -33,6 +33,10 @@ func SetupAdminRoutes(router fiber.Router, adminHandler *handlers.AdminHandler) 
 	admin.Get("/settings", adminHandler.GetSettings)
 	admin.Put("/settings/:key", adminHandler.UpdateSetting)
 	
+	// Company Verification
+	admin.Post("/companies/:id/verify", adminHandler.ApproveCompanyVerification)
+	admin.Post("/companies/:id/reject", adminHandler.RejectCompanyVerification)
+
 	// Report Reasons
 	admin.Get("/report-reasons", adminHandler.GetReportReasons)
 	

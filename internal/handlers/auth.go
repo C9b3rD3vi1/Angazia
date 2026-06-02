@@ -274,8 +274,9 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 		})
 	}
 	
-	// Clear refresh token cookie if present
-	c.ClearCookie("refresh_token")
+	// Clear auth cookies with correct paths
+	c.Cookie(&fiber.Cookie{Name: "access_token", Value: "", Path: "/", MaxAge: -1})
+	c.Cookie(&fiber.Cookie{Name: "refresh_token", Value: "", Path: "/api/v1/auth/refresh", MaxAge: -1})
 	
 	return c.Status(fiber.StatusOK).JSON(APIResponse{
 		Success: true,
@@ -536,21 +537,28 @@ func (h *AuthHandler) VerifyEmail(c *fiber.Ctx) error {
 // @Failure 401 {object} APIResponse
 // @Router /auth/resend-verification [post]
 func (h *AuthHandler) ResendVerificationEmail(c *fiber.Ctx) error {
+	var req struct {
+		UserID string `json:"user_id"`
+	}
+	c.BodyParser(&req)
+
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "Unauthorized",
-			Message: "User not authenticated",
-		})
+		if req.UserID == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
+				Success: false,
+				Error:   "Unauthorized",
+				Message: "User not authenticated",
+			})
+		}
+		userID = req.UserID
 	}
-	
-	// Get client IP
+
 	ipAddress := c.IP()
 	if forwarded := c.Get("X-Forwarded-For"); forwarded != "" {
 		ipAddress = strings.Split(forwarded, ",")[0]
 	}
-	
+
 	if err := h.authService.ResendVerificationEmail(c.Context(), userID.(string), ipAddress); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
 			Success: false,
@@ -558,7 +566,7 @@ func (h *AuthHandler) ResendVerificationEmail(c *fiber.Ctx) error {
 			Message: err.Error(),
 		})
 	}
-	
+
 	return c.Status(fiber.StatusOK).JSON(APIResponse{
 		Success: true,
 		Message: "Verification email sent successfully. Please check your inbox.",
@@ -664,6 +672,20 @@ func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 		Success: true,
 		Message: "Profile updated successfully",
 	})
+}
+
+// WebLogout handles GET/POST /logout — clears cookies and redirects
+func (h *AuthHandler) WebLogout(c *fiber.Ctx) error {
+	if userID := c.Locals("user_id"); userID != nil {
+		if uid, ok := userID.(string); ok {
+			if tokenStr := c.Cookies("access_token"); tokenStr != "" {
+				h.authService.Logout(c.Context(), uid, tokenStr)
+			}
+		}
+	}
+	c.Cookie(&fiber.Cookie{Name: "access_token", Value: "", Path: "/", MaxAge: -1})
+	c.Cookie(&fiber.Cookie{Name: "refresh_token", Value: "", Path: "/api/v1/auth/refresh", MaxAge: -1})
+	return c.Redirect("/login", fiber.StatusFound)
 }
 
 // Helper function to get user ID from context

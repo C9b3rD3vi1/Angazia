@@ -1,10 +1,6 @@
 package handlers
 
 import (
-	"strconv"
-	"strings"
-	"time"
-
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
@@ -33,117 +29,6 @@ func NewWebHandler(jobService services.JobService, companyService services.Compa
 		jobService:     jobService,
 		companyService: companyService,
 	}
-}
-
-func parseFormInt(c *fiber.Ctx, key string) int {
-	v := c.FormValue(key)
-	if v == "" {
-		return 0
-	}
-	n, err := strconv.Atoi(v)
-	if err != nil {
-		return 0
-	}
-	return n
-}
-
-// EmployerJobPostSubmit handles the job posting form submission
-func (h *WebHandler) EmployerJobPostSubmit(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(string)
-	if !ok || userID == "" {
-		return c.Redirect("/login", fiber.StatusFound)
-	}
-
-	skillsStr := c.FormValue("skills")
-	var skills []string
-	if skillsStr != "" {
-		for _, s := range strings.Split(skillsStr, ",") {
-			s = strings.TrimSpace(s)
-			if s != "" {
-				skills = append(skills, s)
-			}
-		}
-	}
-
-	workType := c.FormValue("work_type")
-	isRemote := workType == "remote"
-	isHybrid := workType == "hybrid"
-
-	var deadline *time.Time
-	if d := c.FormValue("deadline"); d != "" {
-		if parsed, err := time.Parse("2006-01-02", d); err == nil {
-			deadline = &parsed
-		}
-	}
-
-	req := &services.CreateJobRequest{
-		Title:           c.FormValue("title"),
-		Description:     c.FormValue("description"),
-		Requirements:    c.FormValue("requirements"),
-		RequiredSkills:  skills,
-		ExperienceLevel: c.FormValue("experience_level"),
-		SalaryMin:       parseFormInt(c, "salary_min"),
-		SalaryMax:       parseFormInt(c, "salary_max"),
-		SalaryCurrency:  "KES",
-		Location:        c.FormValue("location"),
-		IsRemote:        isRemote,
-		IsHybrid:        isHybrid,
-		EmploymentType:  c.FormValue("type"),
-		ExpiresAt:       deadline,
-	}
-
-	_, err := h.jobService.CreateJob(c.Context(), userID, req)
-	if err != nil {
-		return c.Render("employer/job-post", mergePageData(c, fiber.Map{
-			"Title":      "Post a Job - Angazia",
-			"ActivePage": "jobs",
-			"Error":      err.Error(),
-			"Form": fiber.Map{
-				"Title":           c.FormValue("title"),
-				"Type":            c.FormValue("type"),
-				"Location":        c.FormValue("location"),
-				"WorkType":        workType,
-				"SalaryMin":       c.FormValue("salary_min"),
-				"SalaryMax":       c.FormValue("salary_max"),
-				"Description":     c.FormValue("description"),
-				"Requirements":    c.FormValue("requirements"),
-				"Skills":          skillsStr,
-				"ExperienceLevel": c.FormValue("experience_level"),
-				"Deadline":        c.FormValue("deadline"),
-			},
-		}), "layouts/employer")
-	}
-
-	return c.Redirect("/employer/jobs", fiber.StatusFound)
-}
-
-// EmployerCompanyEditSubmit handles the company profile edit form submission
-func (h *WebHandler) EmployerCompanyEditSubmit(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(string)
-	if !ok || userID == "" {
-		return c.Redirect("/login", fiber.StatusFound)
-	}
-
-	req := &services.UpdateCompanyProfileRequest{
-		CompanyName:        c.FormValue("company_name"),
-		CompanyWebsite:     c.FormValue("website"),
-		CompanyLinkedIn:    c.FormValue("linkedin"),
-		CompanyDescription: c.FormValue("description"),
-		Industry:           c.FormValue("industry"),
-		CompanySize:        c.FormValue("company_size"),
-		Location:           c.FormValue("location"),
-	}
-
-	_, err := h.companyService.UpdateCompanyProfile(c.Context(), userID, req)
-	if err != nil {
-		return c.Render("employer/company-edit", mergePageData(c, fiber.Map{
-			"Title":      "Edit Company Profile - Angazia",
-			"ActivePage": "company",
-			"Error":      err.Error(),
-		}), "layouts/employer")
-	}
-
-	return c.Redirect("/employer/company", fiber.StatusFound)
 }
 
 // HomePage renders the landing page

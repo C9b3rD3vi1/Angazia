@@ -180,7 +180,6 @@ func main() {
 	alertHandler := handlers.NewAlertHandler(alertSvc)
 	planHandler := handlers.NewAdminPlanHandler(subscriptionSvc)
 	webHandler := handlers.NewWebHandler(jobSvc, companyService)
-	webAuthHandler := handlers.NewWebAuthHandler(authSvc)
 	companyHandler := handlers.NewCompanyHandler(companyService)
 	resumeHandler := handlers.NewResumeHandler(profileSvc)
 	websocketHandler := handlers.NewWebSocketHandler()
@@ -318,7 +317,7 @@ func main() {
 	routes.SetupTwoFAGlobalMiddleware(app, twoFAService)
 	
 	// Web routes (HTML pages)
-	routes.SetupWebRoutes(app, webHandler, webAuthHandler, authSvc)
+	routes.SetupWebRoutes(app, webHandler, authHandler, authSvc)
 	
 	// WebSocket routes
 	routes.SetupWebSocketRoutes(app, websocketHandler)

@@ -525,3 +525,71 @@ func (h *AdminHandler) ReportContent(c *fiber.Ctx) error {
 		Message: "Content reported successfully",
 	})
 }
+
+// ApproveCompanyVerification approves a company verification request
+func (h *AdminHandler) ApproveCompanyVerification(c *fiber.Ctx) error {
+	adminID, _ := c.Locals("user_id").(string)
+	if adminID == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
+			Success: false, Error: "unauthorized", Message: "Admin not authenticated",
+		})
+	}
+	companyID := c.Params("id")
+	if companyID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
+			Success: false, Error: "missing_id", Message: "Company ID required",
+		})
+	}
+	if err := h.adminService.ApproveCompanyVerification(c.Context(), adminID, companyID); err != nil {
+		status := fiber.StatusInternalServerError
+		if err.Error() == "verification not found" {
+			status = fiber.StatusNotFound
+		} else if err.Error() == "verification is not pending" {
+			status = fiber.StatusConflict
+		}
+		return c.Status(status).JSON(APIResponse{
+			Success: false, Error: "approval_failed", Message: err.Error(),
+		})
+	}
+	return c.JSON(APIResponse{
+		Success: true, Message: "Company verification approved",
+	})
+}
+
+// RejectCompanyVerification rejects a company verification request
+func (h *AdminHandler) RejectCompanyVerification(c *fiber.Ctx) error {
+	adminID, _ := c.Locals("user_id").(string)
+	if adminID == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
+			Success: false, Error: "unauthorized", Message: "Admin not authenticated",
+		})
+	}
+	companyID := c.Params("id")
+	if companyID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
+			Success: false, Error: "missing_id", Message: "Company ID required",
+		})
+	}
+	var req struct {
+		Reason string `json:"reason"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
+			Success: false, Error: "invalid_request", Message: "Invalid request body",
+		})
+	}
+	if err := h.adminService.RejectCompanyVerification(c.Context(), adminID, companyID, req.Reason); err != nil {
+		status := fiber.StatusInternalServerError
+		if err.Error() == "verification not found" {
+			status = fiber.StatusNotFound
+		} else if err.Error() == "verification is not pending" {
+			status = fiber.StatusConflict
+		}
+		return c.Status(status).JSON(APIResponse{
+			Success: false, Error: "rejection_failed", Message: err.Error(),
+		})
+	}
+	return c.JSON(APIResponse{
+		Success: true, Message: "Company verification rejected",
+	})
+}

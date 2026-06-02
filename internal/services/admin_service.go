@@ -372,6 +372,8 @@ type AdminService interface {
 	RejectContent(ctx context.Context, id, reviewerID, reason string) error
 	GetSettings(ctx context.Context, category string) ([]*models.SystemSetting, error)
 	UpdateSetting(ctx context.Context, key, value string) error
+	ApproveCompanyVerification(ctx context.Context, adminID, companyID string) error
+	RejectCompanyVerification(ctx context.Context, adminID, companyID, reason string) error
 	GetReportReasons(ctx context.Context, entityType string) ([]*models.ReportReason, error)
 	GetAuditLogs(ctx context.Context, filters map[string]interface{}, page, limit int) ([]*models.AdminActionLog, int64, error)
 	ReportContent(ctx context.Context, submittedBy string, req ReportContentRequest) error
@@ -454,6 +456,28 @@ func (s *AdminServiceImpl) GetSettings(ctx context.Context, category string) ([]
 
 func (s *AdminServiceImpl) UpdateSetting(ctx context.Context, key, value string) error {
 	return s.adminRepo.UpdateSetting(ctx, key, value)
+}
+
+func (s *AdminServiceImpl) ApproveCompanyVerification(ctx context.Context, adminID, companyID string) error {
+	verification, err := s.adminRepo.GetVerificationByCompanyID(ctx, companyID)
+	if err != nil {
+		return fmt.Errorf("verification not found")
+	}
+	if verification.Status != "pending" {
+		return fmt.Errorf("verification is not pending")
+	}
+	return s.adminRepo.ApproveCompanyVerification(ctx, companyID, adminID)
+}
+
+func (s *AdminServiceImpl) RejectCompanyVerification(ctx context.Context, adminID, companyID, reason string) error {
+	verification, err := s.adminRepo.GetVerificationByCompanyID(ctx, companyID)
+	if err != nil {
+		return fmt.Errorf("verification not found")
+	}
+	if 	verification.Status != "pending" {
+		return fmt.Errorf("verification is not pending")
+	}
+	return s.adminRepo.RejectCompanyVerification(ctx, companyID, reason, adminID)
 }
 
 func (s *AdminServiceImpl) GetReportReasons(ctx context.Context, entityType string) ([]*models.ReportReason, error) {

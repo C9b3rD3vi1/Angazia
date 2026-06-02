@@ -249,12 +249,8 @@
               <span class="ad-verif-doc">&#x1F4C4; {{.DocumentCount}} docs</span>
             </div>
             <div class="ad-verif-actions">
-              <form method="POST" action="/admin/verifications/{{.ID}}/approve" style="display:inline">
-                <button class="ad-verif-btn ad-verif-btn-approve">&#x2705; Approve</button>
-              </form>
-              <form method="POST" action="/admin/verifications/{{.ID}}/reject" style="display:inline">
-                <button class="ad-verif-btn ad-verif-btn-reject">&#x274C; Reject</button>
-              </form>
+              <button class="ad-verif-btn ad-verif-btn-approve" data-action="approve" data-company-id="{{.CompanyID}}">&#x2705; Approve</button>
+              <button class="ad-verif-btn ad-verif-btn-reject" data-action="reject" data-company-id="{{.CompanyID}}">&#x274C; Reject</button>
             </div>
           </div>
           {{end}}
@@ -709,3 +705,49 @@
   .ad-header { flex-direction: column; align-items: flex-start; }
 }
 </style>
+
+<script>
+(function () {
+  function toast(msg, type) {
+    if (window.AngaziaApp && AngaziaApp.showToast) {
+      AngaziaApp.showToast(msg, type);
+    } else {
+      alert((type === 'error' ? 'Error: ' : '') + msg);
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+
+    var action = btn.getAttribute('data-action');
+    var companyId = btn.getAttribute('data-company-id');
+
+    if (action === 'reject') {
+      var reason = prompt('Reason for rejection (optional):');
+      if (reason === null) return;
+      btn.disabled = true;
+      AngaziaAPI.post('/admin/companies/' + companyId + '/reject', reason ? { reason: reason } : {})
+        .then(function () {
+          toast('Verification rejected', 'success');
+          btn.closest('.ad-verif-item').remove();
+        })
+        .catch(function (err) {
+          toast(err.message || 'Failed to reject verification', 'error');
+        })
+        .then(function () { btn.disabled = false; });
+    } else if (action === 'approve') {
+      btn.disabled = true;
+      AngaziaAPI.post('/admin/companies/' + companyId + '/verify')
+        .then(function () {
+          toast('Verification approved!', 'success');
+          btn.closest('.ad-verif-item').remove();
+        })
+        .catch(function (err) {
+          toast(err.message || 'Failed to approve verification', 'error');
+        })
+        .then(function () { btn.disabled = false; });
+    }
+  });
+})();
+</script>

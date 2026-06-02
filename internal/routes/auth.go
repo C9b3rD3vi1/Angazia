@@ -14,12 +14,12 @@ func SetupAuthRoutes(router fiber.Router, authHandler *handlers.AuthHandler) {
 	router.Post("/auth/forgot-password", authHandler.ForgotPassword)
 	router.Post("/auth/reset-password", authHandler.ResetPassword)
 	router.Get("/auth/verify-email/:token", authHandler.VerifyEmail)
-	
+	router.Post("/auth/resend-verification", authHandler.ResendVerificationEmail)
+
 	// Protected routes (authentication required)
 	protected := router.Group("/auth", middleware.AuthMiddleware())
 	protected.Post("/logout", authHandler.Logout)
 	protected.Post("/change-password", authHandler.ChangePassword)
-	protected.Post("/resend-verification", authHandler.ResendVerificationEmail)
 	
 	// Profile routes (authentication required)
 	profile := router.Group("/profile", middleware.AuthMiddleware())

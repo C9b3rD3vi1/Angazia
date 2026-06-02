@@ -1,7 +1,7 @@
-<form action="/verify/resend" method="POST" class="card" id="auth-form">
+<form class="card" id="auth-form">
   <div class="card-body">
-    <input type="hidden" name="token" value="{{.Token}}">
-    <input type="hidden" name="user_id" value="{{.UserID}}">
+    <input type="hidden" id="verify-user-id" value="{{.UserID}}">
+    <input type="hidden" id="verify-token" value="{{.Token}}">
     <div class="verify-status">
       {{if .Verified}}
       <div class="verify-success">
@@ -15,7 +15,7 @@
         <div class="verify-icon">⚠️</div>
         <h2 class="verify-heading">Verification failed</h2>
         <p class="verify-text">{{.Error}}</p>
-        <button type="submit" class="btn-auth-submit verify-btn">Resend verification email</button>
+        <button type="button" class="btn-auth-submit verify-btn" id="resend-btn">Resend verification email</button>
       </div>
       {{else}}
       <div class="verify-pending">
@@ -67,3 +67,26 @@ setTimeout(function(){ location.reload(); }, 3000);
 </script>
 {{end}}
 {{end}}
+<script>
+  var resendBtn = document.getElementById('resend-btn');
+  if (resendBtn) {
+    resendBtn.addEventListener('click', function () {
+      var userId = document.getElementById('verify-user-id').value;
+      resendBtn.disabled = true;
+      resendBtn.textContent = 'Sending...';
+      AngaziaAPI.post('/auth/resend-verification', { user_id: userId })
+        .then(function () {
+          resendBtn.textContent = 'Email sent! Check your inbox.';
+        })
+        .catch(function (err) {
+          resendBtn.textContent = 'Resend verification email';
+          resendBtn.disabled = false;
+          if (window.AngaziaApp && AngaziaApp.showToast) {
+            AngaziaApp.showToast(err.message || 'Failed to resend', 'error');
+          } else {
+            alert('Failed to resend: ' + (err.message || 'Unknown error'));
+          }
+        });
+    });
+  }
+</script>
