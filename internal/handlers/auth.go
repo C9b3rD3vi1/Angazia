@@ -214,18 +214,25 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		})
 	}
 	
-	// Set secure HTTP-only cookie with refresh token (optional, for web clients)
-	if c.Get("X-Client-Type") == "web" {
-		c.Cookie(&fiber.Cookie{
-			Name:     "refresh_token",
-			Value:    response.RefreshToken,
-			HTTPOnly: true,
-			Secure:   !utils.IsDevelopment(),
-			SameSite: "Strict",
-			Path:     "/api/v1/auth/refresh",
-			MaxAge:   7 * 24 * 3600, // 7 days
-		})
-	}
+	// Set HTTP-only cookies for web client compatibility (WebAuthMiddleware reads access_token from cookie)
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    response.AccessToken,
+		HTTPOnly: true,
+		Secure:   !utils.IsDevelopment(),
+		SameSite: "Strict",
+		Path:     "/",
+		MaxAge:   24 * 3600, // 24 hours
+	})
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    response.RefreshToken,
+		HTTPOnly: true,
+		Secure:   !utils.IsDevelopment(),
+		SameSite: "Strict",
+		Path:     "/api/v1/auth/refresh",
+		MaxAge:   7 * 24 * 3600, // 7 days
+	})
 	
 	return c.Status(fiber.StatusOK).JSON(APIResponse{
 		Success: true,
