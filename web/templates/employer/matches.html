@@ -1,0 +1,301 @@
+{{/* Employer - AI Candidate Matches */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">AI Matches</h1>
+      <p class="emp-page-sub">AI-powered candidate recommendations for your job openings</p>
+    </div>
+    <div class="emp-match-toolbar">
+      <div class="emp-job-select-group">
+        <label class="emp-filter-label">Select Job</label>
+        <select id="job-selector" class="emp-job-select">
+          <option value="">— Choose a job —</option>
+        </select>
+      </div>
+      <button class="emp-btn emp-btn-primary emp-gen-questions" id="gen-questions-btn" data-job-id="" style="display:none;">
+        Generate Interview Questions
+      </button>
+    </div>
+  </div>
+
+  <section class="emp-section" id="matches-section">
+    <div class="emp-section-head">
+      <h2 class="emp-section-title">Matched Candidates</h2>
+      <span class="emp-result-hint" id="match-count"></span>
+    </div>
+    <div id="matches-container">
+      <div class="emp-empty" id="matches-empty">
+        <div class="emp-empty-icon">&#x1F50D;</div>
+        <h3 class="emp-empty-title">Select a job to see matches</h3>
+        <p class="emp-empty-desc">Choose a job from the dropdown above to view AI-recommended candidates.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="emp-section" id="skill-gap-section" style="display:none;">
+    <div class="emp-section-head">
+      <h2 class="emp-section-title">Skills Gap Analysis</h2>
+    </div>
+    <div id="skill-gap-chart" class="emp-skill-chart"></div>
+    <div class="emp-empty" id="skill-empty">
+      <p class="emp-empty-desc">Skills gap data will appear once candidates are loaded.</p>
+    </div>
+  </section>
+</div>
+
+<style>
+.emp-match-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.emp-job-select-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.emp-job-select {
+  padding: 9px 14px;
+  min-width: 240px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.emp-job-select:focus { border-color: var(--purple); }
+.emp-skill-chart {
+  min-height: 200px;
+}
+.emp-skill-chart[data-empty] { display: none; }
+.emp-loading {
+  text-align: center;
+  padding: 40px 24px;
+  color: var(--muted2);
+  font-size: 13px;
+}
+.emp-loading::after {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-left: 8px;
+  border: 2px solid var(--border);
+  border-top-color: var(--purple);
+  border-radius: 50%;
+  animation: emp-spin 0.6s linear infinite;
+  vertical-align: middle;
+}
+@keyframes emp-spin { to { transform: rotate(360deg); } }
+@media (max-width: 860px) {
+  .emp-page-head { flex-direction: column; align-items: stretch; }
+  .emp-match-toolbar { flex-direction: column; align-items: stretch; }
+  .emp-job-select { min-width: 0; width: 100%; }
+}
+</style>
+
+<script>
+(function() {
+  'use strict';
+
+  var currentJobId = '';
+
+  function loadJobs() {
+    if (typeof AngaziaAPI === 'undefined') return;
+    AngaziaAPI.jobs.myJobs({ limit: 100 })
+      .then(function(resp) {
+        var jobs = resp.data || resp.jobs || resp || [];
+        var sel = document.getElementById('job-selector');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">— Choose a job —</option>';
+        if (jobs.length) {
+          jobs.forEach(function(j) {
+            var opt = document.createElement('option');
+            opt.value = j.id || j.ID || '';
+            opt.textContent = j.title || j.Title || j.name || j.Name || 'Untitled';
+            sel.appendChild(opt);
+          });
+          sel.value = '';
+        }
+      })
+      .catch(function() {});
+  }
+
+  function loadMatches(jobId) {
+    if (!jobId || typeof AngaziaAPI === 'undefined') return;
+    currentJobId = jobId;
+    var container = document.getElementById('matches-container');
+    var countEl = document.getElementById('match-count');
+    var emptyEl = document.getElementById('matches-empty');
+    var genBtn = document.getElementById('gen-questions-btn');
+    var skillSection = document.getElementById('skill-gap-section');
+
+    if (!container) return;
+    container.innerHTML = '<div class="emp-loading">Loading matches...</div>';
+    if (countEl) countEl.textContent = '';
+    if (genBtn) { genBtn.style.display = 'none'; genBtn.dataset.jobId = jobId; }
+    if (skillSection) skillSection.style.display = 'none';
+
+    AngaziaAPI.matches.candidateMatches(jobId)
+      .then(function(resp) {
+        var candidates = resp.data || resp.candidates || resp.matches || resp || [];
+        if (!Array.isArray(candidates)) candidates = [];
+        container.innerHTML = '';
+
+        if (!candidates.length) {
+          if (emptyEl) {
+            container.appendChild(emptyEl.cloneNode(true));
+          } else {
+            container.innerHTML = '<div class="emp-empty"><div class="emp-empty-icon">&#x1F50D;</div><h3 class="emp-empty-title">No matches found</h3><p class="emp-empty-desc">No candidates matched this job. Try adjusting the job description.</p></div>';
+          }
+          if (countEl) countEl.textContent = '0 candidates';
+          return;
+        }
+
+        if (countEl) countEl.textContent = candidates.length + ' candidates found';
+        if (genBtn) genBtn.style.display = 'inline-flex';
+
+        var list = document.createElement('div');
+        list.className = 'emp-candidate-list';
+
+        candidates.forEach(function(c) {
+          var cid = c.id || c.ID || '';
+          var name = c.name || c.Name || c.full_name || c.FullName || 'Unknown';
+          var headline = c.headline || c.Headline || c.title || c.Title || '';
+          var score = c.match_score || c.MatchScore || c.matchPercentage || c.score || 0;
+          var location = c.location || c.Location || '';
+          var experience = c.experience_years || c.ExperienceYears || c.experience || c.Experience || 0;
+          var skills = c.skills || c.Skills || [];
+          var initials = c.initials || c.Initials || '';
+          if (!initials && name) {
+            initials = name.split(' ').map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+          }
+
+          var card = document.createElement('div');
+          card.className = 'emp-candidate-card';
+
+          card.innerHTML =
+            '<div class="emp-candidate-avatar"><span class="emp-candidate-initials">' + escapeHtml(initials) + '</span></div>' +
+            '<div class="emp-candidate-info">' +
+              '<div class="emp-candidate-top">' +
+                '<h3 class="emp-candidate-name">' + escapeHtml(name) + '</h3>' +
+                '<span class="emp-candidate-score">' + score + '% match</span>' +
+              '</div>' +
+              (headline ? '<span class="emp-candidate-headline">' + escapeHtml(headline) + '</span>' : '') +
+              '<div class="emp-candidate-tags">' +
+                (Array.isArray(skills) ? skills.map(function(s) { return '<span class="emp-tag">' + escapeHtml(typeof s === 'string' ? s : s.name || s.Name || '') + '</span>'; }).join('') : '') +
+              '</div>' +
+              '<div class="emp-candidate-meta">' +
+                (location ? '<span>&#x1F4CD; ' + escapeHtml(location) + '</span>' : '') +
+                (experience ? '<span>&#x1F4C5; ' + experience + ' yrs exp</span>' : '') +
+              '</div>' +
+            '</div>' +
+            '<div class="emp-candidate-actions emp-match-actions">' +
+              '<button class="emp-btn emp-btn-sm emp-btn-outline emp-match-action" data-candidate-id="' + escapeHtml(cid) + '" data-job-id="' + escapeHtml(jobId) + '" data-action="view-profile">View Profile</button>' +
+              '<button class="emp-btn emp-btn-sm emp-btn-ghost emp-match-action" data-candidate-id="' + escapeHtml(cid) + '" data-job-id="' + escapeHtml(jobId) + '" data-action="add-to-pool">+ Pool</button>' +
+              '<button class="emp-btn emp-btn-sm emp-btn-ghost emp-match-action" data-candidate-id="' + escapeHtml(cid) + '" data-job-id="' + escapeHtml(jobId) + '" data-action="schedule-interview">&#x1F4C5; Interview</button>' +
+              '<button class="emp-btn emp-btn-sm emp-btn-ghost emp-match-action" data-candidate-id="' + escapeHtml(cid) + '" data-job-id="' + escapeHtml(jobId) + '" data-action="view-analysis">&#x1F4CA; Analysis</button>' +
+            '</div>';
+
+          list.appendChild(card);
+        });
+
+        container.appendChild(list);
+
+        if (typeof window.__initMatchActions === 'function') {
+          window.__initMatchActions();
+        }
+
+        loadSkillGap(jobId);
+      })
+      .catch(function() {
+        container.innerHTML = '<div class="emp-empty"><div class="emp-empty-icon">&#x26A0;</div><h3 class="emp-empty-title">Failed to load matches</h3><p class="emp-empty-desc">An error occurred. Please try again.</p></div>';
+        if (countEl) countEl.textContent = '';
+      });
+  }
+
+  function loadSkillGap(jobId) {
+    var chart = document.getElementById('skill-gap-chart');
+    var section = document.getElementById('skill-gap-section');
+    var empty = document.getElementById('skill-empty');
+    if (!chart || !section) return;
+    if (typeof AngaziaAPI === 'undefined') return;
+
+    section.style.display = 'block';
+    chart.innerHTML = '<div class="emp-loading">Analyzing skills gap...</div>';
+    if (empty) empty.style.display = 'none';
+
+    AngaziaAPI.matches.skillsGap(jobId)
+      .then(function(resp) {
+        var analysis = resp.data || resp.analysis || resp || {};
+        var skills = analysis.skills || analysis.skills_gap || analysis.missing_skills || [];
+        if (typeof skills === 'object' && !Array.isArray(skills)) {
+          var tmp = [];
+          for (var k in skills) {
+            if (skills.hasOwnProperty(k)) {
+              tmp.push({ label: k, score: skills[k] });
+            }
+          }
+          skills = tmp;
+        }
+        if (!Array.isArray(skills)) skills = [];
+        chart.innerHTML = '';
+
+        if (!skills.length) {
+          chart.innerHTML = '<div class="emp-empty"><p class="emp-empty-desc">No skills gap data available for this job.</p></div>';
+          return;
+        }
+
+        skills.forEach(function(s) {
+          var el = document.createElement('div');
+          el.setAttribute('data-skill', s.label || s.skill || s.name || '');
+          el.setAttribute('data-score', s.score || s.value || s.percentage || 0);
+          chart.appendChild(el);
+        });
+
+        if (typeof window.__initSkillGap === 'function') {
+          window.__initSkillGap();
+        }
+      })
+      .catch(function() {
+        chart.innerHTML = '<div class="emp-empty"><p class="emp-empty-desc">Failed to load skills gap analysis.</p></div>';
+      });
+  }
+
+  function escapeHtml(t) {
+    if (!t) return '';
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(String(t)));
+    return d.innerHTML;
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    loadJobs();
+    var sel = document.getElementById('job-selector');
+    if (sel) {
+      sel.addEventListener('change', function() {
+        var jid = this.value;
+        if (jid) {
+          loadMatches(jid);
+        } else {
+          var container = document.getElementById('matches-container');
+          if (container) {
+            container.innerHTML = '<div class="emp-empty"><div class="emp-empty-icon">&#x1F50D;</div><h3 class="emp-empty-title">Select a job to see matches</h3><p class="emp-empty-desc">Choose a job from the dropdown above to view AI-recommended candidates.</p></div>';
+          }
+          var countEl = document.getElementById('match-count');
+          if (countEl) countEl.textContent = '';
+          var genBtn = document.getElementById('gen-questions-btn');
+          if (genBtn) genBtn.style.display = 'none';
+          document.getElementById('skill-gap-section').style.display = 'none';
+        }
+      });
+    }
+  });
+})();
+</script>
+<script src="/static/js/pages/employer/matches.js"></script>

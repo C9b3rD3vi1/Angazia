@@ -1,0 +1,336 @@
+{{/* Employee Jobs Page */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">Find Your Next Role</h1>
+      <p class="emp-page-sub">AI-matched job recommendations based on your skills</p>
+    </div>
+  </div>
+
+  <div class="emp-search-card">
+    <div class="emp-search-row">
+      <div class="emp-search-field">
+        <span class="emp-search-icon">&#x1F50D;</span>
+        <input type="text" class="emp-search-input" placeholder="Search by title, skill, or company...">
+      </div>
+      <button class="emp-btn emp-btn-primary">Search</button>
+    </div>
+    <div class="emp-search-filters">
+      <select class="emp-select"><option>All Types</option><option>Full-time</option><option>Part-time</option><option>Contract</option><option>Remote</option></select>
+      <select class="emp-select"><option>All Locations</option><option>Nairobi</option><option>Remote</option><option>Mombasa</option></select>
+      <select class="emp-select"><option>Sort: Latest</option><option>Sort: Match</option><option>Sort: Salary</option></select>
+    </div>
+  </div>
+
+  <div class="emp-jobs-header">
+    <span class="emp-jobs-count">{{.TotalJobs}} jobs found</span>
+  </div>
+
+  <div class="emp-jobs-list">
+    {{if .Jobs}}
+    {{range .Jobs}}
+    <a href="/jobs/{{.ID}}" class="emp-job-card">
+      <div class="emp-job-top">
+        <div class="emp-job-brand">
+          {{if .CompanyLogo}}
+          <img src="{{.CompanyLogo}}" alt="{{.Company}}" class="emp-job-logo">
+          {{else}}
+          <span class="emp-job-logo-init">{{.CompanyInitials}}</span>
+          {{end}}
+          <div class="emp-job-meta">
+            <h3 class="emp-job-title">{{.Title}}</h3>
+            <span class="emp-job-company">{{.Company}}</span>
+          </div>
+        </div>
+        <span class="emp-job-match">{{.Match}}%</span>
+      </div>
+      <p class="emp-job-desc">{{.Description}}</p>
+      <div class="emp-job-tags">
+        <span class="emp-tag">{{.Location}}</span>
+        <span class="emp-tag">{{.Type}}</span>
+        {{if .Salary}}<span class="emp-tag emp-tag-accent">{{.Salary}}</span>{{end}}
+      </div>
+      <div class="emp-job-foot">
+        <span class="emp-job-posted">Posted {{.PostedDate}}</span>
+        <div class="emp-job-actions">
+          <span class="emp-job-action emp-job-save">&#x1F516; Save</span>
+          <span class="emp-job-action emp-job-apply">Apply Now &rarr;</span>
+        </div>
+      </div>
+    </a>
+    {{end}}
+    {{else}}
+    <div class="emp-empty">
+      <div class="emp-empty-icon">&#x1F50D;</div>
+      <p class="emp-empty-text">No jobs match your criteria. Try adjusting filters or updating your skills profile.</p>
+      <a href="/employee/skills" class="emp-btn emp-btn-outline">Update Skills &rarr;</a>
+    </div>
+    {{end}}
+  </div>
+</div>
+
+<style>
+.emp-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.emp-page-title {
+  font-family: var(--fh);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.emp-page-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.emp-search-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.emp-search-row {
+  display: flex;
+  gap: 12px;
+}
+.emp-search-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+}
+.emp-search-field:focus-within { border-color: var(--accent); }
+.emp-search-icon { font-size: 14px; opacity: 0.4; flex-shrink: 0; }
+.emp-search-input {
+  flex: 1;
+  height: 42px;
+  font-family: var(--fm);
+  font-size: 13px;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+}
+.emp-search-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.emp-select {
+  padding: 7px 12px;
+  font-family: var(--fm);
+  font-size: 10px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.emp-select:hover, .emp-select:focus { border-color: var(--accent); color: var(--text); }
+
+.emp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 22px;
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.emp-btn-primary {
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+}
+.emp-btn-primary:hover { opacity: 0.88; }
+.emp-btn-outline {
+  color: var(--accent);
+  background: none;
+  border: 1px solid rgba(0,229,160,0.25);
+}
+.emp-btn-outline:hover { background: rgba(0,229,160,0.06); border-color: var(--accent); }
+
+.emp-jobs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.emp-jobs-count {
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--muted2);
+  letter-spacing: 0.3px;
+}
+
+.emp-jobs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.emp-job-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: all 0.15s;
+}
+.emp-job-card:hover {
+  border-color: rgba(0,229,160,0.3);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+}
+.emp-job-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+.emp-job-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.emp-job-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.emp-job-logo-init {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fh);
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.emp-job-meta { min-width: 0; }
+.emp-job-title {
+  font-family: var(--fh);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.emp-job-company {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.emp-job-match {
+  font-family: var(--fm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 4px 10px;
+  background: rgba(0,229,160,0.08);
+  border: 1px solid rgba(0,229,160,0.15);
+  border-radius: var(--radius);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.emp-job-desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.emp-job-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.emp-tag {
+  font-family: var(--fm);
+  font-size: 10px;
+  padding: 3px 10px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+}
+.emp-tag-accent { color: var(--accent); border-color: rgba(0,229,160,0.2); }
+.emp-job-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.emp-job-posted {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--muted2);
+}
+.emp-job-actions {
+  display: flex;
+  gap: 14px;
+}
+.emp-job-action {
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: color 0.12s;
+}
+.emp-job-save { color: var(--muted2); }
+.emp-job-save:hover { color: var(--text); }
+.emp-job-apply { color: var(--accent); font-weight: 500; }
+
+.emp-empty {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.emp-empty-icon { font-size: 36px; display: block; margin-bottom: 14px; opacity: 0.5; }
+.emp-empty-text { font-size: 14px; color: var(--muted); margin-bottom: 18px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+
+@media (max-width: 768px) {
+  .emp-search-row { flex-direction: column; }
+  .emp-job-top { flex-direction: column; }
+  .emp-job-foot { flex-direction: column; gap: 8px; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .emp-search-filters { flex-direction: column; }
+  .emp-select { width: 100%; }
+}
+</style>

@@ -1,0 +1,508 @@
+{{template "partials/head" .}}
+<body class="dash-body">
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">ANGAZ<span>IA</span></a>
+    <div class="nav-links">
+      <a href="/employee/jobs" class="nav-link">JOBS</a>
+      <a href="/employee/applications" class="nav-link">APPLICATIONS</a>
+    </div>
+    <div class="nav-actions">
+      <button class="nav-icon-btn" id="notif-btn"><span>&#x1F514;</span>{{if .UnreadCount}}<span class="notif-dot"></span>{{end}}</button>
+      <div class="nav-avatar-wrap">
+        <div class="nav-avatar" id="avatar-btn">
+          {{if .User.Avatar}}<img src="{{.User.Avatar}}" alt="{{.User.Name}}">{{else}}<span class="avatar-initials">{{.User.Initials}}</span>{{end}}
+        </div>
+        <div class="avatar-dropdown" id="avatar-dropdown">
+          <div class="dropdown-header"><div class="dropdown-name">{{.User.Name}}</div><div class="dropdown-email">{{.User.Email}}</div></div>
+          <div class="dropdown-divider"></div>
+          <a href="/employee/dashboard" class="dropdown-item">Dashboard</a>
+          <a href="/employee/settings" class="dropdown-item">Settings</a>
+          <a href="/employee/skills" class="dropdown-item">Skills Profile</a>
+          <div class="dropdown-divider"></div>
+          <a href="/logout" class="dropdown-item dropdown-item-danger">Sign Out</a>
+        </div>
+      </div>
+    </div>
+    <button class="nav-hamburger" id="hamburger"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<main class="main-content-wide">
+<div class="dash-layout">
+  <aside class="dash-sidebar">
+    <div class="dash-profile">
+      <div class="dash-avatar">
+        {{if .User.Avatar}}<img src="{{.User.Avatar}}" alt="{{.User.Name}}">{{else}}<span class="dash-avatar-initials">{{.User.Initials}}</span>{{end}}
+      </div>
+      {{if .User.Name}}<h3 class="dash-name">{{.User.Name}}</h3>{{end}}
+      {{if .User.Headline}}<p class="dash-title">{{.User.Headline}}</p>{{end}}
+      <div class="dash-strength">
+        <div class="dash-strength-bar"><div class="dash-strength-fill" style="width:{{.ProfileStrength}}%"></div></div>
+        <span class="dash-strength-label">{{.ProfileStrength}}% Complete</span>
+      </div>
+    </div>
+    <nav class="dash-nav">
+      <a href="/employee/dashboard" class="dash-link {{if eq .ActivePage "dashboard"}}active{{end}}"><span class="dash-link-icon">&#x1F4CA;</span><span class="dash-link-text">Dashboard</span></a>
+      <a href="/employee/jobs" class="dash-link {{if eq .ActivePage "jobs"}}active{{end}}"><span class="dash-link-icon">&#x1F4BC;</span><span class="dash-link-text">Jobs</span>{{if .MatchCount}}<span class="dash-badge">{{.MatchCount}}</span>{{end}}</a>
+      <a href="/employee/applications" class="dash-link {{if eq .ActivePage "applications"}}active{{end}}"><span class="dash-link-icon">&#x1F4CB;</span><span class="dash-link-text">Applications</span>{{if .ApplicationCount}}<span class="dash-badge">{{.ApplicationCount}}</span>{{end}}</a>
+      <a href="/employee/saved" class="dash-link {{if eq .ActivePage "saved"}}active{{end}}"><span class="dash-link-icon">&#x1F516;</span><span class="dash-link-text">Saved</span></a>
+      <a href="/employee/alerts" class="dash-link {{if eq .ActivePage "alerts"}}active{{end}}"><span class="dash-link-icon">&#x1F514;</span><span class="dash-link-text">Alerts</span>{{if .AlertCount}}<span class="dash-badge">{{.AlertCount}}</span>{{end}}</a>
+      <a href="/employee/skills" class="dash-link {{if eq .ActivePage "skills"}}active{{end}}"><span class="dash-link-icon">&#x1F9E0;</span><span class="dash-link-text">Skills</span></a>
+      <a href="/employee/settings" class="dash-link {{if eq .ActivePage "settings"}}active{{end}}"><span class="dash-link-icon">&#x2699;&#xFE0F;</span><span class="dash-link-text">Settings</span></a>
+    </nav>
+    <div class="dash-skills-widget">
+      <h4 class="dash-skills-title">Skills Score</h4>
+      <svg width="100" height="100" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border)" stroke-width="6"/>
+        <circle cx="50" cy="50" r="42" fill="none" stroke="var(--accent)" stroke-width="6" stroke-dasharray="264" stroke-dashoffset="{{.SkillsOffset}}" stroke-linecap="round" transform="rotate(-90 50 50)"/>
+        <text x="50" y="50" text-anchor="middle" dominant-baseline="central" fill="var(--text)" font-family="var(--fm)" font-size="20" font-weight="600">{{.SkillsScore}}%</text>
+      </svg>
+      <p class="dash-skills-desc">{{.SkillsLabel}}</p>
+    </div>
+  </aside>
+  <main class="dash-main">{{embed}}</main>
+</div>
+</main>
+<footer class="site-footer">{{template "partials/footer" .}}</footer>
+<style>
+/* ── Dashboard Layout ── */
+.dash-body { background: var(--s3); }
+.main-content-wide {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+.dash-layout {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+  padding-top: 100px;
+  padding-bottom: 60px;
+}
+
+/* ── Sidebar ── */
+.dash-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 88px;
+}
+.dash-profile {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+}
+.dash-avatar {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--s2);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dash-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.dash-avatar-initials {
+  font-family: var(--fh);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.dash-name {
+  font-family: var(--fh);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.dash-title {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+.dash-strength {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dash-strength-bar {
+  height: 4px;
+  background: var(--s3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.dash-strength-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+.dash-strength-label {
+  font-family: var(--fm);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── Nav ── */
+.dash-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dash-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-family: var(--fm);
+  font-size: 12px;
+  color: var(--muted);
+  border-radius: var(--radius);
+  transition: all 0.12s;
+}
+.dash-link:hover {
+  background: var(--s1);
+  color: var(--text);
+}
+.dash-link.active {
+  background: var(--s1);
+  color: var(--accent);
+  font-weight: 500;
+  border: 1px solid var(--border);
+}
+.dash-link-icon { font-size: 14px; width: 20px; text-align: center; flex-shrink: 0; }
+.dash-link-text { flex: 1; }
+.dash-badge {
+  font-family: var(--fm);
+  font-size: 9px;
+  padding: 1px 7px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 16px;
+}
+
+/* ── Skills Widget ── */
+.dash-skills-widget {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+}
+.dash-skills-title {
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.dash-skills-widget svg { display: block; margin: 0 auto; }
+.dash-skills-desc {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--muted2);
+  margin-top: 8px;
+  letter-spacing: 0.2px;
+}
+
+/* ── Main Content ── */
+.dash-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Navbar Overrides for Dash ── */
+.dash-body .navbar {
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Avatar Dropdown ── */
+.nav-avatar-wrap { position: relative; }
+.nav-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid var(--border);
+  background: var(--s2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s;
+}
+.nav-avatar:hover { border-color: var(--accent); }
+.nav-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-initials {
+  font-family: var(--fh);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.avatar-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 220px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: all 0.15s;
+  z-index: 100;
+}
+.avatar-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
+.dropdown-header {
+  padding: 14px 16px;
+}
+.dropdown-name {
+  font-family: var(--fh);
+  font-size: 13px;
+  font-weight: 600;
+}
+.dropdown-email {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.dropdown-divider { height: 1px; background: var(--border); }
+.dropdown-item {
+  display: block;
+  padding: 10px 16px;
+  font-family: var(--fm);
+  font-size: 12px;
+  color: var(--text);
+  transition: background 0.1s;
+}
+.dropdown-item:hover { background: var(--s2); }
+.dropdown-item-danger { color: var(--danger); }
+
+/* ── Navbar ── */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  transition: box-shadow 0.2s;
+}
+.navbar.scrolled { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.nav-inner {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+.nav-logo {
+  font-family: var(--fh);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.nav-logo span { color: var(--accent); }
+.nav-links {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+.nav-link {
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  padding: 8px 14px;
+  color: var(--muted);
+  border-radius: var(--radius);
+  transition: all 0.12s;
+}
+.nav-link:hover { color: var(--text); background: var(--s2); }
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+}
+.nav-hamburger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 1px;
+  transition: all 0.2s;
+}
+
+/* ── Site Footer ── */
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: var(--s1);
+  padding: 48px 24px 24px;
+}
+.footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  gap: 48px;
+  justify-content: space-between;
+}
+.footer-brand { max-width: 260px; }
+.footer-logo {
+  font-family: var(--fh);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+.footer-logo span { color: var(--accent); }
+.footer-tagline {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 10px 0 16px;
+  line-height: 1.5;
+}
+.footer-social { display: flex; gap: 10px; }
+.social-link {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 14px;
+  transition: all 0.15s;
+}
+.social-link:hover { border-color: var(--accent); color: var(--accent); }
+.footer-links { display: flex; gap: 40px; }
+.footer-col { display: flex; flex-direction: column; gap: 8px; }
+.footer-col-title {
+  font-family: var(--fm);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--muted2);
+  margin-bottom: 4px;
+}
+.footer-link {
+  font-size: 12px;
+  color: var(--muted);
+  transition: color 0.12s;
+}
+.footer-link:hover { color: var(--text); }
+.footer-bottom {
+  max-width: 1200px;
+  margin: 32px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.footer-copy {
+  font-family: var(--fm);
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--muted2);
+}
+.footer-badges { display: flex; gap: 10px; }
+.footer-badge {
+  font-family: var(--fm);
+  font-size: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted2);
+  letter-spacing: 1px;
+}
+
+/* ── Notification Button ── */
+.nav-icon-btn {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 16px;
+  transition: border-color 0.15s;
+}
+.nav-icon-btn:hover { border-color: var(--accent); }
+.notif-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  background: var(--danger);
+  border-radius: 50%;
+}
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
+  .nav-links { display: none; }
+  .nav-hamburger { display: flex; }
+  .dash-layout { flex-direction: column; }
+  .dash-sidebar { width: 100%; position: static; }
+  .dash-nav { flex-direction: row; flex-wrap: wrap; }
+  .dash-link { flex: 1; min-width: 100px; justify-content: center; }
+  .dash-link-text { display: none; }
+  .dash-skills-widget { display: none; }
+  .footer-inner { flex-direction: column; gap: 32px; }
+  .footer-links { flex-wrap: wrap; gap: 24px; }
+}
+@media (max-width: 640px) {
+  .main-content-wide { padding: 0 16px; }
+  .dash-layout { padding-top: 80px; }
+  .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
+  .nav-inner { padding: 0 16px; gap: 16px; }
+}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded',function(){initAvatarDropdown();initHamburger();});
+function initHamburger(){var h=document.getElementById('hamburger');if(h){h.addEventListener('click',function(){this.classList.toggle('is-open');document.body.classList.toggle('menu-open');});}}
+function initAvatarDropdown(){var a=document.getElementById('avatar-btn'),d=document.getElementById('avatar-dropdown');if(a&&d){a.addEventListener('click',function(e){e.stopPropagation();d.classList.toggle('open');});document.addEventListener('click',function(){d.classList.remove('open');});}}
+</script>
+{{if .Scripts}}<script>{{.Scripts}}</script>{{end}}
+</body>
+</html>

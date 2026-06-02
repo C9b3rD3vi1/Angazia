@@ -1,0 +1,228 @@
+{{/* Employee Profile Page */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">My Profile</h1>
+      <p class="emp-page-sub">Your public profile visible to employers</p>
+    </div>
+    <a href="/employee/settings" class="emp-btn emp-btn-primary">Edit Profile</a>
+  </div>
+
+  <div class="emp-profile-card">
+    <div class="emp-profile-cover"></div>
+    <div class="emp-profile-body">
+      <div class="emp-profile-avatar">
+        {{if .User.Avatar}}<img src="{{.User.Avatar}}" alt="">{{else}}<span class="emp-profile-inits">{{.User.Initials}}</span>{{end}}
+      </div>
+      <div class="emp-profile-info">
+        <h2 class="emp-profile-name">{{.User.Name}}</h2>
+        {{if .User.Headline}}<p class="emp-profile-headline">{{.User.Headline}}</p>{{end}}
+        <div class="emp-profile-meta">
+          {{if .Profile.Location}}<span>&#x1F4CD; {{.Profile.Location}}</span>{{end}}
+          <span>&#x1F4C5; Joined {{.Profile.JoinDate}}</span>
+          {{if .Profile.IsAvailable}}<span class="emp-profile-badge">Open to work</span>{{end}}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="emp-grid-2col">
+    <div class="emp-col">
+      <section class="emp-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">&#x1F4DD; About</h2>
+        </div>
+        {{if .Profile.Bio}}
+        <p class="emp-profile-bio">{{.Profile.Bio}}</p>
+        {{else}}
+        <p class="emp-profile-bio emp-muted">No bio added yet.</p>
+        {{end}}
+      </section>
+
+      <section class="emp-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">&#x1F4A1; Skills</h2>
+        </div>
+        <div class="emp-skills-cloud">
+          {{if .Skills}}
+          {{range .Skills}}
+          <span class="emp-skill emp-skill-{{.Level}}">{{.Name}}<span class="emp-skill-lvl">{{.Level}}</span></span>
+          {{end}}
+          {{else}}
+          <p class="emp-muted">No skills listed.</p>
+          {{end}}
+        </div>
+      </section>
+    </div>
+
+    <div class="emp-col">
+      <section class="emp-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">&#x1F517; Links</h2>
+        </div>
+        <div class="emp-profile-links">
+          {{if .Profile.PortfolioURL}}<a href="{{.Profile.PortfolioURL}}" target="_blank" class="emp-profile-link">&#x1F310; Portfolio</a>{{end}}
+          {{if .Profile.LinkedInURL}}<a href="{{.Profile.LinkedInURL}}" target="_blank" class="emp-profile-link">&#x1F4F1; LinkedIn</a>{{end}}
+          {{if .Profile.GithubUsername}}<a href="https://github.com/{{.Profile.GithubUsername}}" target="_blank" class="emp-profile-link">&#x1F426; GitHub</a>{{end}}
+          {{if not .Profile.PortfolioURL}}{{if not .Profile.LinkedInURL}}{{if not .Profile.GithubUsername}}<p class="emp-muted">No links added.</p>{{end}}{{end}}{{end}}
+        </div>
+      </section>
+
+      <section class="emp-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">&#x1F3AF; Matching</h2>
+        </div>
+        <div class="emp-profile-stats">
+          <div class="emp-profile-stat">
+            <span class="emp-profile-stat-val">{{.Profile.ExperienceLevel}}</span>
+            <span class="emp-profile-stat-lbl">Level</span>
+          </div>
+          <div class="emp-profile-stat">
+            <span class="emp-profile-stat-val">{{.Profile.YearsOfExperience}}y</span>
+            <span class="emp-profile-stat-lbl">Experience</span>
+          </div>
+          <div class="emp-profile-stat">
+            <span class="emp-profile-stat-val">{{.Profile.ProfileViews}}</span>
+            <span class="emp-profile-stat-lbl">Views</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<style>
+.emp-profile-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.emp-profile-cover {
+  height: 100px;
+  background: linear-gradient(135deg, rgba(0,229,160,0.1), rgba(0,229,160,0.03));
+  border-bottom: 1px solid var(--border);
+}
+.emp-profile-body {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  padding: 0 24px 24px;
+  margin-top: -36px;
+}
+.emp-profile-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--s2);
+  border: 3px solid var(--s1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.emp-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.emp-profile-inits {
+  font-family: var(--fh);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.emp-profile-info { padding-top: 16px; min-width: 0; }
+.emp-profile-name {
+  font-family: var(--fh);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+.emp-profile-headline {
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.emp-profile-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--muted2);
+  flex-wrap: wrap;
+}
+.emp-profile-badge {
+  padding: 2px 10px;
+  background: rgba(0,229,160,0.1);
+  border: 1px solid rgba(0,229,160,0.2);
+  border-radius: var(--radius);
+  color: var(--accent);
+  font-family: var(--fm);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.emp-profile-bio {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+  margin: 0;
+}
+
+.emp-profile-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.emp-profile-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text);
+  transition: border-color 0.15s;
+}
+.emp-profile-link:hover { border-color: var(--accent); }
+
+.emp-profile-stats {
+  display: flex;
+  gap: 16px;
+}
+.emp-profile-stat {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.emp-profile-stat-val {
+  display: block;
+  font-family: var(--fh);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+.emp-profile-stat-lbl {
+  display: block;
+  font-family: var(--fm);
+  font-size: 9px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted2);
+  margin-top: 4px;
+}
+
+.emp-muted { color: var(--muted); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .emp-profile-body { flex-direction: column; align-items: center; text-align: center; }
+  .emp-profile-meta { justify-content: center; }
+  .emp-grid-2col { grid-template-columns: 1fr; }
+}
+</style>

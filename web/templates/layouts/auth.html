@@ -1,0 +1,23 @@
+{{template "partials/head" .}}
+<body>
+<nav class="navbar" id="navbar">
+    <div class="nav-inner">
+        <a href="/" class="nav-logo">ANGAZ<span>IA</span></a>
+        <a href="javascript:history.back()" class="nav-back-link">&larr; Back</a>
+        <div class="nav-actions" style="margin-left:auto">
+            <a href="/login" class="btn-ghost">LOGIN</a>
+            <a href="/register" class="btn-ghost">SIGN UP</a>
+        </div>
+    </div>
+</nav>
+<main class="main-content-narrow" style="display:grid;place-items:center;min-height:calc(100vh - var(--nav-h) - 80px);padding:40px 20px;">
+{{embed}}
+</main>
+<script>
+document.addEventListener('DOMContentLoaded',function(){initNavbar();initFlashMessages();});
+function initNavbar(){var n=document.getElementById('navbar');if(n){window.addEventListener('scroll',function(){if(window.scrollY>50)n.classList.add('scrolled');else n.classList.remove('scrolled');});}}
+function initFlashMessages(){var f=document.getElementById('flash-message');if(f){setTimeout(function(){f.classList.add('flash-fade');setTimeout(function(){if(f.parentNode)f.parentNode.removeChild(f);},400);},5000);}}
+</script>
+{{if .Scripts}}<script>{{.Scripts}}</script>{{end}}
+</body>
+</html>

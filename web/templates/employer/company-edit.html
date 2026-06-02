@@ -1,0 +1,177 @@
+{{/* Employer - Edit Company Profile */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">Edit Company Profile</h1>
+      <p class="emp-page-sub">Update your company information</p>
+    </div>
+    <a href="/employer/company" class="emp-btn emp-btn-secondary">&larr; Back to Profile</a>
+  </div>
+
+  <section class="emp-section">
+    <form method="POST" action="/employer/company-edit" class="emp-form" enctype="multipart/form-data">
+      <div class="emp-form-section">
+        <h3 class="emp-form-section-title">Company Identity</h3>
+
+        <div class="emp-upload-wrap">
+          <div class="emp-company-logo-preview">
+            {{if .Company.Logo}}
+            <img src="{{.Company.Logo}}" alt="Logo">
+            {{else}}
+            <span class="emp-company-logo-init">{{.Company.Initials}}</span>
+            {{end}}
+          </div>
+          <div class="emp-upload-info">
+            <label class="emp-btn emp-btn-outline emp-btn-sm" for="logo-upload">Upload Logo</label>
+            <input type="file" id="logo-upload" name="logo" accept="image/*" style="display:none">
+            <span class="emp-hint">Recommended: 400x400px, PNG or JPG</span>
+          </div>
+        </div>
+
+        <div class="emp-field">
+          <label class="emp-label">Company Name <span class="emp-req">*</span></label>
+          <input type="text" name="company_name" class="emp-input" value="{{.Company.Name}}" placeholder="Your company name" required>
+        </div>
+
+        <div class="emp-row-2">
+          <div class="emp-field">
+            <label class="emp-label">Industry</label>
+            <select name="industry" class="emp-input">
+              <option value="">Select industry</option>
+              <option value="technology">Technology</option>
+              <option value="fintech">Fintech</option>
+              <option value="healthtech">Healthtech</option>
+              <option value="edtech">Edtech</option>
+              <option value="ecommerce">E-commerce</option>
+              <option value="consulting">Consulting</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="emp-field">
+            <label class="emp-label">Company Size</label>
+            <select name="company_size" class="emp-input">
+              <option value="">Select size</option>
+              <option value="1-10">1-10 employees</option>
+              <option value="11-50">11-50 employees</option>
+              <option value="51-200">51-200 employees</option>
+              <option value="201-500">201-500 employees</option>
+              <option value="500+">500+ employees</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="emp-field">
+          <label class="emp-label">Location</label>
+          <input type="text" name="location" class="emp-input" value="{{.Company.Location}}" placeholder="Nairobi, Kenya">
+        </div>
+      </div>
+
+      <div class="emp-form-divider"></div>
+
+      <div class="emp-form-section">
+        <h3 class="emp-form-section-title">Online Presence</h3>
+
+        <div class="emp-row-2">
+          <div class="emp-field">
+            <label class="emp-label">Website</label>
+            <input type="url" name="website" class="emp-input" value="{{.Company.Website}}" placeholder="https://example.com">
+          </div>
+          <div class="emp-field">
+            <label class="emp-label">LinkedIn</label>
+            <input type="url" name="linkedin" class="emp-input" value="{{.Company.LinkedIn}}" placeholder="https://linkedin.com/company/...">
+          </div>
+        </div>
+      </div>
+
+      <div class="emp-form-divider"></div>
+
+      <div class="emp-form-section">
+        <h3 class="emp-form-section-title">About</h3>
+
+        <div class="emp-field">
+          <label class="emp-label">Company Description</label>
+          <textarea name="description" class="emp-textarea" rows="6" placeholder="Tell candidates about your company mission, culture, and what makes you unique...">{{.Company.Description}}</textarea>
+        </div>
+      </div>
+
+      <div class="emp-form-footer">
+        <button type="submit" class="emp-btn emp-btn-primary emp-btn-lg">Save Changes</button>
+        <a href="/employer/company" class="emp-btn emp-btn-secondary emp-btn-lg">Cancel</a>
+      </div>
+    </form>
+  </section>
+</div>
+
+<style>
+.emp-page-head {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 8px;
+}
+.emp-page-title {
+  font-family: var(--fh); font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: var(--text);
+}
+.emp-page-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+.emp-btn {
+  display: inline-flex; align-items: center; gap: 6px; font-family: var(--fm); font-size: 11px; font-weight: 500; letter-spacing: 0.5px; border-radius: var(--radius); white-space: nowrap; transition: all 0.15s; cursor: pointer; border: none;
+}
+.emp-btn:active { transform: scale(0.97); }
+.emp-btn-primary { color: #fff; background: linear-gradient(135deg, var(--purple) 0%, #ec4899 100%); }
+.emp-btn-primary:hover { opacity: 0.85; }
+.emp-btn-secondary { color: var(--text); background: var(--s2); border: 1px solid var(--border); }
+.emp-btn-secondary:hover { border-color: var(--muted2); }
+.emp-btn-sm { padding: 7px 14px; font-size: 10px; }
+.emp-btn-lg { padding: 12px 28px; font-size: 12px; }
+.emp-btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.emp-btn-outline:hover { border-color: var(--purple); color: var(--purple); }
+
+.emp-section {
+  background: var(--s1); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin-top: 20px;
+}
+.emp-form { display: flex; flex-direction: column; gap: 0; }
+.emp-form-section { display: flex; flex-direction: column; gap: 18px; }
+.emp-form-section-title {
+  font-family: var(--fm); font-size: 12px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text); margin-bottom: 4px;
+}
+.emp-form-divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+.emp-field { display: flex; flex-direction: column; gap: 6px; }
+.emp-label { font-family: var(--fm); font-size: 11px; letter-spacing: 0.5px; color: var(--muted); text-transform: uppercase; }
+.emp-req { color: var(--danger); }
+.emp-hint { font-size: 11px; color: var(--muted2); margin-top: 2px; }
+
+.emp-input {
+  padding: 10px 14px; background: var(--s2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; font-family: inherit; outline: none; transition: border-color 0.15s;
+}
+.emp-input:focus { border-color: var(--purple); }
+.emp-input::placeholder { color: var(--muted2); }
+
+.emp-textarea {
+  padding: 10px 14px; background: var(--s2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; font-family: inherit; resize: vertical; outline: none; transition: border-color 0.15s; line-height: 1.6;
+}
+.emp-textarea:focus { border-color: var(--purple); }
+.emp-textarea::placeholder { color: var(--muted2); }
+
+.emp-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+.emp-upload-wrap {
+  display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--s2); border: 1px dashed var(--border); border-radius: 10px;
+}
+.emp-company-logo-preview {
+  width: 64px; height: 64px; border-radius: 50%; overflow: hidden; background: var(--s1); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.emp-company-logo-preview img { width: 100%; height: 100%; object-fit: cover; }
+.emp-company-logo-preview .emp-company-logo-init {
+  font-family: var(--fh); font-size: 22px; font-weight: 700; color: var(--purple);
+}
+.emp-upload-info { display: flex; flex-direction: column; gap: 6px; }
+
+.emp-form-footer {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+
+@media (max-width: 860px) {
+  .emp-page-head { flex-direction: column; align-items: flex-start; }
+  .emp-row-2 { grid-template-columns: 1fr; }
+  .emp-form-footer { flex-direction: column; align-items: stretch; }
+}
+</style>

@@ -1,0 +1,31 @@
+{{define "twofa_recovery"}}
+<h2>Two-Factor Authentication Recovery</h2>
+
+<p>Dear {{.Name}},</p>
+
+<p>We received a request to recover your {{.AppName}} account by disabling two-factor authentication.</p>
+
+<div class="info-box">
+    <p><strong>🔑 Use the link below to complete the recovery:</strong></p>
+</div>
+
+<p style="text-align: center;">
+    <a href="{{.RecoveryLink}}" class="button">Recover Account</a>
+</p>
+
+<p>If the button doesn't work, copy and paste this URL into your browser:</p>
+<p style="word-break: break-all; font-family: monospace; font-size: 12px;">{{.RecoveryLink}}</p>
+
+<div class="warning-box">
+    <strong>⚠️ Important:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>This link expires in <strong>15 minutes</strong></li>
+        <li>Completing recovery will disable 2FA on your account</li>
+        <li>You'll need to set up 2FA again after recovery</li>
+    </ul>
+</div>
+
+<hr>
+
+<p class="text-muted">If you didn't request this recovery, please secure your account immediately and contact support.</p>
+{{end}}

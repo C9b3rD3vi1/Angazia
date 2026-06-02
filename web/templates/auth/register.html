@@ -1,0 +1,51 @@
+{{if .Success}}<div class="alert alert-success">{{.Success}}</div>{{end}}
+{{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
+<form action="/register" method="POST" class="card" id="auth-form">
+  <div class="card-body">
+    <h1 class="page-title">Create Account</h1>
+    <p>Join Kenya's tech talent marketplace</p>
+    <div class="form-group">
+      <label class="form-label" for="full_name">Full Name</label>
+      <input type="text" name="full_name" id="full_name" class="form-input" value="{{.FullName}}" required>
+      {{if .Errors.full_name}}<span class="form-error">{{.Errors.full_name}}</span>{{end}}
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="email">Email</label>
+      <input type="email" name="email" id="email" class="form-input" value="{{.Email}}" required autocomplete="email">
+      {{if .Errors.email}}<span class="form-error">{{.Errors.email}}</span>{{end}}
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="password">Password</label>
+      <input type="password" name="password" id="password" class="form-input" required autocomplete="new-password">
+      {{if .Errors.password}}<span class="form-error">{{.Errors.password}}</span>{{end}}
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="role">I am a</label>
+      <select name="role" id="role" class="form-input" required>
+        <option value="employee" {{if eq .Role "employee"}}selected{{end}}>Job Seeker</option>
+        <option value="employer" {{if eq .Role "employer"}}selected{{end}}>Employer</option>
+      </select>
+    </div>
+    <button type="submit" class="btn-primary btn-block btn-auth-submit">Create Account</button>
+    <span class="terms-text">By creating an account, you agree to our <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</span>
+  </div>
+</form>
+<div class="auth-divider"></div>
+<div class="auth-link">Already have an account? <a href="/login">Sign in</a></div>
+<style>
+  .terms-text {
+    display: block;
+    text-align: center;
+    margin-top: 12px;
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .terms-text a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .terms-text a:hover { text-decoration: underline; }
+</style>
+<script>
+(function(){var f=document.getElementById('auth-form');if(f){f.addEventListener('submit',function(){var b=this.querySelector('.btn-auth-submit');if(b){b.disabled=true;b.textContent='Creating account\u2026';}});}})();
+</script>

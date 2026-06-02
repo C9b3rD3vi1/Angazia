@@ -1,0 +1,200 @@
+<style>
+:root{--bg:#050a0a;--s1:#0c1414;--s2:#111e1e;--s3:#162020;--border:#1a2e2e;--border2:#243e3e;--accent:#00e5a0;--accent-dim:#00b87a;--text:#ddeee8;--muted:#5a7a72;--muted2:#3d5a54;--fh:'Syne',sans-serif;--fm:'DM Mono',monospace;--fb:'Instrument Sans',sans-serif;--radius:2px}
+.page-header{text-align:center;padding:40px 0 48px}
+.page-header h1{font-family:var(--fh);font-size:36px;font-weight:800;letter-spacing:-1.5px;color:var(--text);margin-bottom:12px}
+.page-header p{font-size:16px;color:var(--muted);max-width:600px;margin:0 auto;line-height:1.7}
+.section-card{background:var(--s1);border:1px solid var(--border);padding:40px 32px;margin-bottom:24px}
+.section-card h2{font-family:var(--fh);font-size:24px;font-weight:800;letter-spacing:-.5px;color:var(--text);margin-bottom:16px}
+.section-card .content{font-size:14px;color:var(--text);line-height:1.8}
+.section-card .content p{margin-bottom:12px}
+.section-label{font-family:var(--fm);font-size:11px;letter-spacing:1.5px;color:var(--accent);margin-bottom:12px}
+.mission-section{position:relative;overflow:hidden}
+.mission-section .glow{position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:radial-gradient(circle,rgba(0,229,160,.06) 0%,transparent 70%);pointer-events:none}
+.mission-section h2{font-size:28px}
+.team-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.team-card{background:var(--s1);border:1px solid var(--border);padding:24px;text-align:center;transition:border-color .2s,transform .2s}
+.team-card:hover{border-color:rgba(0,229,160,.25);transform:translateY(-2px)}
+.team-avatar{width:72px;height:72px;margin:0 auto 14px;background:var(--s2);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:22px;font-weight:700;color:var(--accent);overflow:hidden}
+.team-avatar img{width:100%;height:100%;object-fit:cover}
+.team-card h3{font-family:var(--fh);font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px}
+.team-card .role{font-family:var(--fm);font-size:11px;color:var(--accent);letter-spacing:.5px;margin-bottom:8px}
+.team-card .bio{font-size:13px;color:var(--muted);line-height:1.6}
+.values-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.value-card{background:var(--s1);border:1px solid var(--border);padding:28px 20px;text-align:center;transition:border-color .2s}
+.value-card:hover{border-color:rgba(0,229,160,.2)}
+.value-card .icon{font-size:36px;display:block;margin-bottom:12px}
+.value-card h3{font-family:var(--fh);font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px}
+.value-card p{font-size:13px;color:var(--muted);line-height:1.6}
+.timeline{position:relative;padding-left:32px}
+.timeline::before{content:"";position:absolute;left:8px;top:0;bottom:0;width:1px;background:var(--border)}
+.timeline-item{position:relative;padding:0 0 28px 24px}
+.timeline-item:last-child{padding-bottom:0}
+.timeline-dot{position:absolute;left:-28px;top:4px;width:16px;height:16px;background:var(--s1);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:8px;z-index:1}
+.timeline-year{font-family:var(--fm);font-size:11px;color:var(--accent);letter-spacing:.5px;margin-bottom:4px}
+.timeline-title{font-family:var(--fh);font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px}
+.timeline-desc{font-size:14px;color:var(--muted);line-height:1.7}
+.empty-state{text-align:center;padding:40px;color:var(--muted);font-family:var(--fm);font-size:12px;border:1px dashed var(--border)}
+@media(max-width:960px){.team-grid,.values-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.team-grid,.values-grid{grid-template-columns:1fr}.page-header{padding:24px 0 32px}.page-header h1{font-size:28px}.section-card{padding:28px 20px}}
+</style>
+
+<div class="page-header">
+  <h1>&#x1F4F0; About Angazia</h1>
+  <p>Kenya's premier tech talent marketplace — connecting skilled developers with world-class companies.</p>
+</div>
+
+<div class="section-card mission-section">
+  <div class="glow"></div>
+  <div class="section-label">// OUR MISSION</div>
+  <h2>Empowering Kenya's Tech Talent to Thrive</h2>
+  <div class="content">
+    <p>Angazia was born from a simple realisation: Kenya produces world-class tech talent, yet too many skilled developers struggle to find the right opportunities. We set out to change that.</p>
+    <p>Our platform bridges the gap between exceptional tech professionals and the companies that need them. We combine smart matching, transparent salary data, and a deep understanding of Kenya's tech ecosystem to make hiring fair, fast, and effective.</p>
+    <p>Every day, we help developers across Nairobi, Mombasa, Kisumu, and beyond find roles where they can do their best work. And we help companies build the teams that will define Kenya's digital future.</p>
+  </div>
+</div>
+
+{{if .team}}
+<div class="section-card">
+  <div class="section-label">// OUR TEAM</div>
+  <h2>Meet the People Behind Angazia</h2>
+  <div class="team-grid">
+    {{range .team}}
+    <div class="team-card">
+      <div class="team-avatar">{{if .avatar}}<img src="{{.avatar}}" alt="{{.name}}">{{else}}{{.name}}{{end}}</div>
+      <h3>{{.name}}</h3>
+      {{if .role}}<div class="role">{{.role}}</div>{{end}}
+      {{if .bio}}<div class="bio">{{.bio}}</div>{{end}}
+    </div>
+    {{end}}
+  </div>
+</div>
+{{else}}
+<div class="section-card">
+  <div class="section-label">// OUR TEAM</div>
+  <h2>Meet the People Behind Angazia</h2>
+  <div class="team-grid">
+    <div class="team-card">
+      <div class="team-avatar">KM</div>
+      <h3>Kevin Mwangi</h3>
+      <div class="role">CEO &amp; Co-Founder</div>
+      <div class="bio">Former engineer at Safaricom with a passion for building products that connect talent to opportunity.</div>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">AW</div>
+      <h3>Amina Wanjiku</h3>
+      <div class="role">CTO &amp; Co-Founder</div>
+      <div class="bio">Full-stack developer and tech community organiser who built Kenya's first developer job matching algorithm.</div>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">DO</div>
+      <h3>David Ochieng</h3>
+      <div class="role">Head of Product</div>
+      <div class="bio">Product leader with experience scaling platforms at Twiga Foods and Branch International.</div>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">FN</div>
+      <h3>Faith Njoroge</h3>
+      <div class="role">Head of Partnerships</div>
+      <div class="bio">Building relationships with Kenya's top employers to ensure the best opportunities reach our community.</div>
+    </div>
+  </div>
+</div>
+{{end}}
+
+{{if .values}}
+<div class="section-card">
+  <div class="section-label">// OUR VALUES</div>
+  <h2>What We Stand For</h2>
+  <div class="values-grid">
+    {{range .values}}
+    <div class="value-card">
+      {{if .icon}}<span class="icon">{{.icon}}</span>{{end}}
+      {{if .title}}<h3>{{.title}}</h3>{{end}}
+      {{if .desc}}<p>{{.desc}}</p>{{end}}
+    </div>
+    {{end}}
+  </div>
+</div>
+{{else}}
+<div class="section-card">
+  <div class="section-label">// OUR VALUES</div>
+  <h2>What We Stand For</h2>
+  <div class="values-grid">
+    <div class="value-card">
+      <span class="icon">&#x1F91D</span>
+      <h3>Community First</h3>
+      <p>We prioritise the needs of Kenya's tech community in every decision we make.</p>
+    </div>
+    <div class="value-card">
+      <span class="icon">&#x1F4CA</span>
+      <h3>Data-Driven</h3>
+      <p>We use real market data to ensure fair salaries and accurate job matching.</p>
+    </div>
+    <div class="value-card">
+      <span class="icon">&#x1F517</span>
+      <h3>Transparency</h3>
+      <p>Clear communication, honest feedback, and open processes build lasting trust.</p>
+    </div>
+    <div class="value-card">
+      <span class="icon">&#x1F4AA</span>
+      <h3>Growth</h3>
+      <p>We invest in continuous learning and development for our team and community.</p>
+    </div>
+  </div>
+</div>
+{{end}}
+
+{{if .milestones}}
+<div class="section-card">
+  <div class="section-label">// OUR JOURNEY</div>
+  <h2>Company Milestones</h2>
+  <div class="timeline">
+    {{range .milestones}}
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      {{if .year}}<div class="timeline-year">{{.year}}</div>{{end}}
+      {{if .title}}<div class="timeline-title">{{.title}}</div>{{end}}
+      {{if .desc}}<div class="timeline-desc">{{.desc}}</div>{{end}}
+    </div>
+    {{end}}
+  </div>
+</div>
+{{else}}
+<div class="section-card">
+  <div class="section-label">// OUR JOURNEY</div>
+  <h2>Company Milestones</h2>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-year">2021</div>
+      <div class="timeline-title">The Idea</div>
+      <div class="timeline-desc">Kevin and Amina identified the gap in Kenya's tech recruitment market and began building the first prototype.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-year">2022</div>
+      <div class="timeline-title">Beta Launch</div>
+      <div class="timeline-desc">Angazia launched in beta with 50 companies and 1,000 developers in Nairobi.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-year">2023</div>
+      <div class="timeline-title">National Expansion</div>
+      <div class="timeline-desc">Expanded to Mombasa, Kisumu, and Eldoret. Reached 500+ companies and 10,000 developers.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-year">2024</div>
+      <div class="timeline-title">Smart Matching</div>
+      <div class="timeline-desc">Launched AI-powered job matching and salary benchmarking. Surpassed 1,000 company partners.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-year">2025</div>
+      <div class="timeline-title">Pan-African Vision</div>
+      <div class="timeline-desc">Raised Series A to expand across East Africa. Now serving 5,000+ companies and 50,000 developers.</div>
+    </div>
+  </div>
+</div>
+{{end}}

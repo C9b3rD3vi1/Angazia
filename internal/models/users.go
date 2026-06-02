@@ -38,6 +38,8 @@ type EmployeeProfile struct {
 	Bio               string     `json:"bio" gorm:"type:text"`
 	Location          string     `json:"location" gorm:"size:255"`
 	IsRemoteOnly      bool       `json:"is_remote_only" gorm:"default:false"`
+	IsRemote          bool       `json:"is_remote" gorm:"default:false"`
+	IsHybrid          bool       `json:"is_hybrid" gorm:"default:false"`
 	ExperienceLevel   string     `json:"experience_level" gorm:"size:50"` // entry, junior, mid, senior, lead
 	YearsOfExperience int        `json:"years_of_experience"`
 	Skills            []string   `json:"skills" gorm:"type:text[]"` // PostgreSQL array

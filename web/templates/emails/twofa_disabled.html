@@ -1,0 +1,16 @@
+{{define "twofa_disabled"}}
+<h2>Two-Factor Authentication Disabled</h2>
+
+<p>Dear {{.Name}},</p>
+
+<p>Two-factor authentication (2FA) has been disabled on your {{.AppName}} account.</p>
+
+<div class="warning-box">
+    <p><strong>⚠️ Your account is now less secure.</strong></p>
+    <p>Without 2FA, your account is only protected by your password. We recommend re-enabling 2FA to keep your account secure.</p>
+</div>
+
+<hr>
+
+<p class="text-muted">If you didn't disable 2FA, please secure your account immediately and contact support.</p>
+{{end}}

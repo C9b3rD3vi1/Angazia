@@ -1,0 +1,381 @@
+<section class="hero" id="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow-left"></div>
+  <div class="hero-glow-right"></div>
+
+  <div class="hero-inner">
+    <div class="hero-eyebrow">
+      <span class="eyebrow-dot"></span>
+      Kenya's AI-powered tech talent marketplace
+    </div>
+
+    <h1 class="hero-h1">
+      <span class="h1-line">Connect with top employers</span>
+      <span class="h1-line accent">and advance your career.</span>
+    </h1>
+
+    <p class="hero-sub">
+      Over <strong>1,200+ active jobs</strong> from Kenya's leading tech companies.
+    </p>
+
+    <div class="hero-search">
+      <form action="/jobs" method="GET" class="hero-search-form">
+        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" name="q" class="search-input" placeholder="Job title, company, or keywords (e.g., React, Go, Python)" autocomplete="off">
+        <button type="submit" class="search-btn">Search</button>
+      </form>
+      <div class="popular-searches">
+        <span class="popular-label">Popular:</span>
+        <a href="/jobs?q=React" class="popular-tag">React</a>
+        <a href="/jobs?q=Go" class="popular-tag">Go</a>
+        <a href="/jobs?q=Python" class="popular-tag">Python</a>
+        <a href="/jobs?q=DevOps" class="popular-tag">DevOps</a>
+        <a href="/jobs?q=Data+Science" class="popular-tag">Data Science</a>
+        <a href="/jobs?q=Mobile+Dev" class="popular-tag">Mobile Dev</a>
+      </div>
+    </div>
+
+    <div class="hero-proof">
+      <div class="proof-stat">
+        <span class="proof-num">2,400<sup>+</sup></span>
+        <span class="proof-lbl">Tech professionals</span>
+      </div>
+      <div class="proof-div"></div>
+      <div class="proof-stat">
+        <span class="proof-num proof-purple">340<sup>+</sup></span>
+        <span class="proof-lbl">Verified employers</span>
+      </div>
+      <div class="proof-div"></div>
+      <div class="proof-stat">
+        <span class="proof-num">94%</span>
+        <span class="proof-lbl">Match accuracy</span>
+      </div>
+      <div class="proof-div"></div>
+      <div class="proof-stat">
+        <span class="proof-num">18 days</span>
+        <span class="proof-lbl">Avg. time to hire</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="ticker-wrap" aria-hidden="true">
+  <div class="ticker-track">
+    {{range $i := iterate 2}}
+    <span class="ticker-item">AI-Powered Matching</span>
+    <span class="ticker-item">GitHub Verification</span>
+    <span class="ticker-item">Resume Parsing</span>
+    <span class="ticker-item">Skills Gap Analysis</span>
+    <span class="ticker-item">Cover Letter AI</span>
+    <span class="ticker-item">Interview Prep</span>
+    <span class="ticker-item">Talent Pool CRM</span>
+    <span class="ticker-item">Company Analytics</span>
+    <span class="ticker-item">Job Alerts</span>
+    <span class="ticker-item">OpenAI · Anthropic · Gemini</span>
+    <span class="ticker-item">JWT Auth</span>
+    <span class="ticker-item">Verified Employers</span>
+    {{end}}
+  </div>
+</div>
+
+<section class="two-sides" id="for-you">
+  <div class="section-inner">
+    <div class="sec-header">
+      <div class="sec-tag">// Who it's for</div>
+      <h2 class="sec-title">Two sides.<br>One platform.</h2>
+      <p class="sec-sub">Angazia works for both sides of the market — and gets smarter the more both sides use it.</p>
+    </div>
+
+    <div class="sides-grid">
+      <div class="side-card side-talent">
+        <div class="side-eyebrow talent-eye">For tech talent</div>
+        <h3 class="side-title">Stop sending CVs into the void.</h3>
+        <p class="side-desc">Upload your resume, connect GitHub, and let Angazia surface roles where you're a genuine match — with an AI score that tells you exactly why.</p>
+        <ul class="side-list">
+          <li><span class="check-t">✓</span>AI-scored job matches based on your actual skills</li>
+          <li><span class="check-t">✓</span>GitHub integration proves your skills to employers</li>
+          <li><span class="check-t">✓</span>Personalized cover letters generated in seconds</li>
+          <li><span class="check-t">✓</span>Skills gap analysis with learning recommendations</li>
+          <li><span class="check-t">✓</span>Real-time application tracking and status updates</li>
+        </ul>
+        <a href="/auth/register" class="side-btn side-btn-talent">Create free profile →</a>
+      </div>
+
+      <div class="side-card side-employer">
+        <div class="side-eyebrow employer-eye">For employers</div>
+        <h3 class="side-title">Hire verified. Not just applied.</h3>
+        <p class="side-desc">Post a role, define requirements, and receive a ranked shortlist of candidates whose code — not just their CV — matches what you need.</p>
+        <ul class="side-list">
+          <li><span class="check-e">✓</span>AI-ranked candidates with match score breakdowns</li>
+          <li><span class="check-e">✓</span>GitHub-verified skills — no more CV lies</li>
+          <li><span class="check-e">✓</span>Talent pool CRM with notes and pipeline tracking</li>
+          <li><span class="check-e">✓</span>Bulk shortlist or reject with one-click actions</li>
+          <li><span class="check-e">✓</span>Analytics: funnel, time-to-hire, job performance</li>
+        </ul>
+        <a href="/auth/register?role=employer" class="side-btn side-btn-employer">Post your first job →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="github-sec" id="github">
+  <div class="section-inner">
+    <div class="gh-grid">
+      <div class="gh-card">
+        <div class="gh-card-head">
+          <div class="gh-av">BM</div>
+          <div>
+            <div class="gh-name">Brian Mutua</div>
+            <div class="gh-handle">@c9b3rd3vi1 · 847 contributions</div>
+          </div>
+          <div class="gh-verified">✓ Verified</div>
+        </div>
+        <div class="gh-score-row">
+          <span class="gh-score-lbl">Activity Score</span>
+          <span class="gh-score-val">91</span>
+        </div>
+        <div class="gh-bars">
+          <div class="gh-bar-item">
+            <div class="gh-bar-meta"><span>Commit consistency</span><span>95%</span></div>
+            <div class="gh-track"><div class="gh-fill" style="width:95%"></div></div>
+          </div>
+          <div class="gh-bar-item">
+            <div class="gh-bar-meta"><span>Repo quality</span><span>88%</span></div>
+            <div class="gh-track"><div class="gh-fill" style="width:88%"></div></div>
+          </div>
+          <div class="gh-bar-item">
+            <div class="gh-bar-meta"><span>Language diversity</span><span>82%</span></div>
+            <div class="gh-track"><div class="gh-fill" style="width:82%"></div></div>
+          </div>
+          <div class="gh-bar-item">
+            <div class="gh-bar-meta"><span>Open source contributions</span><span>74%</span></div>
+            <div class="gh-track"><div class="gh-fill" style="width:74%"></div></div>
+          </div>
+        </div>
+        <div class="gh-repos">
+          <div class="gh-repo"><span class="gh-repo-name">angazia</span><span class="gh-repo-lang">Go · 234 commits</span></div>
+          <div class="gh-repo"><span class="gh-repo-name">threat-intel-tool</span><span class="gh-repo-lang">Python · 87 commits</span></div>
+          <div class="gh-repo"><span class="gh-repo-name">portfolio-api</span><span class="gh-repo-lang">Go · 51 commits</span></div>
+        </div>
+      </div>
+
+      <div class="gh-text">
+        <div class="sec-tag">// GitHub integration</div>
+        <h2 class="sec-title">Your code is<br>your credential.</h2>
+        <p class="gh-desc">Connect GitHub via OAuth and Angazia automatically builds a verified skills profile from your actual contributions — commit history, repositories, languages, and activity patterns. No CV can fake it.</p>
+        <ul class="gh-list">
+          <li>Contribution history scored automatically on sync</li>
+          <li>Language expertise derived from actual repo usage</li>
+          <li>Employers see your real output, not a keyword list</li>
+          <li>Activity scoring updates daily in the background</li>
+          <li>Private repos stay private — you control visibility</li>
+        </ul>
+        <a href="/auth/register" class="cta-talent gh-cta">Connect GitHub →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="how-sec" id="how">
+  <div class="section-inner">
+    <div class="sec-header centered">
+      <div class="sec-tag">// How it works</div>
+      <h2 class="sec-title">Simple on the surface.<br>Intelligent underneath.</h2>
+    </div>
+
+    <div class="how-tabs">
+      <button class="how-tab active" data-tab="talent">For talent</button>
+      <button class="how-tab" data-tab="employer">For employers</button>
+    </div>
+
+    <div class="how-steps active" id="steps-talent">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <div class="step-icon-wrap talent-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <h4>Build your profile</h4>
+        <p>Upload your resume — Angazia parses skills, experience, and contacts automatically. Connect GitHub to add verified code credentials.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <div class="step-icon-wrap talent-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></div>
+        <h4>Get matched</h4>
+        <p>AI scores every job against your profile in real time. See why you're a fit — or what's holding you back — before you apply.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <div class="step-icon-wrap talent-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+        <h4>Apply with AI</h4>
+        <p>One-click personalized cover letter generation. Apply to high-score roles with confidence — your profile does the heavy lifting.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">04</div>
+        <div class="step-icon-wrap talent-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <h4>Track everything</h4>
+        <p>Full application CRM. Status updates, interview scheduling, follow-up reminders, and response rate analytics — all in one place.</p>
+      </div>
+    </div>
+
+    <div class="how-steps" id="steps-employer">
+      <div class="step-card">
+        <div class="step-num employer-num">01</div>
+        <div class="step-icon-wrap employer-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+        <h4>Post your role</h4>
+        <p>Create a job listing with required skills, experience, and salary range. Angazia immediately begins matching against the full talent pool.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num employer-num">02</div>
+        <div class="step-icon-wrap employer-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+        <h4>Receive ranked candidates</h4>
+        <p>A shortlist of AI-ranked candidates with match score breakdowns. GitHub data and parsed resume insights included for every applicant.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num employer-num">03</div>
+        <div class="step-icon-wrap employer-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h4>Screen with confidence</h4>
+        <p>Bulk shortlist, reject, or move candidates through your pipeline. AI-generated interview questions tailored to the role and candidate.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num employer-num">04</div>
+        <div class="step-icon-wrap employer-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
+        <h4>Hire faster</h4>
+        <p>Schedule interviews, send offers, and track your time-to-hire. Full analytics on every job's performance and cost-per-hire.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="ai-sec" id="features">
+  <div class="section-inner">
+    <div class="sec-header">
+      <div class="sec-tag">// AI capabilities</div>
+      <h2 class="sec-title">Powered by the<br>best models.</h2>
+      <p class="sec-sub">Provider-agnostic — OpenAI, Anthropic, Gemini, or your own self-hosted LLM. No lock-in, ever.</p>
+    </div>
+
+    <div class="ai-grid">
+      <div class="ai-card">
+        <span class="ai-badge badge-talent">For talent</span>
+        <h4>Smart job matching</h4>
+        <p>Every job scored 1–100 against your profile. Skill match, experience, salary signals, and GitHub activity all factor in.</p>
+      </div>
+      <div class="ai-card">
+        <span class="ai-badge badge-talent">For talent</span>
+        <h4>Cover letter generation</h4>
+        <p>Personalized cover letters generated from your profile and the job description. Sounds like you — not a template.</p>
+      </div>
+      <div class="ai-card">
+        <span class="ai-badge badge-talent">For talent</span>
+        <h4>Skills gap analysis</h4>
+        <p>See exactly what separates you from a perfect score on any role. Get specific learning recommendations to close the gap fast.</p>
+      </div>
+      <div class="ai-card">
+        <span class="ai-badge badge-employer">For employers</span>
+        <h4>Candidate ranking</h4>
+        <p>Applicants ranked by fit score with full breakdowns. Know immediately who to prioritize — no more screening 200 CVs manually.</p>
+      </div>
+      <div class="ai-card">
+        <span class="ai-badge badge-employer">For employers</span>
+        <h4>Interview questions</h4>
+        <p>Role-specific interview questions generated per candidate based on their profile and your job requirements.</p>
+      </div>
+      <div class="ai-card ai-card-featured">
+        <span class="ai-badge badge-platform">Platform</span>
+        <h4>Pluggable AI providers</h4>
+        <p>OpenAI GPT-4, Anthropic Claude, Google Gemini, or a local LLM. Switch providers without changing your workflow.</p>
+        <div class="provider-pills">
+          <span>OpenAI</span><span>Anthropic</span><span>Gemini</span><span>Local LLM</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="testi-sec" id="reviews">
+  <div class="section-inner">
+    <div class="sec-header centered">
+      <div class="sec-tag">// What people say</div>
+      <h2 class="sec-title">Results speak.</h2>
+    </div>
+
+    <div class="testi-grid">
+      <div class="testi-card">
+        <p class="testi-text">"Finally a platform that understands how Kenyan tech hiring actually works. The GitHub integration alone is worth it — employers can see I actually ship code."</p>
+        <div class="testi-author">
+          <div class="testi-av">BM</div>
+          <div>
+            <div class="testi-name">Brian M.</div>
+            <div class="testi-role">Backend Engineer · Nairobi</div>
+          </div>
+          <span class="testi-badge badge-talent">Talent</span>
+        </div>
+      </div>
+      <div class="testi-card">
+        <p class="testi-text">"We screened 40 candidates for a Go developer role in one afternoon. The match scores were accurate — our top hire was ranked #2 by Angazia."</p>
+        <div class="testi-author">
+          <div class="testi-av testi-av-e">AK</div>
+          <div>
+            <div class="testi-name">Amina K.</div>
+            <div class="testi-role">CTO · Nairobi Fintech</div>
+          </div>
+          <span class="testi-badge badge-employer">Employer</span>
+        </div>
+      </div>
+      <div class="testi-card">
+        <p class="testi-text">"The skills gap tool showed me I was 8 points from a perfect match at Safaricom because of one missing cert. Got it in three weeks. Got the job."</p>
+        <div class="testi-author">
+          <div class="testi-av">JO</div>
+          <div>
+            <div class="testi-name">James O.</div>
+            <div class="testi-role">Security Engineer · Nairobi</div>
+          </div>
+          <span class="testi-badge badge-talent">Talent</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="final-cta" id="signup">
+  <div class="cta-glow"></div>
+  <div class="section-inner cta-inner">
+    <div class="sec-tag" style="text-align:center">// Get started</div>
+    <h2 class="cta-title">Kenya's tech market<br>deserves better.</h2>
+    <p class="cta-sub">Join thousands of professionals and employers already using Angazia.</p>
+    <div class="cta-btns">
+      <a href="/auth/register" class="cta-talent cta-lg">
+        I'm looking for work
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <a href="/auth/register?role=employer" class="cta-employer cta-lg">
+        I'm hiring
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+    <p class="cta-fine">Free to join. No credit card required.</p>
+  </div>
+</section>
+
+<script>
+(function(){
+  document.querySelectorAll('.how-tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('.how-tab').forEach(function(t){ t.classList.remove('active'); });
+      document.querySelectorAll('.how-steps').forEach(function(s){ s.classList.remove('active'); });
+      tab.classList.add('active');
+      var target = document.getElementById('steps-' + tab.dataset.tab);
+      if(target) target.classList.add('active');
+    });
+  });
+
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('visible'); io.unobserve(e.target); }
+      });
+    },{threshold:0.12});
+    document.querySelectorAll('.step-card,.ai-card,.testi-card,.side-card,.gh-card').forEach(function(el){ io.observe(el); });
+  } else {
+    document.querySelectorAll('.step-card,.ai-card,.testi-card,.side-card,.gh-card').forEach(function(el){ el.classList.add('visible'); });
+  }
+})();
+</script>

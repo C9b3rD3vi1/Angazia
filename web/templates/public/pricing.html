@@ -1,0 +1,257 @@
+<style>
+:root{--bg:#050a0a;--s1:#0c1414;--s2:#111e1e;--s3:#162020;--border:#1a2e2e;--border2:#243e3e;--accent:#00e5a0;--accent-dim:#00b87a;--text:#ddeee8;--muted:#5a7a72;--muted2:#3d5a54;--fh:'Syne',sans-serif;--fm:'DM Mono',monospace;--fb:'Instrument Sans',sans-serif;--radius:2px}
+.page-header{text-align:center;padding:40px 0 48px}
+.page-header h1{font-family:var(--fh);font-size:36px;font-weight:800;letter-spacing:-1.5px;color:var(--text);margin-bottom:12px}
+.page-header p{font-size:16px;color:var(--muted);max-width:560px;margin:0 auto}
+.toggle-bar{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:40px}
+.toggle-bar .label{font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:.5px;cursor:pointer}
+.toggle-bar .label.active{color:var(--accent)}
+.toggle-switch{width:44px;height:24px;background:var(--s2);border:1px solid var(--border);border-radius:12px;position:relative;cursor:pointer;transition:all .2s}
+.toggle-switch.active{background:rgba(0,229,160,.15);border-color:rgba(0,229,160,.3)}
+.toggle-switch .knob{position:absolute;top:2px;left:2px;width:18px;height:18px;background:var(--muted);border-radius:50%;transition:all .2s}
+.toggle-switch.active .knob{left:22px;background:var(--accent)}
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:40px}
+.plan-card{background:var(--s1);border:1px solid var(--border);padding:32px;display:flex;flex-direction:column;position:relative;transition:border-color .2s,transform .2s}
+.plan-card:hover{border-color:rgba(0,229,160,.25);transform:translateY(-3px)}
+.plan-card.featured{border-color:var(--accent);background:linear-gradient(180deg,rgba(0,229,160,.04) 0%,var(--s1) 100%)}
+.plan-card.featured .plan-badge{position:absolute;top:-1px;left:-1px;right:-1px;background:var(--accent);color:#050a0a;font-family:var(--fm);font-size:10px;letter-spacing:1px;padding:5px 0;text-align:center;font-weight:500}
+.plan-name{font-family:var(--fm);font-size:11px;letter-spacing:1px;color:var(--muted2);margin-bottom:8px}
+.plan-price{font-family:var(--fh);font-size:40px;font-weight:800;color:var(--text);letter-spacing:-1.5px;margin-bottom:4px}
+.plan-price .currency{font-size:18px;color:var(--muted);font-weight:400}
+.plan-price .period{font-family:var(--fm);font-size:12px;color:var(--muted2);font-weight:400;letter-spacing:.3px}
+.plan-desc{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.6;min-height:44px}
+.plan-features{flex:1;margin-bottom:24px}
+.plan-feature{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px;color:var(--text);border-bottom:1px solid var(--border)}
+.plan-feature:last-child{border-bottom:none}
+.plan-feature .check{color:var(--accent);font-weight:700;flex-shrink:0}
+.plan-feature .cross{color:var(--danger);flex-shrink:0}
+.plan-feature .muted-text{color:var(--muted2)}
+.plan-cta{font-family:var(--fm);font-size:12px;font-weight:500;letter-spacing:.5px;padding:12px 24px;text-align:center;cursor:pointer;transition:all .2s;border:none;text-decoration:none;display:block}
+.plan-cta.primary{background:var(--accent);color:#050a0a}
+.plan-cta.primary:hover{background:var(--accent-dim)}
+.plan-cta.secondary{background:transparent;color:var(--text);border:1px solid var(--border)}
+.plan-cta.secondary:hover{border-color:var(--accent);color:var(--accent)}
+.comparison-section{margin-bottom:48px}
+.comparison-toggle{display:flex;justify-content:center;margin-bottom:24px}
+.comparison-toggle button{font-family:var(--fm);font-size:11px;letter-spacing:.5px;color:var(--muted);background:var(--s1);border:1px solid var(--border);padding:10px 24px;cursor:pointer;transition:all .2s}
+.comparison-toggle button:first-child{border-radius:var(--radius) 0 0 var(--radius)}
+.comparison-toggle button:last-child{border-radius:0 var(--radius) var(--radius) 0}
+.comparison-toggle button.active{background:rgba(0,229,160,.1);color:var(--accent);border-color:rgba(0,229,160,.3)}
+.comparison-table{width:100%;border-collapse:collapse;background:var(--s1);border:1px solid var(--border)}
+.comparison-table th,.comparison-table td{padding:14px 20px;text-align:left;font-size:13px;border-bottom:1px solid var(--border)}
+.comparison-table th{font-family:var(--fm);font-size:10px;letter-spacing:.8px;color:var(--muted2);background:var(--s2);font-weight:400}
+.comparison-table td{color:var(--text)}
+.comparison-table td:first-child{font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:.3px}
+.comparison-table .accent{color:var(--accent);font-weight:500}
+.comparison-table .dash{color:var(--muted2)}
+.faq-card{background:var(--s1);border:1px solid var(--border);padding:32px;margin-bottom:40px}
+.faq-card h2{font-family:var(--fh);font-size:22px;font-weight:800;color:var(--text);margin-bottom:24px;text-align:center;letter-spacing:-.5px}
+.faq-item{border-bottom:1px solid var(--border)}
+.faq-item:last-child{border-bottom:none}
+.faq-question{width:100%;display:flex;justify-content:space-between;align-items:center;padding:16px 0;font-size:14px;color:var(--text);background:none;border:none;cursor:pointer;text-align:left;gap:12px;transition:color .2s}
+.faq-question:hover{color:var(--accent)}
+.faq-question .arrow{font-size:12px;transition:transform .2s;flex-shrink:0;color:var(--muted)}
+.faq-question.open .arrow{transform:rotate(180deg)}
+.faq-answer{padding:0 0 16px;font-size:14px;color:var(--muted);line-height:1.7;display:none}
+.faq-answer.open{display:block}
+.empty-state{text-align:center;padding:60px 20px;border:1px dashed var(--border);color:var(--muted);font-family:var(--fm);font-size:12px}
+@media(max-width:960px){.plans-grid{grid-template-columns:1fr 1fr}.comparison-table{font-size:12px}.comparison-table th,.comparison-table td{padding:10px 12px}}
+@media(max-width:600px){.plans-grid{grid-template-columns:1fr}.page-header h1{font-size:28px}.plan-card{padding:24px}.comparison-section{overflow-x:auto}}
+</style>
+
+<div class="page-header">
+  <h1>&#x1F4B0; Simple, Transparent Pricing</h1>
+  <p>Choose the plan that fits your hiring needs. No hidden fees, no surprises.</p>
+</div>
+
+<div class="toggle-bar">
+  <span class="label active" id="monthly-label" onclick="toggleBilling('monthly')">Monthly</span>
+  <div class="toggle-switch" id="billing-toggle" onclick="toggleBilling()">
+    <div class="knob"></div>
+  </div>
+  <span class="label" id="annual-label" onclick="toggleBilling('annual')">Annual</span>
+</div>
+
+{{if .plans}}
+<div class="plans-grid">
+  {{range .plans}}
+  <div class="plan-card{{if .featured}} featured{{end}}">
+    {{if .featured}}<div class="plan-badge">&#x2B50; MOST POPULAR</div>{{end}}
+    {{if .name}}<div class="plan-name">{{.name}}</div>{{end}}
+    {{if .price}}<div class="plan-price"><span class="currency">KES</span> {{.price}} <span class="period">{{if $.annual}}/year{{else}}/month{{end}}</span></div>{{end}}
+    {{if .desc}}<div class="plan-desc">{{.desc}}</div>{{end}}
+    {{if .features}}
+    <div class="plan-features">
+      {{range .features}}
+      <div class="plan-feature">
+        {{if .included}}<span class="check">&#x2713;</span>{{else}}<span class="cross">&#x2717;</span>{{end}}
+        {{if .label}}<span{{if not .included}} class="muted-text"{{end}}>{{.label}}</span>{{end}}
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+    {{if .ctaText}}
+    <a href="{{.ctaUrl}}" class="plan-cta {{if .featured}}primary{{else}}secondary{{end}}">{{.ctaText}}</a>
+    {{else}}
+    <a href="/register" class="plan-cta {{if .featured}}primary{{else}}secondary{{end}}">Get Started</a>
+    {{end}}
+  </div>
+  {{end}}
+</div>
+{{else}}
+<div class="plans-grid">
+  <div class="plan-card">
+    <div class="plan-name">FREE</div>
+    <div class="plan-price"><span class="currency">KES</span> 0 <span class="period">/month</span></div>
+    <div class="plan-desc">Perfect for startups and small teams getting started with hiring.</div>
+    <div class="plan-features">
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>1 active job posting</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Basic company profile</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>30-day listing</span></div>
+      <div class="plan-feature"><span class="cross">&#x2717;</span><span class="muted-text">Applicant tracking</span></div>
+      <div class="plan-feature"><span class="cross">&#x2717;</span><span class="muted-text">Analytics dashboard</span></div>
+      <div class="plan-feature"><span class="cross">&#x2717;</span><span class="muted-text">Priority support</span></div>
+    </div>
+    <a href="/register" class="plan-cta secondary">Get Started</a>
+  </div>
+  <div class="plan-card featured">
+    <div class="plan-badge">&#x2B50; MOST POPULAR</div>
+    <div class="plan-name">PROFESSIONAL</div>
+    <div class="plan-price"><span class="currency">KES</span> 5,000 <span class="period">/month</span></div>
+    <div class="plan-desc">Ideal for growing teams with regular hiring needs.</div>
+    <div class="plan-features">
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>10 active job postings</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Enhanced company profile</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>60-day listings</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Applicant tracking system</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Basic analytics</span></div>
+      <div class="plan-feature"><span class="cross">&#x2717;</span><span class="muted-text">Priority support</span></div>
+    </div>
+    <a href="/register" class="plan-cta primary">Get Started</a>
+  </div>
+  <div class="plan-card">
+    <div class="plan-name">ENTERPRISE</div>
+    <div class="plan-price"><span class="currency">KES</span> 25,000 <span class="period">/month</span></div>
+    <div class="plan-desc">For organisations with high-volume hiring and advanced needs.</div>
+    <div class="plan-features">
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Unlimited job postings</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Custom company branding</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>90-day listings</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Advanced ATS + CRM</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Full analytics &amp; reports</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Priority support &amp; onboarding</span></div>
+    </div>
+    <a href="/register" class="plan-cta secondary">Contact Sales</a>
+  </div>
+</div>
+{{end}}
+
+<div class="comparison-section">
+  <div class="comparison-toggle">
+    <button class="active" id="monthly-view" onclick="showComparison('monthly')">Monthly Pricing</button>
+    <button id="annual-view" onclick="showComparison('annual')">Annual Pricing</button>
+  </div>
+  <table class="comparison-table" id="comparison-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Free</th>
+        <th>Professional</th>
+        <th>Enterprise</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Job Postings</td><td>1 active</td><td class="accent">10 active</td><td class="accent">Unlimited</td></tr>
+      <tr><td>Listing Duration</td><td>30 days</td><td class="accent">60 days</td><td class="accent">90 days</td></tr>
+      <tr><td>Company Profile</td><td>Basic</td><td class="accent">Enhanced</td><td class="accent">Custom Branding</td></tr>
+      <tr><td>Applicant Tracking</td><td class="dash">&mdash;</td><td class="accent">&#x2713;</td><td class="accent">Advanced ATS + CRM</td></tr>
+      <tr><td>Analytics</td><td class="dash">&mdash;</td><td>Basic</td><td class="accent">Full Reports</td></tr>
+      <tr><td>Team Accounts</td><td>1 user</td><td>5 users</td><td class="accent">Unlimited</td></tr>
+      <tr><td>API Access</td><td class="dash">&mdash;</td><td class="dash">&mdash;</td><td class="accent">&#x2713;</td></tr>
+      <tr><td>Support</td><td>Email</td><td>Email + Chat</td><td class="accent">Priority 24/7</td></tr>
+      <tr><td>Monthly Price</td><td>KES 0</td><td class="accent">KES 5,000</td><td>KES 25,000</td></tr>
+      <tr><td>Annual Price (2 months free)</td><td>KES 0</td><td class="accent">KES 50,000</td><td>KES 250,000</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="faq-card">
+  <h2>&#x2753; Pricing FAQ</h2>
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFaq(this)">
+      Can I switch plans at any time?
+      <span class="arrow">&#x25BC;</span>
+    </button>
+    <div class="faq-answer">Yes, you can upgrade or downgrade your plan at any time. If you upgrade, the new features are available immediately and we prorate the billing. If you downgrade, changes take effect at the next billing cycle.</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFaq(this)">
+      Is there a discount for annual billing?
+      <span class="arrow">&#x25BC;</span>
+    </button>
+    <div class="faq-answer">Yes! When you choose annual billing, you get 2 months free compared to monthly billing. That's 12 months for the price of 10 on all paid plans.</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFaq(this)">
+      What payment methods do you accept?
+      <span class="arrow">&#x25BC;</span>
+    </button>
+    <div class="faq-answer">We accept M-Pesa, bank transfers, and major credit/debit cards (Visa, Mastercard). Enterprise customers can also request invoice-based billing with NET-30 terms.</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFaq(this)">
+      Is there a free trial for paid plans?
+      <span class="arrow">&#x25BC;</span>
+    </button>
+    <div class="faq-answer">All paid plans come with a 14-day free trial. No credit card required. You can upgrade, downgrade, or cancel at any time during the trial period.</div>
+  </div>
+</div>
+
+<script>
+var billing='monthly';
+function toggleBilling(val){
+  var toggle=document.getElementById('billing-toggle');
+  var monthly=document.getElementById('monthly-label');
+  var annual=document.getElementById('annual-label');
+  if(val==='annual'||(billing==='monthly'&&!val)){
+    billing='annual';
+    toggle.classList.add('active');
+    monthly.classList.remove('active');
+    annual.classList.add('active');
+  }else{
+    billing='monthly';
+    toggle.classList.remove('active');
+    monthly.classList.add('active');
+    annual.classList.remove('active');
+  }
+  updatePrices();
+}
+function updatePrices(){
+  var prices=document.querySelectorAll('.plan-price .period');
+  var amt=document.querySelectorAll('.plan-price');
+  if(billing==='annual'){
+    if(amt.length>=2&&amt[1]){var p=amt[1].childNodes;for(var i=0;i<p.length;i++){if(p[i].nodeType===3&&p[i].textContent.trim()==='5,000'){p[i].textContent='50,000';}}}
+    if(amt.length>=3&&amt[2]){var p=amt[2].childNodes;for(var i=0;i<p.length;i++){if(p[i].nodeType===3&&p[i].textContent.trim()==='25,000'){p[i].textContent='250,000';}}}
+  }else{
+    if(amt.length>=2&&amt[1]){var p=amt[1].childNodes;for(var i=0;i<p.length;i++){if(p[i].nodeType===3&&p[i].textContent.trim()==='50,000'){p[i].textContent='5,000';}}}
+    if(amt.length>=3&&amt[2]){var p=amt[2].childNodes;for(var i=0;i<p.length;i++){if(p[i].nodeType===3&&p[i].textContent.trim()==='250,000'){p[i].textContent='25,000';}}}
+  }
+  for(var i=0;i<prices.length;i++){
+    prices[i].textContent='/'+billing;
+  }
+}
+function showComparison(view){
+  document.getElementById('monthly-view').classList.toggle('active',view==='monthly');
+  document.getElementById('annual-view').classList.toggle('active',view==='annual');
+}
+function toggleFaq(btn){
+  btn.classList.toggle('open');
+  var answer=btn.nextElementSibling;
+  answer.classList.toggle('open');
+  if(answer.style.display==='block'){
+    answer.style.display='none';
+  }else{
+    answer.style.display='block';
+  }
+}
+</script>

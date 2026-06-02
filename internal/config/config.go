@@ -16,6 +16,8 @@ type Config struct {
 	Environment string
 	CORSAllowOrigins string
 	Version     string
+	TemplateDir string
+	StaticDir   string
 	// Database
 	DBHost     string
 	DBPort     string
@@ -79,6 +81,26 @@ type Config struct {
 	AppDomain   string
 	PageSize    int
 	MaxJobPosts int // Free tier limit
+
+	TwoFAEncryptionKey     string
+	SMSProvider            string
+	AfricaTalkingAPIKey    string
+	AfricaTalkingUsername  string
+	AfricaTalkingFrom      string
+	TwilioAccountSID       string
+	TwilioAuthToken        string
+	TwilioFromNumber       string
+	VonageAPIKey           string
+	VonageAPISecret        string
+	VonageFrom             string
+
+	// Elasticsearch Configuration
+	ElasticsearchURL        string
+	ElasticsearchUsername   string
+	ElasticsearchPassword   string
+	ElasticsearchIndexJobs  string
+	ElasticsearchIndexCandidates string
+	ElasticsearchIndexCompanies string
 }
 
 func LoadConfig() (*Config, error) {
@@ -91,7 +113,9 @@ func LoadConfig() (*Config, error) {
 		// Server defaults
 		Port:        getEnv("PORT", "3000"),
 		Environment: getEnv("ENVIRONMENT", "development"),
-		CORSAllowOrigins: getEnv("CORS_ALLOW_ORIGINS", ""),
+		CORSAllowOrigins: getEnv("CORS_ALLOW_ORIGINS", "http://localhost:3000"),
+		TemplateDir: getEnv("TEMPLATE_DIR", "web/templates"),
+		StaticDir:   getEnv("STATIC_DIR", "web/static"),
 		Version:        getEnv("VERSION", ""),
 		
 		// Database defaults
@@ -154,6 +178,29 @@ func LoadConfig() (*Config, error) {
 		AppDomain:   getEnv("APP_DOMAIN", "localhost"),
 		PageSize:    getEnvAsInt("PAGE_SIZE", 20),
 		MaxJobPosts: getEnvAsInt("MAX_JOB_POSTS", 3),
+
+		// 2FA
+		TwoFAEncryptionKey:    getEnv("TWOFA_ENCRYPTION_KEY", ""),
+
+		// SMS Providers
+		SMSProvider:           getEnv("SMS_PROVIDER", "mock"),
+		AfricaTalkingAPIKey:   getEnv("AFRICA_TALKING_API_KEY", ""),
+		AfricaTalkingUsername: getEnv("AFRICA_TALKING_USERNAME", ""),
+		AfricaTalkingFrom:     getEnv("AFRICA_TALKING_FROM", ""),
+		TwilioAccountSID:      getEnv("TWILIO_ACCOUNT_SID", ""),
+		TwilioAuthToken:       getEnv("TWILIO_AUTH_TOKEN", ""),
+		TwilioFromNumber:      getEnv("TWILIO_FROM_NUMBER", ""),
+		VonageAPIKey:          getEnv("VONAGE_API_KEY", ""),
+		VonageAPISecret:       getEnv("VONAGE_API_SECRET", ""),
+		VonageFrom:            getEnv("VONAGE_FROM", ""),
+
+		// Elasticsearch Configuration
+		ElasticsearchURL:        getEnv("ELASTICSEARCH_URL", ""),
+		ElasticsearchUsername:   getEnv("ELASTICSEARCH_USERNAME", ""),
+		ElasticsearchPassword:   getEnv("ELASTICSEARCH_PASSWORD", ""),
+		ElasticsearchIndexJobs:  getEnv("ELASTICSEARCH_INDEX_JOBS", "jobs"),
+		ElasticsearchIndexCandidates: getEnv("ELASTICSEARCH_INDEX_CANDIDATES", "candidates"),
+		ElasticsearchIndexCompanies: getEnv("ELASTICSEARCH_INDEX_COMPANIES", "companies"),
 	}
 	
 	// Validate required fields

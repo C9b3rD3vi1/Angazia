@@ -1,0 +1,255 @@
+{{/* Employer - My Jobs */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">My Jobs</h1>
+      <p class="emp-page-sub">Manage your active and past job listings</p>
+    </div>
+    <a href="/employer/job-post" class="emp-btn emp-btn-primary">+ Post a New Job</a>
+  </div>
+
+  {{if .Jobs}}
+  <section class="emp-section">
+    <div class="emp-section-head">
+      <h2 class="emp-section-title">All Listings</h2>
+      <div class="emp-section-actions">
+        <select class="emp-select-sm">
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="draft">Draft</option>
+          <option value="closed">Closed</option>
+        </select>
+      </div>
+    </div>
+    <div class="emp-table-wrap">
+      <table class="emp-table">
+        <thead>
+          <tr>
+            <th>Job Title</th>
+            <th>Status</th>
+            <th>Applications</th>
+            <th>Views</th>
+            <th>Posted</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Jobs}}
+          <tr>
+            <td>
+              <a href="/jobs/{{.ID}}" class="emp-job-title">{{.Title}}</a>
+              <span class="emp-job-type">{{.Type}}</span>
+            </td>
+            <td>
+              <span class="emp-status {{.Status}}">{{.StatusLabel}}</span>
+            </td>
+            <td class="emp-stat-cell">{{.ApplicationCount}}</td>
+            <td class="emp-stat-cell">{{.ViewCount}}</td>
+            <td class="emp-date-cell">{{.CreatedAt.Format "Jan 2, 2006"}}</td>
+            <td>
+              <a href="/employer/job-applications/{{.ID}}" class="emp-action-link">View</a>
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {{else}}
+  <section class="emp-section">
+    <div class="emp-empty">
+      <div class="emp-empty-icon">&#x1F4BC;</div>
+      <h3 class="emp-empty-title">No jobs posted yet</h3>
+      <p class="emp-empty-desc">Post your first job listing to start attracting top tech talent.</p>
+      <a href="/employer/job-post" class="emp-btn emp-btn-primary emp-btn-lg">Post Your First Job</a>
+    </div>
+  </section>
+  {{end}}
+</div>
+
+<style>
+.emp-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.emp-page-title {
+  font-family: var(--fh);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.emp-page-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.emp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  transition: opacity 0.15s, transform 0.1s;
+  cursor: pointer;
+  border: none;
+}
+.emp-btn:active { transform: scale(0.97); }
+.emp-btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--purple) 0%, #ec4899 100%);
+}
+.emp-btn-primary:hover { opacity: 0.85; }
+.emp-btn-lg { padding: 12px 28px; font-size: 12px; }
+
+.emp-section {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 20px;
+}
+.emp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.emp-section-title {
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.emp-section-actions {
+  display: flex;
+  gap: 8px;
+}
+.emp-select-sm {
+  padding: 6px 10px;
+  font-family: var(--fm);
+  font-size: 10px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+}
+.emp-select-sm:focus { border-color: var(--purple); }
+
+.emp-table-wrap { overflow-x: auto; }
+.emp-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+.emp-table thead th {
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted2);
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 500;
+}
+.emp-table tbody tr {
+  transition: background 0.12s;
+}
+.emp-table tbody tr:hover { background: var(--s2); }
+.emp-table tbody td {
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.emp-table tbody tr:last-child td { border-bottom: none; }
+
+.emp-job-title {
+  display: block;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.emp-job-title:hover { color: var(--accent); }
+.emp-job-type {
+  font-size: 11px;
+  color: var(--muted2);
+}
+.emp-stat-cell {
+  font-family: var(--fh);
+  font-weight: 600;
+  font-size: 14px;
+}
+.emp-date-cell {
+  font-size: 12px;
+  color: var(--muted2);
+}
+.emp-action-link {
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--purple);
+  text-transform: uppercase;
+  transition: opacity 0.12s;
+}
+.emp-action-link:hover { opacity: 0.7; }
+
+.emp-status {
+  display: inline-block;
+  font-family: var(--fm);
+  font-size: 9px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+  text-transform: capitalize;
+}
+.emp-status.active { background: rgba(0,229,160,0.12); color: var(--accent); }
+.emp-status.draft { background: var(--s2); color: var(--muted2); }
+.emp-status.closed { background: rgba(255,79,79,0.1); color: var(--danger); }
+.emp-status.pending { background: rgba(245,166,35,0.12); color: var(--warn); }
+
+.emp-empty {
+  text-align: center;
+  padding: 48px 24px;
+}
+.emp-empty-icon {
+  font-size: 40px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+.emp-empty-title {
+  font-family: var(--fh);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.emp-empty-desc {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 20px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.5;
+}
+
+@media (max-width: 860px) {
+  .emp-page-head { flex-direction: column; align-items: flex-start; }
+  .emp-table thead th { font-size: 9px; padding: 8px 10px; }
+  .emp-table tbody td { padding: 10px; font-size: 12px; }
+}
+</style>

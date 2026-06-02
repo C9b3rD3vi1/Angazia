@@ -1,0 +1,209 @@
+{{/* Employee Settings Page */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">Settings</h1>
+      <p class="emp-page-sub">Manage your account, profile, and preferences</p>
+    </div>
+  </div>
+
+  {{if .Saved}}
+  <div class="emp-toast emp-toast-success">Settings saved successfully.</div>
+  {{end}}
+  {{if .Error}}
+  <div class="emp-toast emp-toast-error">{{.Error}}</div>
+  {{end}}
+
+  <div class="emp-settings-sections">
+
+    <section class="emp-section">
+      <div class="emp-section-head">
+        <h2 class="emp-section-title">&#x1F464; Profile Information</h2>
+      </div>
+      <form method="POST" action="/employee/settings" class="emp-form">
+        <div class="emp-form-row">
+          <div class="emp-form-group">
+            <label class="emp-form-label">Full Name</label>
+            <input type="text" name="full_name" class="emp-input" value="{{.Profile.FullName}}">
+          </div>
+          <div class="emp-form-group">
+            <label class="emp-form-label">Email</label>
+            <input type="email" class="emp-input" value="{{.Profile.Email}}" disabled>
+          </div>
+        </div>
+        <div class="emp-form-group">
+          <label class="emp-form-label">Headline</label>
+          <input type="text" name="headline" class="emp-input" value="{{.Profile.Headline}}" placeholder="e.g. Senior Software Engineer">
+        </div>
+        <div class="emp-form-group">
+          <label class="emp-form-label">Bio</label>
+          <textarea name="bio" class="emp-textarea" rows="3" placeholder="Tell employers about yourself...">{{.Profile.Bio}}</textarea>
+        </div>
+        <div class="emp-form-row">
+          <div class="emp-form-group">
+            <label class="emp-form-label">Location</label>
+            <input type="text" name="location" class="emp-input" value="{{.Profile.Location}}" placeholder="Nairobi, Kenya">
+          </div>
+          <div class="emp-form-group">
+            <label class="emp-form-label">Experience Level</label>
+            <select name="experience_level" class="emp-input">
+              <option value="entry" {{if eq .Profile.ExperienceLevel "entry"}}selected{{end}}>Entry Level</option>
+              <option value="mid" {{if eq .Profile.ExperienceLevel "mid"}}selected{{end}}>Mid Level</option>
+              <option value="senior" {{if eq .Profile.ExperienceLevel "senior"}}selected{{end}}>Senior Level</option>
+              <option value="lead" {{if eq .Profile.ExperienceLevel "lead"}}selected{{end}}>Lead</option>
+            </select>
+          </div>
+        </div>
+        <div class="emp-form-row">
+          <div class="emp-form-group">
+            <label class="emp-form-label">Years of Experience</label>
+            <input type="number" name="years_of_experience" class="emp-input" value="{{.Profile.YearsOfExperience}}" min="0">
+          </div>
+          <div class="emp-form-group">
+            <label class="emp-form-label">Portfolio URL</label>
+            <input type="url" name="portfolio_url" class="emp-input" value="{{.Profile.PortfolioURL}}" placeholder="https://">
+          </div>
+        </div>
+        <div class="emp-form-group">
+          <label class="emp-form-label">LinkedIn URL</label>
+          <input type="url" name="linkedin_url" class="emp-input" value="{{.Profile.LinkedInURL}}" placeholder="https://linkedin.com/in/">
+        </div>
+        <div class="emp-form-checkboxes">
+          <label class="emp-checkbox"><input type="checkbox" name="is_available" {{if .Profile.IsAvailable}}checked{{end}}><span>Open to opportunities</span></label>
+          <label class="emp-checkbox"><input type="checkbox" name="is_visible" {{if .Profile.IsVisible}}checked{{end}}><span>Profile visible to employers</span></label>
+          <label class="emp-checkbox"><input type="checkbox" name="is_remote_only" {{if .Profile.IsRemoteOnly}}checked{{end}}><span>Remote only</span></label>
+        </div>
+        <button type="submit" class="emp-btn emp-btn-primary">Save Changes</button>
+      </form>
+    </section>
+
+    <section class="emp-section">
+      <div class="emp-section-head">
+        <h2 class="emp-section-title">&#x1F512; Change Password</h2>
+      </div>
+      <form method="POST" action="/employee/settings/password" class="emp-form">
+        <div class="emp-form-group">
+          <label class="emp-form-label">Current Password</label>
+          <input type="password" name="current_password" class="emp-input" required>
+        </div>
+        <div class="emp-form-row">
+          <div class="emp-form-group">
+            <label class="emp-form-label">New Password</label>
+            <input type="password" name="new_password" class="emp-input" required minlength="8">
+          </div>
+          <div class="emp-form-group">
+            <label class="emp-form-label">Confirm New Password</label>
+            <input type="password" name="confirm_password" class="emp-input" required minlength="8">
+          </div>
+        </div>
+        <button type="submit" class="emp-btn emp-btn-outline">Update Password</button>
+      </form>
+    </section>
+
+    <section class="emp-section">
+      <div class="emp-section-head">
+        <h2 class="emp-section-title">&#x1F4E8; Notification Preferences</h2>
+      </div>
+      <form method="POST" action="/employee/settings/notifications" class="emp-form">
+        <div class="emp-form-checkboxes">
+          <label class="emp-checkbox"><input type="checkbox" name="notify_job_alerts" {{if .Profile.NotifyJobAlerts}}checked{{end}}><span>Job alert emails</span></label>
+          <label class="emp-checkbox"><input type="checkbox" name="notify_application_updates" {{if .Profile.NotifyApplicationUpdates}}checked{{end}}><span>Application status updates</span></label>
+          <label class="emp-checkbox"><input type="checkbox" name="notify_messages" {{if .Profile.NotifyMessages}}checked{{end}}><span>Messages from employers</span></label>
+          <label class="emp-checkbox"><input type="checkbox" name="notify_marketing" {{if .Profile.NotifyMarketing}}checked{{end}}><span>Marketing and newsletter emails</span></label>
+        </div>
+        <button type="submit" class="emp-btn emp-btn-primary">Save Preferences</button>
+      </form>
+    </section>
+
+  </div>
+</div>
+
+<style>
+.emp-settings-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.emp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.emp-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.emp-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.emp-form-label {
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted2);
+}
+.emp-input, .emp-textarea {
+  padding: 10px 14px;
+  font-family: var(--fm);
+  font-size: 13px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.emp-input:focus, .emp-textarea:focus { border-color: var(--accent); }
+.emp-textarea {
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.5;
+}
+.emp-input[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+.emp-form-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+}
+.emp-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.emp-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.emp-toast {
+  padding: 12px 18px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+}
+.emp-toast-success {
+  background: rgba(0,229,160,0.08);
+  border: 1px solid rgba(0,229,160,0.2);
+  color: var(--accent);
+}
+.emp-toast-error {
+  background: rgba(255,79,79,0.08);
+  border: 1px solid rgba(255,79,79,0.2);
+  color: var(--danger);
+}
+
+@media (max-width: 640px) {
+  .emp-form-row { grid-template-columns: 1fr; }
+}
+</style>

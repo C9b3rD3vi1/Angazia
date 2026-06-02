@@ -1,0 +1,366 @@
+{{/* Employer - Candidates */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">Candidates</h1>
+      <p class="emp-page-sub">Browse and search for top tech talent</p>
+    </div>
+    <div class="emp-search-group">
+      <div class="emp-search">
+        <input type="text" class="emp-search-input" placeholder="Search by skill, role, or location...">
+        <button class="emp-btn emp-btn-primary">Search</button>
+      </div>
+    </div>
+  </div>
+
+  <section class="emp-section">
+    <div class="emp-filter-bar">
+      <div class="emp-filter-group">
+        <label class="emp-filter-label">Skills</label>
+        <select class="emp-filter-select">
+          <option>All Skills</option>
+          <option>Go</option>
+          <option>Python</option>
+          <option>JavaScript</option>
+          <option>React</option>
+          <option>DevOps</option>
+        </select>
+      </div>
+      <div class="emp-filter-group">
+        <label class="emp-filter-label">Location</label>
+        <select class="emp-filter-select">
+          <option>All Locations</option>
+          <option>Nairobi</option>
+          <option>Mombasa</option>
+          <option>Remote</option>
+        </select>
+      </div>
+      <div class="emp-filter-group">
+        <label class="emp-filter-label">Experience</label>
+        <select class="emp-filter-select">
+          <option>Any Level</option>
+          <option>Junior</option>
+          <option>Mid-Level</option>
+          <option>Senior</option>
+          <option>Lead</option>
+        </select>
+      </div>
+      <div class="emp-filter-group">
+        <label class="emp-filter-label">Availability</label>
+        <select class="emp-filter-select">
+          <option>All</option>
+          <option>Immediate</option>
+          <option>2 Weeks</option>
+          <option>1 Month</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <section class="emp-section">
+    <div class="emp-section-head">
+      <h2 class="emp-section-title">
+        {{if .Candidates}}{{len .Candidates}} candidates found{{else}}Results{{end}}
+      </h2>
+      <span class="emp-result-hint">Sorted by match score</span>
+    </div>
+
+    {{if .Candidates}}
+    <div class="emp-candidate-list">
+      {{range .Candidates}}
+      <div class="emp-candidate-card">
+        <div class="emp-candidate-avatar">
+          <span class="emp-candidate-initials">{{.Initials}}</span>
+        </div>
+        <div class="emp-candidate-info">
+          <div class="emp-candidate-top">
+            <h3 class="emp-candidate-name">{{.Name}}</h3>
+            <span class="emp-candidate-score">{{.MatchScore}}% match</span>
+          </div>
+          <span class="emp-candidate-headline">{{.Headline}}</span>
+          <div class="emp-candidate-tags">
+            {{range .Skills}}<span class="emp-tag">{{.}}</span>{{end}}
+          </div>
+          <div class="emp-candidate-meta">
+            <span>&#x1F4CD; {{.Location}}</span>
+            <span>&#x1F4C5; {{.Experience}} yrs exp</span>
+            <span>&#x23F3; {{.Availability}}</span>
+          </div>
+        </div>
+        <div class="emp-candidate-actions">
+          <a href="/employer/candidates/{{.ID}}" class="emp-btn emp-btn-sm emp-btn-outline">View Profile</a>
+          <button class="emp-btn emp-btn-sm emp-btn-ghost">&#x2764; Save</button>
+        </div>
+      </div>
+      {{end}}
+    </div>
+    {{else}}
+    <div class="emp-empty">
+      <div class="emp-empty-icon">&#x1F50D;</div>
+      <h3 class="emp-empty-title">No candidates found</h3>
+      <p class="emp-empty-desc">Try adjusting your filters or broadening your search criteria.</p>
+    </div>
+    {{end}}
+  </section>
+</div>
+
+<style>
+.emp-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.emp-page-title {
+  font-family: var(--fh);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.emp-page-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.emp-search-group { flex-shrink: 0; }
+.emp-search {
+  display: flex;
+  gap: 8px;
+}
+.emp-search-input {
+  padding: 10px 16px;
+  min-width: 320px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.emp-search-input:focus { border-color: var(--purple); }
+.emp-search-input::placeholder { color: var(--muted2); }
+
+.emp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  transition: all 0.15s;
+  cursor: pointer;
+  border: none;
+}
+.emp-btn:active { transform: scale(0.97); }
+.emp-btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--purple) 0%, #ec4899 100%);
+}
+.emp-btn-primary:hover { opacity: 0.85; }
+.emp-btn-sm { padding: 7px 14px; font-size: 10px; }
+.emp-btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.emp-btn-outline:hover { border-color: var(--purple); color: var(--purple); }
+.emp-btn-ghost {
+  background: transparent;
+  color: var(--muted);
+}
+.emp-btn-ghost:hover { color: var(--danger); background: rgba(255,79,79,0.06); }
+
+.emp-section {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 20px;
+}
+.emp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.emp-section-title {
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.emp-result-hint {
+  font-size: 11px;
+  color: var(--muted2);
+}
+
+.emp-filter-bar {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.emp-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 140px;
+}
+.emp-filter-label {
+  font-family: var(--fm);
+  font-size: 9px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted2);
+}
+.emp-filter-select {
+  padding: 8px 12px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+}
+.emp-filter-select:focus { border-color: var(--purple); }
+
+/* Candidate Cards */
+.emp-candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.emp-candidate-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.emp-candidate-card:hover {
+  border-color: var(--purple-lt);
+  box-shadow: 0 2px 8px rgba(124,58,237,0.06);
+}
+.emp-candidate-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), #ec4899);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.emp-candidate-initials {
+  font-family: var(--fh);
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+.emp-candidate-info {
+  flex: 1;
+  min-width: 0;
+}
+.emp-candidate-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.emp-candidate-name {
+  font-family: var(--fh);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.emp-candidate-score {
+  font-family: var(--fm);
+  font-size: 10px;
+  padding: 2px 8px;
+  background: rgba(0,229,160,0.12);
+  color: var(--accent);
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+}
+.emp-candidate-headline {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.emp-candidate-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.emp-tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 4px;
+}
+.emp-candidate-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: var(--muted2);
+}
+.emp-candidate-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.emp-empty {
+  text-align: center;
+  padding: 48px 24px;
+}
+.emp-empty-icon {
+  font-size: 40px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+.emp-empty-title {
+  font-family: var(--fh);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.emp-empty-desc {
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 400px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+@media (max-width: 860px) {
+  .emp-page-head { flex-direction: column; align-items: stretch; }
+  .emp-search-input { min-width: 0; width: 100%; }
+  .emp-candidate-card { flex-direction: column; align-items: stretch; text-align: center; }
+  .emp-candidate-top { justify-content: center; }
+  .emp-candidate-meta { justify-content: center; flex-wrap: wrap; }
+  .emp-candidate-actions { flex-direction: row; justify-content: center; }
+  .emp-filter-bar { flex-direction: column; }
+}
+</style>

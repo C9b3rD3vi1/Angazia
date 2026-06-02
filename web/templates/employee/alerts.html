@@ -1,0 +1,160 @@
+{{/* Employee Job Alerts Page */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">Job Alerts</h1>
+      <p class="emp-page-sub">Get notified when matching opportunities open up</p>
+    </div>
+    <button class="emp-btn emp-btn-primary">+ New Alert</button>
+  </div>
+
+  <div class="emp-alerts-list">
+    {{if .Alerts}}
+    {{range .Alerts}}
+    <div class="emp-alert-card">
+      <div class="emp-alert-head">
+        <div class="emp-alert-info">
+          <h3 class="emp-alert-name">{{.Name}}</h3>
+          <span class="emp-dot {{if .Active}}emp-dot-green{{else}}emp-dot-gray{{end}}"></span>
+          <span class="emp-alert-state">{{if .Active}}Active{{else}}Paused{{end}}</span>
+        </div>
+        <div class="emp-alert-actions">
+          <button class="emp-alert-toggle">{{if .Active}}Pause{{else}}Resume{{end}}</button>
+          <button class="emp-alert-del">&times;</button>
+        </div>
+      </div>
+      <div class="emp-alert-criteria">
+        <span class="emp-alert-crit">&#x1F4CD; {{.Location}}</span>
+        <span class="emp-alert-crit">&#x1F4BC; {{.JobType}}</span>
+        {{if .Keywords}}<span class="emp-alert-crit">&#x1F50D; {{.Keywords}}</span>{{end}}
+        {{if .SalaryMin}}<span class="emp-alert-crit">&#x1F4B0; {{.SalaryMin}}{{if .SalaryMax}} - {{.SalaryMax}}{{end}}</span>{{end}}
+      </div>
+      <div class="emp-alert-meta">
+        <span>Frequency: <strong>{{.Frequency}}</strong></span>
+        <span>Matches this week: <strong>{{.WeeklyMatches}}</strong></span>
+      </div>
+    </div>
+    {{end}}
+    {{else}}
+    <div class="emp-empty">
+      <div class="emp-empty-icon">&#x1F514;</div>
+      <p class="emp-empty-text">No job alerts set up. Create alerts to get notified about jobs that match your preferences.</p>
+      <button class="emp-btn emp-btn-primary">+ Create Your First Alert</button>
+    </div>
+    {{end}}
+  </div>
+</div>
+
+<style>
+.emp-alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.emp-alert-card {
+  padding: 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: border-color 0.15s;
+}
+.emp-alert-card:hover { border-color: rgba(0,229,160,0.2); }
+.emp-alert-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.emp-alert-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.emp-alert-name {
+  font-family: var(--fh);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.emp-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.emp-dot-green { background: var(--accent); }
+.emp-dot-gray { background: var(--muted2); }
+.emp-alert-state {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--muted);
+}
+.emp-alert-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.emp-alert-toggle {
+  padding: 6px 14px;
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.emp-alert-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.emp-alert-del {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--muted2);
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1;
+}
+.emp-alert-del:hover { color: var(--danger); border-color: var(--danger); }
+
+.emp-alert-criteria {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.emp-alert-crit {
+  font-family: var(--fm);
+  font-size: 11px;
+  padding: 4px 12px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+}
+.emp-alert-meta {
+  display: flex;
+  gap: 20px;
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--muted2);
+  letter-spacing: 0.2px;
+}
+.emp-alert-meta strong { color: var(--text); font-weight: 500; }
+
+@media (max-width: 640px) {
+  .emp-alert-head { flex-direction: column; align-items: flex-start; }
+  .emp-alert-actions { width: 100%; }
+  .emp-alert-toggle { flex: 1; text-align: center; }
+}
+</style>

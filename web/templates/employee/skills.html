@@ -1,0 +1,297 @@
+{{/* Employee Skills Profile Page */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">Skills Profile</h1>
+      <p class="emp-page-sub">Showcase your expertise and improve AI job matching</p>
+    </div>
+    <button class="emp-btn emp-btn-outline">Edit Profile</button>
+  </div>
+
+  <div class="emp-grid-2col">
+    <div class="emp-col">
+
+      <section class="emp-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">&#x1F4A1; Your Skills</h2>
+        </div>
+        <div class="emp-skills-cloud">
+          {{if .Skills}}
+          {{range .Skills}}
+          <span class="emp-skill emp-skill-{{.Level}}">{{.Name}}<span class="emp-skill-lvl">{{.Level}}</span></span>
+          {{end}}
+          {{else}}
+          <div class="emp-cloud-empty">No skills added yet. Add your technical skills to get better matches.</div>
+          {{end}}
+          <button class="emp-skill-add">+ Add Skill</button>
+        </div>
+      </section>
+
+      <section class="emp-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">&#x1F3EB; Experience</h2>
+        </div>
+        {{if .Experience}}
+        {{range .Experience}}
+        <div class="emp-exp">
+          <div class="emp-exp-head">
+            <h3 class="emp-exp-title">{{.Title}}</h3>
+            <span class="emp-exp-date">{{.StartDate}} &ndash; {{or .EndDate "Present"}}</span>
+          </div>
+          <p class="emp-exp-org">{{.Company}}</p>
+          <p class="emp-exp-desc">{{.Description}}</p>
+        </div>
+        {{end}}
+        {{else}}
+        <div class="emp-cloud-empty">No experience listed yet. Add your work history.</div>
+        {{end}}
+      </section>
+
+    </div>
+    <div class="emp-col">
+
+      <section class="emp-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">&#x1F3AF; Match Score</h2>
+        </div>
+        <div class="emp-score-card">
+          <div class="emp-score-ring">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="8"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="var(--accent)" stroke-width="8" stroke-dasharray="314" stroke-dashoffset="{{.SkillsOffset}}" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+              <text x="60" y="60" text-anchor="middle" dominant-baseline="central" fill="var(--text)" font-family="var(--fh)" font-size="28" font-weight="700">{{.SkillsScore}}%</text>
+            </svg>
+          </div>
+          <div class="emp-score-details">
+            <div class="emp-score-row">
+              <span>Skills Match</span>
+              <span class="emp-score-bar"><span style="width:{{.SkillsMatchPercent}}%"></span></span>
+              <span class="emp-score-val">{{.SkillsMatchPercent}}%</span>
+            </div>
+            <div class="emp-score-row">
+              <span>Experience</span>
+              <span class="emp-score-bar"><span style="width:{{.ExperienceMatchPercent}}%"></span></span>
+              <span class="emp-score-val">{{.ExperienceMatchPercent}}%</span>
+            </div>
+            <div class="emp-score-row">
+              <span>Location</span>
+              <span class="emp-score-bar"><span style="width:{{.LocationMatchPercent}}%"></span></span>
+              <span class="emp-score-val">{{.LocationMatchPercent}}%</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="emp-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">&#x1F4DC; Certifications</h2>
+        </div>
+        {{if .Certifications}}
+        {{range .Certifications}}
+        <div class="emp-cert">
+          <span class="emp-cert-icon">&#x1F4DC;</span>
+          <div>
+            <p class="emp-cert-name">{{.Name}}</p>
+            <p class="emp-cert-issuer">{{.Issuer}} &middot; {{.Year}}</p>
+          </div>
+        </div>
+        {{end}}
+        {{else}}
+        <div class="emp-cloud-empty">No certifications added.</div>
+        {{end}}
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<style>
+.emp-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: flex-start;
+}
+.emp-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.emp-section {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.emp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.emp-section-title {
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.emp-skills-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.emp-skill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+}
+.emp-skill:hover { border-color: var(--accent); }
+.emp-skill-lvl {
+  font-size: 8px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.emp-skill-expert { border-color: rgba(0,229,160,0.25); }
+.emp-skill-expert .emp-skill-lvl { background: rgba(0,229,160,0.12); color: var(--accent); }
+.emp-skill-advanced { border-color: rgba(59,130,246,0.25); }
+.emp-skill-advanced .emp-skill-lvl { background: rgba(59,130,246,0.12); color: #3b82f6; }
+.emp-skill-intermediate { border-color: rgba(245,166,35,0.25); }
+.emp-skill-intermediate .emp-skill-lvl { background: rgba(245,166,35,0.12); color: var(--warn); }
+.emp-skill-beginner { border-color: rgba(128,128,128,0.25); }
+.emp-skill-beginner .emp-skill-lvl { background: rgba(128,128,128,0.12); color: var(--muted); }
+.emp-skill-add {
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  background: none;
+  border: 1px dashed rgba(0,229,160,0.3);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.emp-skill-add:hover { border-color: var(--accent); background: rgba(0,229,160,0.04); }
+.emp-cloud-empty {
+  padding: 20px 0;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.emp-exp {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.emp-exp:last-child { border-bottom: none; }
+.emp-exp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 2px;
+}
+.emp-exp-title {
+  font-family: var(--fh);
+  font-size: 14px;
+  font-weight: 600;
+}
+.emp-exp-date {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--muted2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.emp-exp-org {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.emp-exp-desc {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.emp-score-card {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+.emp-score-ring { flex-shrink: 0; }
+.emp-score-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.emp-score-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--muted);
+}
+.emp-score-row span:first-child { width: 80px; flex-shrink: 0; }
+.emp-score-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--s3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.emp-score-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+.emp-score-val {
+  width: 36px;
+  text-align: right;
+  font-weight: 600;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.emp-cert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.emp-cert:last-child { border-bottom: none; }
+.emp-cert-icon { font-size: 18px; flex-shrink: 0; }
+.emp-cert-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+.emp-cert-issuer {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--muted2);
+  margin-top: 2px;
+}
+
+@media (max-width: 960px) {
+  .emp-grid-2col { grid-template-columns: 1fr; }
+  .emp-score-card { flex-direction: column; }
+}
+</style>

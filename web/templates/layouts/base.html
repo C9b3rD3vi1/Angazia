@@ -1,61 +1,113 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{.Title}} - Angazia</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link href="/static/css/custom.css" rel="stylesheet">
-<link href="/static/css/landing.css" rel="stylesheet">
-</head>
-<body{{if .IsLanding}} class="landing-page"{{end}}>
-
-<nav id="nav">
-  <a href="{{if .IsLanding}}/{{else}}/app{{end}}" class="logo">ang<span>azia</span></a>
-  <ul>
-    {{if .IsLanding}}
-    <li><a href="#how">How it works</a></li>
-    <li><a href="#features">Features</a></li>
-    <li><a href="#sources">Sources</a></li>
-    {{else}}
-    <li><a href="/app" class="{{if eq .Page "index"}}active{{end}}">Dashboard</a></li>
-    <li><a href="/jobs" class="{{if eq .Page "jobs"}}active{{end}}">Jobs</a></li>
-    <li><a href="/tracker" class="{{if eq .Page "tracker"}}active{{end}}">Tracker</a></li>
-    <li><a href="/analyzer" class="{{if eq .Page "analyzer"}}active{{end}}">Analyzer</a></li>
-    {{end}}
-  </ul>
-  {{if .IsLanding}}
-  <button class="nav-cta" onclick="document.getElementById('waitlist')?.scrollIntoView({behavior:'smooth'})">Early Access</button>
-  {{end}}
+{{template "partials/head" .}}
+<body>
+<nav class="navbar" id="navbar">
+    <div class="nav-inner">
+        <a href="/" class="nav-logo">ANGAZ<span>IA</span></a>
+        <div class="nav-links">
+            <a href="/jobs" class="nav-link">JOBS</a>
+            <a href="/companies" class="nav-link">COMPANIES</a>
+            <a href="/blog" class="nav-link">BLOG</a>
+            <a href="/about" class="nav-link">ABOUT</a>
+        </div>
+        <div class="nav-actions">
+            {{if .User}}
+            <button class="nav-icon-btn" id="notif-btn"><span class="notif-icon">&#x1F514;</span>{{if .UnreadCount}}<span class="notif-dot"></span>{{end}}</button>
+            <div class="nav-avatar-wrap">
+                <div class="nav-avatar" id="avatar-btn">
+                    {{if .User.Avatar}}<img src="{{.User.Avatar}}" alt="{{.User.Name}}">{{else}}<span class="avatar-initials">{{.User.Initials}}</span>{{end}}
+                </div>
+                <div class="avatar-dropdown" id="avatar-dropdown">
+                    <div class="dropdown-header"><div class="dropdown-name">{{.User.Name}}</div><div class="dropdown-email">{{.User.Email}}</div></div>
+                    <div class="dropdown-divider"></div>
+                    <a href="/profile" class="dropdown-item">Profile Settings</a>
+                    <a href="/dashboard" class="dropdown-item">Dashboard</a>
+                    <a href="/messages" class="dropdown-item">Messages</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="/logout" class="dropdown-item dropdown-item-danger">Sign Out</a>
+                </div>
+            </div>
+            {{else}}
+            <a href="/login" class="btn-ghost">LOGIN</a>
+            <a href="/register" class="btn-ghost">SIGN UP</a>
+            <a href="/post-job" class="btn-post">POST A JOB</a>
+            {{end}}
+        </div>
+        <button class="nav-hamburger" id="hamburger"><span></span><span></span><span></span></button>
+    </div>
+    <div class="mobile-menu" id="mobile-menu">
+        <a href="/jobs" class="mobile-link">Jobs</a>
+        <a href="/companies" class="mobile-link">Companies</a>
+        <a href="/blog" class="mobile-link">Blog</a>
+        <a href="/about" class="mobile-link">About</a>
+        <div class="mobile-divider"></div>
+        {{if .User}}
+        <a href="/dashboard" class="mobile-link">Dashboard</a>
+        <a href="/profile" class="mobile-link">Profile</a>
+        <a href="/messages" class="mobile-link">Messages</a>
+        <div class="mobile-divider"></div>
+        <a href="/logout" class="mobile-link mobile-link-danger">Sign Out</a>
+        {{else}}
+        <a href="/login" class="mobile-link">Login</a>
+        <a href="/register" class="mobile-link">Sign Up</a>
+        <a href="/post-job" class="mobile-link mobile-link-accent">Post a Job</a>
+        {{end}}
+    </div>
 </nav>
-
-{{if .IsLanding}}
-{{block "content" .}}{{end}}
-{{else}}
-<main class="container">
-  {{block "content" .}}{{end}}
-</main>
-{{end}}
-
-<footer>
-  <div class="footer-logo">ang<span>azia</span></div>
-  <nav>
-    <ul>
-      <li><a href="#">Privacy</a></li>
-      <li><a href="#">Terms</a></li>
-      <li><a href="#">GitHub</a></li>
-      <li><a href="#">Contact</a></li>
-    </ul>
-  </nav>
-  <p class="footer-copy">&copy; 2025 Angazia &middot; Built in Kenya</p>
+{{if .Flash}}<div class="flash flash-{{.Flash.Type}}">{{.Flash.Message}}<button class="flash-close" onclick="this.parentElement.remove()">&times;</button></div>{{end}}
+<main class="main-content">{{embed}}</main>
+<footer class="site-footer">
+    <div class="footer-inner">
+        <div class="footer-brand">
+            <a href="/" class="footer-logo">ANGAZ<span>IA</span></a>
+            <p class="footer-tagline">Kenya's premier tech talent marketplace connecting developers with top companies.</p>
+            <div class="footer-social">
+                <a href="#" class="social-link"><span>&#x1F426;</span></a>
+                <a href="#" class="social-link"><span>&#x1F4F1;</span></a>
+                <a href="#" class="social-link"><span>&#x1F5A5;</span></a>
+            </div>
+        </div>
+        <div class="footer-links">
+            <div class="footer-col">
+                <h3 class="footer-col-title">FOR JOB SEEKERS</h3>
+                <a href="/jobs" class="footer-link">Browse Jobs</a>
+                <a href="/career-advice" class="footer-link">Career Advice</a>
+                <a href="/salary-guide" class="footer-link">Salary Guide</a>
+                <a href="/resume-tips" class="footer-link">Resume Tips</a>
+            </div>
+            <div class="footer-col">
+                <h3 class="footer-col-title">FOR EMPLOYERS</h3>
+                <a href="/post-job" class="footer-link">Post a Job</a>
+                <a href="/candidates" class="footer-link">Browse Candidates</a>
+                <a href="/pricing" class="footer-link">Pricing</a>
+                <a href="/success-stories" class="footer-link">Success Stories</a>
+            </div>
+            <div class="footer-col">
+                <h3 class="footer-col-title">RESOURCES</h3>
+                <a href="/blog" class="footer-link">Blog</a>
+                <a href="/guides" class="footer-link">Guides</a>
+                <a href="/webinars" class="footer-link">Webinars</a>
+                <a href="/community" class="footer-link">Community</a>
+            </div>
+            <div class="footer-col">
+                <h3 class="footer-col-title">SUPPORT</h3>
+                <a href="/help" class="footer-link">Help Center</a>
+                <a href="/contact" class="footer-link">Contact Us</a>
+                <a href="/privacy" class="footer-link">Privacy Policy</a>
+                <a href="/terms" class="footer-link">Terms of Service</a>
+            </div>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <div class="footer-copy">&copy; 2024 ANGAZIA &mdash; ALL RIGHTS RESERVED</div>
+        <div class="footer-badges"><span class="footer-badge">MADE IN KENYA</span><span class="footer-badge">&#x1F1F0;&#x1F1EA; TECH HUB</span></div>
+    </div>
 </footer>
-
-<script src="/static/js/main.js"></script>
 <script>
-window.addEventListener('scroll',function(){
-  var nav=document.getElementById('nav');
-  if(nav) nav.classList.toggle('scrolled',window.scrollY>60);
-});
+document.addEventListener('DOMContentLoaded',function(){initNavbar();initAvatarDropdown();initFlashMessages();});
+function initNavbar(){var h=document.getElementById('hamburger'),m=document.getElementById('mobile-menu'),n=document.getElementById('navbar');if(h&&m){h.addEventListener('click',function(){this.classList.toggle('is-open');m.classList.toggle('is-open');document.body.classList.toggle('menu-open');});}if(n){window.addEventListener('scroll',function(){if(window.scrollY>50)n.classList.add('scrolled');else n.classList.remove('scrolled');});}}
+function initAvatarDropdown(){var a=document.getElementById('avatar-btn'),d=document.getElementById('avatar-dropdown');if(a&&d){a.addEventListener('click',function(e){e.stopPropagation();d.classList.toggle('open');});document.addEventListener('click',function(){d.classList.remove('open');});}}
+function initFlashMessages(){var f=document.getElementById('flash-message');if(f){setTimeout(function(){f.classList.add('flash-fade');setTimeout(function(){if(f.parentNode)f.parentNode.removeChild(f);},400);},5000);}}
 </script>
+{{if .Scripts}}<script>{{.Scripts}}</script>{{end}}
 </body>
 </html>

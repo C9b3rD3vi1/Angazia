@@ -1,0 +1,659 @@
+{{/* Employee/Candidate Dashboard */}}
+
+<div class="emp-dash">
+  {{/* ── Welcome Header ── */}}
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">
+        {{if .User.Name}}
+        {{.Greeting}}, {{.User.Name}}
+        {{else}}
+        Welcome back
+        {{end}}
+      </h1>
+      <p class="emp-page-sub">{{.CurrentDate}}</p>
+    </div>
+    <a href="/employee/jobs" class="emp-btn emp-btn-primary">&#x1F50D; Browse Jobs</a>
+  </div>
+
+  {{/* ── Stats Cards ── */}}
+  <div class="emp-stats">
+    <div class="emp-stat-card">
+      <div class="emp-stat-icon">&#x1F453;</div>
+      <div class="emp-stat-body">
+        <span class="emp-stat-value">{{.Stats.ProfileViews}}</span>
+        <span class="emp-stat-label">Profile Views</span>
+      </div>
+      {{if .Stats.ProfileViewsDelta}}
+      <span class="emp-stat-delta {{if .Stats.ProfileViewsDelta.Pos}}up{{else}}down{{end}}">
+        {{.Stats.ProfileViewsDelta.Val}}
+      </span>
+      {{end}}
+    </div>
+    <div class="emp-stat-card">
+      <div class="emp-stat-icon">&#x1F4CB;</div>
+      <div class="emp-stat-body">
+        <span class="emp-stat-value">{{.Stats.ApplicationsSent}}</span>
+        <span class="emp-stat-label">Applications Sent</span>
+      </div>
+      {{if .Stats.ApplicationsSentDelta}}
+      <span class="emp-stat-delta {{if .Stats.ApplicationsSentDelta.Pos}}up{{else}}down{{end}}">
+        {{.Stats.ApplicationsSentDelta.Val}}
+      </span>
+      {{end}}
+    </div>
+    <div class="emp-stat-card">
+      <div class="emp-stat-icon">&#x1F516;</div>
+      <div class="emp-stat-body">
+        <span class="emp-stat-value">{{.Stats.SavedJobs}}</span>
+        <span class="emp-stat-label">Saved Jobs</span>
+      </div>
+      {{if .Stats.SavedJobsDelta}}
+      <span class="emp-stat-delta {{if .Stats.SavedJobsDelta.Pos}}up{{else}}down{{end}}">
+        {{.Stats.SavedJobsDelta.Val}}
+      </span>
+      {{end}}
+    </div>
+    <div class="emp-stat-card">
+      <div class="emp-stat-icon">&#x1F4E8;</div>
+      <div class="emp-stat-body">
+        <span class="emp-stat-value">{{.Stats.InterviewInvites}}</span>
+        <span class="emp-stat-label">Interview Invites</span>
+      </div>
+      {{if .Stats.InterviewInvitesDelta}}
+      <span class="emp-stat-delta {{if .Stats.InterviewInvitesDelta.Pos}}up{{else}}down{{end}}">
+        {{.Stats.InterviewInvitesDelta.Val}}
+      </span>
+      {{end}}
+    </div>
+  </div>
+
+  {{/* ── Two-Column Layout ── */}}
+  <div class="emp-grid-2col">
+
+    {{/* ── Left Column ── */}}
+    <div class="emp-col-left">
+
+      {{/* ── Recent Activity ── */}}
+      <section class="emp-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">&#x1F4AA; Recent Activity</h2>
+        </div>
+        <div class="emp-activity-list">
+          {{if .RecentActivity}}
+          {{range .RecentActivity}}
+          <div class="emp-activity-item">
+            <span class="emp-activity-icon">{{unescape .Icon}}</span>
+            <div class="emp-activity-body">
+              <p class="emp-activity-text">{{unescape .Text}}</p>
+              <span class="emp-activity-time">{{.Timestamp}}</span>
+            </div>
+          </div>
+          {{end}}
+          {{else}}
+          <div class="emp-empty">
+            <span class="emp-empty-icon">&#x1F4AD;</span>
+            <p class="emp-empty-text">No recent activity. Start applying to jobs!</p>
+            <a href="/employee/jobs" class="emp-empty-link">Browse Jobs &rarr;</a>
+          </div>
+          {{end}}
+        </div>
+      </section>
+
+      {{/* ── Upcoming Interviews ── */}}
+      <section class="emp-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">&#x1F4C5; Upcoming Interviews</h2>
+        </div>
+        <div class="emp-interview-list">
+          {{if .UpcomingInterviews}}
+          {{range .UpcomingInterviews}}
+          <div class="emp-interview-card">
+            <div class="emp-interview-header">
+              <span class="emp-interview-company">{{.Company}}</span>
+              <span class="emp-interview-badge {{.Status}}">{{.Status}}</span>
+            </div>
+            <p class="emp-interview-role">{{.Role}}</p>
+            <div class="emp-interview-meta">
+              <span>&#x1F4C5; {{.Date}}</span>
+              <span>&#x1F552; {{.Time}}</span>
+              {{if .Type}}
+              <span>&#x1F4F1; {{.Type}}</span>
+              {{end}}
+            </div>
+            {{if .Notes}}
+            <p class="emp-interview-notes">{{.Notes}}</p>
+            {{end}}
+          </div>
+          {{end}}
+          {{else}}
+          <div class="emp-empty">
+            <span class="emp-empty-icon">&#x1F3AF;</span>
+            <p class="emp-empty-text">No upcoming interviews. Keep applying!</p>
+          </div>
+          {{end}}
+        </div>
+      </section>
+
+    </div>
+
+    {{/* ── Right Column ── */}}
+    <div class="emp-col-right">
+
+      {{/* ── Recommended Jobs ── */}}
+      <section class="emp-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">&#x2B50; Recommended Jobs</h2>
+          <a href="/employee/jobs" class="emp-section-link">View All</a>
+        </div>
+        <div class="emp-recommended-grid">
+          {{if .RecommendedJobs}}
+          {{range .RecommendedJobs}}
+          <a href="/jobs/{{.ID}}" class="emp-rec-card">
+            <div class="emp-rec-header">
+              {{if .CompanyLogo}}
+              <img src="{{.CompanyLogo}}" alt="{{.Company}}" class="emp-rec-logo">
+              {{else}}
+              <span class="emp-rec-logo-placeholder">{{.CompanyInitials}}</span>
+              {{end}}
+              <div class="emp-rec-info">
+                <h3 class="emp-rec-title">{{.Title}}</h3>
+                <p class="emp-rec-company">{{.Company}}</p>
+              </div>
+            </div>
+            <div class="emp-rec-tags">
+              <span class="emp-rec-tag">{{.Location}}</span>
+              <span class="emp-rec-tag">{{.Type}}</span>
+              {{if .Salary}}
+              <span class="emp-rec-tag emp-rec-tag-salary">{{.Salary}}</span>
+              {{end}}
+            </div>
+            <div class="emp-rec-footer">
+              <span class="emp-rec-match">&#x1F3AF; {{.Match}}% Match</span>
+              <span class="emp-rec-date">{{.PostedDate}}</span>
+            </div>
+          </a>
+          {{end}}
+          {{else}}
+          <div class="emp-empty">
+            <span class="emp-empty-icon">&#x1F50D;</span>
+            <p class="emp-empty-text">No recommendations yet. Complete your profile to get matched.</p>
+          </div>
+          {{end}}
+        </div>
+      </section>
+
+      {{/* ── Profile Completion Tips ── */}}
+      {{if .ProfileTips}}
+      <section class="emp-section emp-tips-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">&#x1F4A1; Profile Tips</h2>
+        </div>
+        <div class="emp-tips-list">
+          {{range .ProfileTips}}
+          <div class="emp-tip-item">
+            <span class="emp-tip-icon">{{unescape .Icon}}</span>
+            <div class="emp-tip-body">
+              <p class="emp-tip-text">{{unescape .Text}}</p>
+            </div>
+          </div>
+          {{end}}
+        </div>
+        <a href="/employee/profile-edit" class="emp-tips-cta">Complete Your Profile &rarr;</a>
+      </section>
+      {{end}}
+
+    </div>
+  </div>
+</div>
+
+<style>
+/* ── Employee Dashboard Styles ── */
+.emp-dash {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Welcome */
+.emp-welcome {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.emp-welcome-text {}
+.emp-greeting {
+  font-family: var(--fh);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+.emp-date {
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  letter-spacing: 0.3px;
+}
+.emp-browse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--bg);
+  background: var(--accent);
+  border-radius: var(--radius);
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.emp-browse-btn:hover { opacity: 0.85; }
+
+/* Stats */
+.emp-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.emp-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  position: relative;
+}
+.emp-stat-icon {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  flex-shrink: 0;
+}
+.emp-stat-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.emp-stat-value {
+  font-family: var(--fh);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.emp-stat-label {
+  font-family: var(--fm);
+  font-size: 9px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.emp-stat-delta {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-family: var(--fm);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+  letter-spacing: 0.3px;
+}
+.emp-stat-delta.up { background: rgba(0,229,160,0.12); color: var(--accent); }
+.emp-stat-delta.down { background: rgba(255,79,79,0.12); color: var(--danger); }
+
+/* Grid 2-col */
+.emp-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: flex-start;
+}
+.emp-col-left,
+.emp-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Sections */
+.emp-section {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.emp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.emp-section-title {
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.emp-section-link {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.3px;
+  transition: opacity 0.15s;
+}
+.emp-section-link:hover { opacity: 0.75; }
+
+/* Activity List */
+.emp-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.emp-activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.emp-activity-item:last-child { border-bottom: none; }
+.emp-activity-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  background: var(--s2);
+  border-radius: var(--radius);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.emp-activity-body { flex: 1; min-width: 0; }
+.emp-activity-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.emp-activity-time {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--muted2);
+  letter-spacing: 0.2px;
+}
+
+/* Interviews */
+.emp-interview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.emp-interview-card {
+  padding: 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.emp-interview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.emp-interview-company {
+  font-family: var(--fh);
+  font-size: 13px;
+  font-weight: 600;
+}
+.emp-interview-badge {
+  font-family: var(--fm);
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: var(--radius);
+  letter-spacing: 0.3px;
+  text-transform: capitalize;
+}
+.emp-interview-badge.confirmed { background: rgba(0,229,160,0.12); color: var(--accent); }
+.emp-interview-badge.pending { background: rgba(245,166,35,0.12); color: var(--warn); }
+.emp-interview-badge.cancelled { background: rgba(255,79,79,0.12); color: var(--danger); }
+.emp-interview-role {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.emp-interview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--muted2);
+  letter-spacing: 0.2px;
+}
+.emp-interview-notes {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* Recommended Grid */
+.emp-recommended-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.emp-rec-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+}
+.emp-rec-card:hover { border-color: var(--accent); }
+.emp-rec-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.emp-rec-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
+  object-fit: cover;
+}
+.emp-rec-logo-placeholder {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fh);
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--s3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.emp-rec-info { min-width: 0; flex: 1; }
+.emp-rec-title {
+  font-family: var(--fh);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.emp-rec-company {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.emp-rec-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.emp-rec-tag {
+  font-family: var(--fm);
+  font-size: 9px;
+  padding: 2px 8px;
+  background: var(--s3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  letter-spacing: 0.2px;
+}
+.emp-rec-tag-salary { color: var(--accent); border-color: rgba(0,229,160,0.2); }
+.emp-rec-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+.emp-rec-match {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--accent);
+}
+.emp-rec-date {
+  font-family: var(--fm);
+  font-size: 9px;
+  color: var(--muted2);
+}
+
+/* Profile Tips */
+.emp-tips-section {}
+.emp-tips-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.emp-tip-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.emp-tip-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.emp-tip-body { flex: 1; min-width: 0; }
+.emp-tip-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.emp-tips-cta {
+  display: block;
+  text-align: center;
+  padding: 10px;
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  color: var(--accent);
+  border: 1px solid rgba(0,229,160,0.25);
+  border-radius: var(--radius);
+  transition: all 0.15s;
+}
+.emp-tips-cta:hover { background: rgba(0,229,160,0.06); border-color: var(--accent); }
+
+/* Empty State */
+.emp-empty {
+  text-align: center;
+  padding: 32px 16px;
+}
+.emp-empty-icon {
+  display: block;
+  font-size: 28px;
+  margin-bottom: 10px;
+  opacity: 0.5;
+}
+.emp-empty-text {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.emp-empty-link {
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.3px;
+}
+
+/* Unified design system */
+.emp-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.emp-page-title {
+  font-family: var(--fh);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.emp-page-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.emp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 22px;
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.emp-btn-primary {
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+}
+.emp-btn-primary:hover { opacity: 0.88; }
+
+/* Responsive */
+@media (max-width: 960px) {
+  .emp-stats { grid-template-columns: repeat(2, 1fr); }
+  .emp-grid-2col { grid-template-columns: 1fr; }
+  .emp-recommended-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .emp-stats { grid-template-columns: 1fr; }
+  .emp-page-head { flex-direction: column; align-items: flex-start; }
+}
+</style>

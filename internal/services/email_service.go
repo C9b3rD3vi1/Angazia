@@ -63,6 +63,13 @@ type EmailService interface {
 	SendSubscriptionReactivatedEmail(to, planName, email string)
 	SendRenewalReminderEmail(to string, planName string, amount string, currency string, daysUntilRenewal int, email string)
 	SendInvoiceAvailableEmail(to, invoiceNumber, amount, currency, invoiceURL, email string)
+
+	// 2FA emails
+	SendTwoFACode(to, code string) error
+	SendTwoFABackupCodes(to string, codes []string) error
+	SendTwoFAEnabled(to string) error
+	SendTwoFADisabled(to string) error
+	SendTwoFARecoveryEmail(to, recoveryLink string) error
 }
 
 type EmailServiceImpl struct {
@@ -133,6 +140,11 @@ type EmailData struct {
 	Jobs             []JobAlert
 	Count            int
 	UnsubscribeToken string
+
+	// 2FA fields
+	Code         string   `json:"code,omitempty"`
+	Codes        []string `json:"codes,omitempty"`
+	RecoveryLink string   `json:"recovery_link,omitempty"`
 }
 
 func NewEmailService(cfg *config.Config, unsubscribeRepo repository.UnsubscribeRepository, tokenService TokenService) EmailService {
@@ -196,6 +208,12 @@ func (s *EmailServiceImpl) loadTemplates() error {
 		"verification_rejected":        filepath.Join(templateDir, "verification_rejected.html"),
 		"team_invitation_existing":     filepath.Join(templateDir, "team_invitation_existing.html"),
 		"team_invitation_new":          filepath.Join(templateDir, "team_invitation_new.html"),
+		// 2FA templates
+		"twofa_code":                   filepath.Join(templateDir, "twofa_code.html"),
+		"twofa_backup_codes":           filepath.Join(templateDir, "twofa_backup_codes.html"),
+		"twofa_enabled":                filepath.Join(templateDir, "twofa_enabled.html"),
+		"twofa_disabled":               filepath.Join(templateDir, "twofa_disabled.html"),
+		"twofa_recovery":               filepath.Join(templateDir, "twofa_recovery.html"),
 	}
 	
 	for name, tmplPath := range templates {
@@ -973,4 +991,125 @@ func (s *EmailServiceImpl) SendInvoiceAvailableEmail(to, invoiceNumber, amount, 
 
 	textBody := fmt.Sprintf("Invoice %s for %s %s is now available. View: %s", invoiceNumber, amount, currency, invoiceURL)
 	s.sendEmail(to, data.Subject, htmlBody, textBody, email)
+}
+
+
+func (s *EmailServiceImpl) SendTwoFACode(to, code string) error {
+	data := &EmailData{
+		AppName:      s.cfg.AppName,
+		AppURL:       s.cfg.AppURL,
+		AppDomain:    s.cfg.AppDomain,
+		Year:         time.Now().Year(),
+		Email:        to,
+		Name:         to,
+		Subject:      "Your Two-Factor Authentication Code - " + s.cfg.AppName,
+		HeaderTitle:  "Verification Code",
+		HeaderColor:  "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+		ButtonColor:  "#667eea",
+		ButtonHoverColor: "#5a67d8",
+		LinkColor:    "#667eea",
+		Code:         code,
+	}
+
+	htmlBody, err := s.renderTemplate("twofa_code", data)
+	if err != nil {
+		return fmt.Errorf("failed to render 2FA code template: %w", err)
+	}
+	textBody := fmt.Sprintf("Your verification code is: %s", code)
+	
+	s.sendEmail(to, data.Subject, htmlBody, textBody, to)
+	return nil
+}
+
+func (s *EmailServiceImpl) SendTwoFABackupCodes(to string, codes []string) error {
+	data := &EmailData{
+		AppName:      s.cfg.AppName,
+		AppURL:       s.cfg.AppURL,
+		AppDomain:    s.cfg.AppDomain,
+		Year:         time.Now().Year(),
+		Email:        to,
+		Name:         to,
+		Subject:      "Your Backup Codes - " + s.cfg.AppName,
+		HeaderTitle:  "Backup Codes",
+		HeaderColor:  "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+		Codes:        codes,
+	}
+
+	htmlBody, err := s.renderTemplate("twofa_backup_codes", data)
+	if err != nil {
+		return fmt.Errorf("failed to render backup codes template: %w", err)
+	}
+	textBody := "Your backup codes have been generated. Please store them securely."
+	
+	s.sendEmail(to, data.Subject, htmlBody, textBody, to)
+	return nil
+}
+
+func (s *EmailServiceImpl) SendTwoFAEnabled(to string) error {
+	data := &EmailData{
+		AppName:      s.cfg.AppName,
+		AppURL:       s.cfg.AppURL,
+		AppDomain:    s.cfg.AppDomain,
+		Year:         time.Now().Year(),
+		Email:        to,
+		Name:         to,
+		Subject:      "Two-Factor Authentication Enabled - " + s.cfg.AppName,
+		HeaderTitle:  "2FA Enabled",
+		HeaderColor:  "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+	}
+
+	htmlBody, err := s.renderTemplate("twofa_enabled", data)
+	if err != nil {
+		return fmt.Errorf("failed to render 2FA enabled template: %w", err)
+	}
+	textBody := "Two-factor authentication has been enabled on your account."
+	
+	s.sendEmail(to, data.Subject, htmlBody, textBody, to)
+	return nil
+}
+
+func (s *EmailServiceImpl) SendTwoFADisabled(to string) error {
+	data := &EmailData{
+		AppName:      s.cfg.AppName,
+		AppURL:       s.cfg.AppURL,
+		AppDomain:    s.cfg.AppDomain,
+		Year:         time.Now().Year(),
+		Email:        to,
+		Name:         to,
+		Subject:      "Two-Factor Authentication Disabled - " + s.cfg.AppName,
+		HeaderTitle:  "2FA Disabled",
+		HeaderColor:  "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+	}
+
+	htmlBody, err := s.renderTemplate("twofa_disabled", data)
+	if err != nil {
+		return fmt.Errorf("failed to render 2FA disabled template: %w", err)
+	}
+	textBody := "Two-factor authentication has been disabled on your account."
+	
+	s.sendEmail(to, data.Subject, htmlBody, textBody, to)
+	return nil
+}
+
+func (s *EmailServiceImpl) SendTwoFARecoveryEmail(to, recoveryLink string) error {
+	data := &EmailData{
+		AppName:      s.cfg.AppName,
+		AppURL:       s.cfg.AppURL,
+		AppDomain:    s.cfg.AppDomain,
+		Year:         time.Now().Year(),
+		Email:        to,
+		Name:         to,
+		Subject:      "Two-Factor Authentication Recovery - " + s.cfg.AppName,
+		HeaderTitle:  "2FA Recovery",
+		HeaderColor:  "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+		RecoveryLink: recoveryLink,
+	}
+
+	htmlBody, err := s.renderTemplate("twofa_recovery", data)
+	if err != nil {
+		return fmt.Errorf("failed to render 2FA recovery template: %w", err)
+	}
+	textBody := fmt.Sprintf("Click this link to recover your account: %s\n\nThis link expires in 15 minutes.", recoveryLink)
+	s.sendEmail(to, data.Subject, htmlBody, textBody, to)
+	return nil
 }

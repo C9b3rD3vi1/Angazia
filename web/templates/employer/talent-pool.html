@@ -1,0 +1,255 @@
+{{/* Employer - Talent Pool */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">Talent Pool</h1>
+      <p class="emp-page-sub">Candidates you've saved for future opportunities</p>
+    </div>
+    <div class="emp-page-info">
+      {{if .TalentPool}}<span class="emp-count">{{len .TalentPool}} saved</span>{{end}}
+    </div>
+  </div>
+
+  <section class="emp-section">
+    <div class="emp-section-head">
+      <h2 class="emp-section-title">Saved Candidates</h2>
+      {{if .TalentPool}}<button class="emp-btn emp-btn-sm emp-btn-ghost">Export All</button>{{end}}
+    </div>
+
+    {{if .TalentPool}}
+    <div class="emp-talent-list">
+      {{range .TalentPool}}
+      <div class="emp-talent-card">
+        <div class="emp-talent-main">
+          <div class="emp-talent-avatar">
+            <span class="emp-talent-initials">{{.Initials}}</span>
+          </div>
+          <div class="emp-talent-info">
+            <h3 class="emp-talent-name">{{.Name}}</h3>
+            <span class="emp-talent-headline">{{.Headline}}</span>
+            <div class="emp-talent-tags">
+              {{range .Skills}}<span class="emp-tag">{{.}}</span>{{end}}
+            </div>
+          </div>
+        </div>
+        <div class="emp-talent-side">
+          <span class="emp-talent-date">Saved {{.SavedAt.Format "Jan 2, 2006"}}</span>
+          <div class="emp-talent-actions">
+            <a href="/employer/candidates/{{.ID}}" class="emp-btn emp-btn-sm emp-btn-outline">View</a>
+            <button class="emp-btn emp-btn-sm emp-btn-ghost emp-btn-danger">Remove</button>
+          </div>
+        </div>
+      </div>
+      {{end}}
+    </div>
+    {{else}}
+    <div class="emp-empty">
+      <div class="emp-empty-icon">&#x1F4E6;</div>
+      <h3 class="emp-empty-title">Your talent pool is empty</h3>
+      <p class="emp-empty-desc">Save candidates you're interested in from the Candidates page to revisit them later.</p>
+      <a href="/employer/candidates" class="emp-btn emp-btn-primary emp-btn-lg">Browse Candidates</a>
+    </div>
+    {{end}}
+  </section>
+</div>
+
+<style>
+.emp-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.emp-page-title {
+  font-family: var(--fh);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.emp-page-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.emp-count {
+  font-family: var(--fm);
+  font-size: 10px;
+  padding: 4px 12px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+}
+
+.emp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  transition: all 0.15s;
+  cursor: pointer;
+  border: none;
+}
+.emp-btn:active { transform: scale(0.97); }
+.emp-btn-sm { padding: 7px 14px; font-size: 10px; }
+.emp-btn-lg { padding: 12px 28px; font-size: 12px; }
+.emp-btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--purple) 0%, #ec4899 100%);
+}
+.emp-btn-primary:hover { opacity: 0.85; }
+.emp-btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.emp-btn-outline:hover { border-color: var(--purple); color: var(--purple); }
+.emp-btn-ghost {
+  background: transparent;
+  color: var(--muted);
+}
+.emp-btn-ghost:hover { color: var(--text); background: var(--s2); }
+.emp-btn-danger:hover { color: var(--danger); background: rgba(255,79,79,0.06); }
+
+.emp-section {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 20px;
+}
+.emp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.emp-section-title {
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.emp-talent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.emp-talent-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 0.15s;
+}
+.emp-talent-card:hover { border-color: var(--purple-lt); }
+.emp-talent-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+.emp-talent-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), #ec4899);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.emp-talent-initials {
+  font-family: var(--fh);
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+.emp-talent-info { flex: 1; min-width: 0; }
+.emp-talent-name {
+  font-family: var(--fh);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.emp-talent-headline {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.emp-talent-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.emp-tag {
+  font-size: 9px;
+  padding: 2px 7px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 4px;
+}
+.emp-talent-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.emp-talent-date {
+  font-size: 11px;
+  color: var(--muted2);
+}
+.emp-talent-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.emp-empty {
+  text-align: center;
+  padding: 48px 24px;
+}
+.emp-empty-icon {
+  font-size: 40px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+.emp-empty-title {
+  font-family: var(--fh);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.emp-empty-desc {
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 400px;
+  margin: 0 auto 20px;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .emp-page-head { flex-direction: column; align-items: flex-start; }
+  .emp-talent-card { flex-direction: column; align-items: stretch; }
+  .emp-talent-side { flex-direction: row; align-items: center; justify-content: space-between; }
+}
+</style>

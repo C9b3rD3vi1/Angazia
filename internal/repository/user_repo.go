@@ -44,6 +44,10 @@ type UserRepository interface {
 	ListEmployeesBySkills(ctx context.Context, skills []string, page, limit int) ([]*models.EmployeeProfile, int64, error)
 	GetEmployeeWithGitHub(ctx context.Context, userID string) (*models.EmployeeProfile, *models.GithubProfile, error)
 
+	// Employer batch operations
+	ListEmployers(ctx context.Context, page, limit int) ([]*models.EmployerProfile, int64, error)
+	GetEmployerProfilesBatch(ctx context.Context, userIDs []string, dest map[string]*models.EmployerProfile) error
+
 	// GitHub profile
 	GetGithubProfileByEmployeeID(ctx context.Context, employeeID string) (*models.GithubProfile, error)
 }
@@ -339,6 +343,43 @@ func (r *UserRepositoryImpl) GetEmployeeWithGitHub(ctx context.Context, userID s
 	}
 	
 	return &employee, &github, nil
+}
+
+func (r *UserRepositoryImpl) ListEmployers(ctx context.Context, page, limit int) ([]*models.EmployerProfile, int64, error) {
+	var employers []*models.EmployerProfile
+	var total int64
+
+	query := r.db.WithContext(ctx).
+		Model(&models.EmployerProfile{}).
+		Joins("JOIN users ON users.id = employer_profiles.user_id").
+		Where("users.is_active = ? AND users.is_verified = ?", true, true)
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * limit
+	err := query.
+		Preload("User").
+		Offset(offset).
+		Limit(limit).
+		Find(&employers).Error
+
+	return employers, total, err
+}
+
+func (r *UserRepositoryImpl) GetEmployerProfilesBatch(ctx context.Context, userIDs []string, dest map[string]*models.EmployerProfile) error {
+	var employers []*models.EmployerProfile
+	err := r.db.WithContext(ctx).
+		Where("user_id IN ?", userIDs).
+		Find(&employers).Error
+	if err != nil {
+		return err
+	}
+	for _, emp := range employers {
+		dest[emp.UserID] = emp
+	}
+	return nil
 }
 
 func (r *UserRepositoryImpl) GetGithubProfileByEmployeeID(ctx context.Context, employeeID string) (*models.GithubProfile, error) {

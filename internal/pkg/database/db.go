@@ -89,6 +89,10 @@ func AutoMigrate() error {
 		&models.TalentPool{},
 		&models.TalentPoolCandidate{},
 		&models.SearchHistory{},
+		
+		// 2FA models
+		&models.TwoFASecret{},
+		&models.TwoFAAuditLog{},
 	)
 	
 	if err != nil {

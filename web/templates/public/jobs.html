@@ -1,0 +1,174 @@
+<style>
+:root{--bg:#050a0a;--s1:#0c1414;--s2:#111e1e;--s3:#162020;--border:#1a2e2e;--border2:#243e3e;--accent:#00e5a0;--accent-dim:#00b87a;--text:#ddeee8;--muted:#5a7a72;--muted2:#3d5a54;--fh:'Syne',sans-serif;--fm:'DM Mono',monospace;--fb:'Instrument Sans',sans-serif;--radius:2px}
+.page-header{margin-bottom:32px}
+.page-header h1{font-family:var(--fh);font-size:28px;font-weight:800;letter-spacing:-1px;color:var(--text);margin-bottom:6px}
+.page-header p{font-family:var(--fm);font-size:12px;color:var(--muted);letter-spacing:.3px}
+.jobs-layout{display:grid;grid-template-columns:260px 1fr;gap:28px;align-items:start}
+.filter-sidebar{background:var(--s1);border:1px solid var(--border);padding:24px;position:sticky;top:92px}
+.filter-sidebar h3{font-family:var(--fm);font-size:11px;letter-spacing:1px;color:var(--text);margin-bottom:16px}
+.filter-group{margin-bottom:20px}
+.filter-group label{display:block;font-family:var(--fm);font-size:10px;letter-spacing:.5px;color:var(--muted);margin-bottom:6px}
+.filter-group input,.filter-group select{width:100%;background:var(--bg);border:1px solid var(--border);padding:9px 12px;color:var(--text);font-family:var(--fb);font-size:13px;outline:none;transition:border-color .2s}
+.filter-group input:focus,.filter-group select:focus{border-color:var(--accent)}
+.filter-group input::placeholder{color:var(--muted2)}
+.filter-group select option{background:var(--s1);color:var(--text)}
+.filter-actions{display:flex;flex-direction:column;gap:8px;margin-top:20px}
+.filter-actions button{width:100%;font-family:var(--fm);font-size:11px;letter-spacing:.5px;padding:10px;cursor:pointer;transition:all .2s}
+.btn-apply{background:var(--accent);color:#050a0a;border:none;font-weight:500}
+.btn-apply:hover{background:var(--accent-dim)}
+.btn-reset{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-reset:hover{color:var(--text);border-color:var(--border2)}
+.jobs-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.results-count{font-family:var(--fm);font-size:12px;color:var(--muted);letter-spacing:.3px}
+.results-count strong{color:var(--text)}
+.sort-group{display:flex;align-items:center;gap:8px}
+.sort-group label{font-family:var(--fm);font-size:10px;color:var(--muted);letter-spacing:.5px}
+.sort-group select{background:var(--s1);border:1px solid var(--border);padding:7px 10px;color:var(--text);font-family:var(--fm);font-size:11px;outline:none;cursor:pointer}
+.sort-group select option{background:var(--s1);color:var(--text)}
+.jobs-list{display:flex;flex-direction:column;gap:12px}
+.job-item{background:var(--s1);border:1px solid var(--border);padding:20px 24px;transition:all .2s;display:grid;grid-template-columns:1fr auto;gap:16px}
+.job-item:hover{border-color:rgba(0,229,160,.25)}
+.job-item-main{min-width:0}
+.job-item-title{font-family:var(--fh);font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px;letter-spacing:-.3px}
+.job-item-title a{color:var(--text);text-decoration:none;transition:color .2s}
+.job-item-title a:hover{color:var(--accent)}
+.job-item-company{font-size:14px;color:var(--muted);margin-bottom:10px}
+.job-item-meta{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--fm);font-size:11px;color:var(--muted2);letter-spacing:.3px}
+.job-item-meta span{display:flex;align-items:center;gap:4px}
+.job-item-salary{color:var(--accent);font-weight:500}
+.job-item-side{text-align:right;display:flex;flex-direction:column;gap:8px;align-items:flex-end;justify-content:space-between}
+.job-type-badge{font-family:var(--fm);font-size:10px;letter-spacing:.5px;padding:4px 10px;border:1px solid rgba(0,229,160,.25);color:var(--accent);background:rgba(0,229,160,.06);white-space:nowrap}
+.job-posted{font-family:var(--fm);font-size:10px;color:var(--muted2);letter-spacing:.3px;white-space:nowrap}
+.pagination{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:32px}
+.pagination a,.pagination span{font-family:var(--fm);font-size:12px;padding:8px 14px;border:1px solid var(--border);color:var(--muted);text-decoration:none;transition:all .15s;letter-spacing:.3px}
+.pagination a:hover{border-color:var(--accent);color:var(--accent)}
+.pagination .active{background:var(--accent);color:#050a0a;border-color:var(--accent);font-weight:500}
+.pagination .disabled{opacity:.3;pointer-events:none}
+.no-results{text-align:center;padding:60px 20px;border:1px dashed var(--border)}
+.no-results .icon{font-size:48px;display:block;margin-bottom:16px}
+.no-results h3{font-family:var(--fh);font-size:20px;color:var(--text);margin-bottom:8px}
+.no-results p{font-size:14px;color:var(--muted);margin-bottom:20px}
+.active-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.active-filter{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--border);padding:5px 10px;font-family:var(--fm);font-size:10px;color:var(--muted);letter-spacing:.3px}
+.active-filter button{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:14px;line-height:1;padding:0}
+.active-filter button:hover{color:var(--accent)}
+@media(max-width:900px){.jobs-layout{grid-template-columns:1fr}.filter-sidebar{position:static}}
+@media(max-width:600px){.job-item{grid-template-columns:1fr}.job-item-side{text-align:left;align-items:flex-start;flex-direction:row}.page-header h1{font-size:22px}}
+</style>
+
+<div class="page-header">
+  <h1>&#x1F50D; Browse Jobs</h1>
+  <p>{{if .pagination}}{{.pagination.total}} {{end}}tech opportunities across Kenya</p>
+</div>
+
+<div class="jobs-layout">
+  <aside class="filter-sidebar">
+    <h3>&#x2699; FILTERS</h3>
+    <form action="/jobs" method="GET" id="filter-form">
+      <div class="filter-group">
+        <label for="keyword">&#x1F50D; Keyword</label>
+        <input type="text" id="keyword" name="q" placeholder="Job title, skill..." value="{{if .filters.keyword}}{{.filters.keyword}}{{end}}">
+      </div>
+      <div class="filter-group">
+        <label for="location">&#x1F4CD; Location</label>
+        <input type="text" id="location" name="location" placeholder="Nairobi, Mombasa..." value="{{if .filters.location}}{{.filters.location}}{{end}}">
+      </div>
+      <div class="filter-group">
+        <label for="type">&#x1F4C4; Job Type</label>
+        <select id="type" name="type">
+          <option value="">All Types</option>
+          <option value="full-time" {{if eq .filters.type "full-time"}}selected{{end}}>Full-Time</option>
+          <option value="part-time" {{if eq .filters.type "part-time"}}selected{{end}}>Part-Time</option>
+          <option value="contract" {{if eq .filters.type "contract"}}selected{{end}}>Contract</option>
+          <option value="internship" {{if eq .filters.type "internship"}}selected{{end}}>Internship</option>
+          <option value="remote" {{if eq .filters.type "remote"}}selected{{end}}>Remote</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="salaryMin">&#x1F4B0; Min Salary</label>
+        <input type="text" id="salaryMin" name="salaryMin" placeholder="e.g. 50000" value="{{if .filters.salaryMin}}{{.filters.salaryMin}}{{end}}">
+      </div>
+      <div class="filter-group">
+        <label for="salaryMax">&#x1F4B0; Max Salary</label>
+        <input type="text" id="salaryMax" name="salaryMax" placeholder="e.g. 200000" value="{{if .filters.salaryMax}}{{.filters.salaryMax}}{{end}}">
+      </div>
+      <div class="filter-actions">
+        <button type="submit" class="btn-apply">Apply Filters</button>
+        <button type="reset" class="btn-reset" onclick="window.location='/jobs'">Reset</button>
+      </div>
+    </form>
+  </aside>
+
+  <div class="jobs-content">
+    {{if .filters}}
+    <div class="active-filters">
+      {{if .filters.keyword}}<span class="active-filter">&#x1F50D; {{.filters.keyword}}</span>{{end}}
+      {{if .filters.location}}<span class="active-filter">&#x1F4CD; {{.filters.location}}</span>{{end}}
+      {{if .filters.type}}<span class="active-filter">&#x1F4C4; {{.filters.type}}</span>{{end}}
+      {{if .filters.salaryMin}}<span class="active-filter">&#x1F4B0; Min: {{.filters.salaryMin}}</span>{{end}}
+      {{if .filters.salaryMax}}<span class="active-filter">&#x1F4B0; Max: {{.filters.salaryMax}}</span>{{end}}
+    </div>
+    {{end}}
+
+    <div class="jobs-header">
+      <div class="results-count">{{if .pagination}}<strong>{{.pagination.total}}</strong> jobs found{{else}}<strong>0</strong> jobs found{{end}}</div>
+      <div class="sort-group">
+        <label for="sort">Sort:</label>
+        <select id="sort" onchange="location=this.value">
+          <option value="/jobs?sort=newest">Newest</option>
+          <option value="/jobs?sort=salary_high">Salary: High to Low</option>
+          <option value="/jobs?sort=salary_low">Salary: Low to High</option>
+          <option value="/jobs?sort=relevance">Relevance</option>
+        </select>
+      </div>
+    </div>
+
+    {{if .jobs}}
+    <div class="jobs-list">
+      {{range .jobs}}
+      <div class="job-item">
+        <div class="job-item-main">
+          <div class="job-item-title"><a href="/jobs/{{.id}}">{{.title}}</a></div>
+          {{if .company}}<div class="job-item-company">&#x1F3E2; {{.company}}</div>{{end}}
+          <div class="job-item-meta">
+            {{if .location}}<span>&#x1F4CD; {{.location}}</span>{{end}}
+            {{if .salary}}<span class="job-item-salary">&#x1F4B0; {{.salary}}</span>{{end}}
+          </div>
+        </div>
+        <div class="job-item-side">
+          {{if .type}}<span class="job-type-badge">{{.type}}</span>{{end}}
+          {{if .postedDate}}<span class="job-posted">&#x1F4C5; {{.postedDate}}</span>{{end}}
+        </div>
+      </div>
+      {{end}}
+    </div>
+    {{else}}
+    <div class="no-results">
+      <span class="icon">&#x1F50D;</span>
+      <h3>No jobs match your criteria</h3>
+      <p>Try adjusting your filters or search for a different keyword.</p>
+      <a href="/jobs" class="btn-secondary" style="display:inline-block;font-family:var(--fm);font-size:12px;letter-spacing:.5px;color:var(--text);background:transparent;padding:10px 24px;border:1px solid var(--border);text-decoration:none;transition:all .2s">Clear All Filters</a>
+    </div>
+    {{end}}
+
+    {{if .pagination}}
+    {{if gt .pagination.totalPages 1}}
+    <div class="pagination">
+      {{if .pagination.prevPage}}
+      <a href="?page={{.pagination.prevPage}}&limit={{.pagination.limit}}">&larr; Prev</a>
+      {{else}}
+      <span class="disabled">&larr; Prev</span>
+      {{end}}
+      {{range .pagination.pages}}
+      {{if .active}}<span class="active">{{.page}}</span>{{else}}<a href="?page={{.page}}&limit={{$.pagination.limit}}">{{.page}}</a>{{end}}
+      {{end}}
+      {{if .pagination.nextPage}}
+      <a href="?page={{.pagination.nextPage}}&limit={{.pagination.limit}}">Next &rarr;</a>
+      {{else}}
+      <span class="disabled">Next &rarr;</span>
+      {{end}}
+    </div>
+    {{end}}
+    {{end}}
+  </div>
+</div>

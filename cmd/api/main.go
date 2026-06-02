@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"html/template"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/template/html/v2"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	
@@ -16,7 +20,9 @@ import (
 	"github.com/C9b3rD3vi1/Angazia/internal/handlers"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/ai"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/database"
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/elasticsearch"
 	"github.com/C9b3rD3vi1/Angazia/internal/middleware"
+	pkgredis "github.com/C9b3rD3vi1/Angazia/internal/pkg/redis"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 	"github.com/C9b3rD3vi1/Angazia/internal/repository"
 	"github.com/C9b3rD3vi1/Angazia/internal/routes"
@@ -52,6 +58,33 @@ func main() {
 	if err := redisClient.Ping(context.Background()).Err(); err != nil {
 		log.Printf("Warning: Redis connection failed: %v. Token blacklisting will use database only.", err)
 		redisClient = nil
+	}
+	
+	// Initialize wrapped Redis client (sessions, queues, cache)
+	redisWrapped, err := pkgredis.NewRedisClient(cfg)
+	if err != nil {
+		log.Printf("Warning: Wrapped Redis client failed: %v. Some features will be degraded.", err)
+		redisWrapped = nil
+	}
+	
+	// Initialize Elasticsearch
+	esClient, err := elasticsearch.NewESClient(cfg)
+	if err != nil {
+		log.Printf("Warning: Elasticsearch not available: %v. Search will use database only.", err)
+		esClient = nil
+	}
+	
+	if esClient != nil {
+		ctx := context.Background()
+		if err := esClient.CreateIndex(ctx, "jobs", elasticsearch.JobIndexMapping); err != nil {
+			log.Printf("Warning: Could not create jobs index: %v", err)
+		}
+		if err := esClient.CreateIndex(ctx, "candidates", elasticsearch.CandidateIndexMapping); err != nil {
+			log.Printf("Warning: Could not create candidates index: %v", err)
+		}
+		if err := esClient.CreateIndex(ctx, "companies", elasticsearch.CompanyIndexMapping); err != nil {
+			log.Printf("Warning: Could not create companies index: %v", err)
+		}
 	}
 	
 	// Run database migrations
@@ -106,6 +139,27 @@ func main() {
 	subscriptionSvc := services.NewSubscriptionService(cfg, subscriptionRepo, paymentRepo, userRepo, jobRepo)
 	profileSvc := services.NewProfileService(cfg, userRepo, githubRepo)
 	
+	// Initialize ES-based services
+	var (
+		syncService *elasticsearch.SyncService
+	)
+	
+	if esClient != nil {
+		jobIndexer := elasticsearch.NewJobIndexer(esClient, jobRepo, userRepo)
+		candidateIndexer := elasticsearch.NewCandidateIndexer(esClient, userRepo)
+		companyIndexer := elasticsearch.NewCompanyIndexer(esClient, userRepo)
+		
+		syncService = elasticsearch.NewSyncService(esClient, jobIndexer, candidateIndexer, companyIndexer)
+		syncService.Start(context.Background())
+		
+		_ = services.NewSearchESService(esClient, jobRepo, userRepo)
+	}
+	
+	if redisWrapped != nil {
+		_ = services.NewCacheService(redisWrapped, jobRepo, userRepo)
+		_ = pkgredis.NewSessionManager(redisWrapped, 24*time.Hour)
+	}
+	
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authSvc)
 	// Initialize job handler
@@ -126,14 +180,54 @@ func main() {
 	alertHandler := handlers.NewAlertHandler(alertSvc)
 	planHandler := handlers.NewAdminPlanHandler(subscriptionSvc)
 	webHandler := handlers.NewWebHandler()
+	webAuthHandler := handlers.NewWebAuthHandler(authSvc)
 	companyHandler := handlers.NewCompanyHandler(companyService)
 	resumeHandler := handlers.NewResumeHandler(profileSvc)
 	websocketHandler := handlers.NewWebSocketHandler()
 	
-	// Create Fiber app
+	// Create Fiber app with Go html/template engine
+	engine := html.New(cfg.TemplateDir, ".html")
+	engine.Reload(cfg.IsDevelopment())
+	engine.AddFunc("unescape", func(s string) template.HTML {
+		return template.HTML(s)
+	})
+	engine.AddFunc("formatNumber", func(n interface{}) string {
+		var i int64
+		switch v := n.(type) {
+		case int:
+			i = int64(v)
+		case int64:
+			i = v
+		case float64:
+			i = int64(v)
+		default:
+			return fmt.Sprintf("%v", v)
+		}
+		s := strconv.FormatInt(i, 10)
+		if len(s) <= 3 {
+			return s
+		}
+		var result []byte
+		for j, c := range s {
+			if j > 0 && (len(s)-j)%3 == 0 {
+				result = append(result, ',')
+			}
+			result = append(result, byte(c))
+		}
+		return string(result)
+	})
+	engine.AddFunc("iterate", func(count int) []int {
+		r := make([]int, count)
+		for i := 0; i < count; i++ {
+			r[i] = i
+		}
+		return r
+	})
+
 	app := fiber.New(fiber.Config{
 		AppName:               cfg.AppName,
 		Prefork:               cfg.IsProduction(),
+		Views:                 engine,
 		ReadTimeout:           30 * time.Second,
 		WriteTimeout:          30 * time.Second,
 		IdleTimeout:           120 * time.Second,
@@ -145,7 +239,7 @@ func main() {
 	setupMiddleware(app, cfg)
 	
 	// Static files
-	app.Static("/static", "./web/static", fiber.Static{
+	app.Static("/static", cfg.StaticDir, fiber.Static{
 		Compress:      true,
 		ByteRange:     true,
 		Browse:        false,
@@ -214,8 +308,17 @@ func main() {
 	routes.SetupPublicPlanRoutes(api, planHandler)
 	routes.SetupAdminPlanRoutes(api, planHandler)
 	
+	// 2FA routes
+	twoFARepo := repository.NewTwoFARepository(db)
+	smsProviderFactory := services.NewSMSProviderFactory(cfg)
+	smsProvider := smsProviderFactory.GetProvider()
+	twoFAService := services.NewTwoFAService(cfg, twoFARepo, userRepo, smsProvider, emailSvc, redisClient)
+	twoFAHandler := handlers.NewTwoFAHandler(twoFAService)
+	routes.SetupTwoFARoutes(api, twoFAHandler)
+	routes.SetupTwoFAGlobalMiddleware(app, twoFAService)
+	
 	// Web routes (HTML pages)
-	routes.SetupWebRoutes(app, webHandler)
+	routes.SetupWebRoutes(app, webHandler, webAuthHandler, authSvc)
 	
 	// WebSocket routes
 	routes.SetupWebSocketRoutes(app, websocketHandler)
@@ -236,6 +339,16 @@ func main() {
 	
 	// Wait for interrupt signal
 	utils.WaitForShutdown(app)
+	
+	// Cleanup Elasticsearch sync service
+	if syncService != nil {
+		syncService.Stop()
+	}
+	
+	// Close wrapped Redis client
+	if redisWrapped != nil {
+		redisWrapped.Close()
+	}
 }
 
 func initializeDatabase(cfg *config.Config, db *gorm.DB) error {
@@ -277,12 +390,16 @@ func setupMiddleware(app *fiber.App, cfg *config.Config) {
 		EnableStackTrace: cfg.IsDevelopment(),
 	}))
 	
+	allowOrigins := cfg.CORSAllowOrigins
+	if allowOrigins == "" {
+		allowOrigins = "*"
+	}
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     cfg.CORSAllowOrigins,
+		AllowOrigins:     allowOrigins,
 		AllowMethods:     "GET,POST,PUT,DELETE,PATCH,OPTIONS",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, X-Requested-With, X-Client-Type",
 		ExposeHeaders:    "Content-Length, Content-Type",
-		AllowCredentials: true,
+		AllowCredentials: allowOrigins != "*",
 		MaxAge:           86400,
 	}))
 }

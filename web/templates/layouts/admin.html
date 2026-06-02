@@ -1,0 +1,56 @@
+{{template "partials/head" .}}
+<body>
+{{if not .User.Role}}<script>window.location.href='/auth/login'</script>{{else if ne .User.Role "admin"}}<script>window.location.href='/auth/login'</script>{{end}}
+<nav class="navbar" id="navbar">
+    <div class="nav-inner">
+        <a href="/" class="nav-logo">ANGAZ<span>IA</span></a>
+        <div class="nav-actions" style="margin-left:auto">
+            <span class="admin-env-badge">{{.Env}}</span>
+            <span class="admin-health-dot"></span>
+            <div class="nav-avatar-wrap">
+                <div class="nav-avatar" id="avatar-btn">
+                    {{if .Admin.Avatar}}<img src="{{.Admin.Avatar}}" alt="{{.Admin.Name}}">{{else}}<span class="avatar-initials">{{.Admin.Initials}}</span>{{end}}
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+<main class="main-content-wide">
+<div class="admin-layout">
+    <aside class="admin-sidebar">
+        <div class="admin-head">
+            <div class="admin-user">
+                {{if .Admin.Avatar}}<img src="{{.Admin.Avatar}}" alt="{{.Admin.Name}}" class="admin-user-avatar">{{else}}<span class="admin-user-avatar admin-user-avatar-text">{{.Admin.Initials}}</span>{{end}}
+                <div class="admin-user-info"><div class="admin-user-name">{{.Admin.Name}}</div><div class="admin-user-role">Administrator</div></div>
+            </div>
+        </div>
+        <div class="admin-nav-group"><div class="admin-nav-label">Users &amp; Content</div>
+        <nav class="admin-nav">
+            <a href="/admin/users" class="admin-link {{if eq .ActivePage "users"}}active{{end}}"><span>&#x1F465;</span><span>Users</span>{{if .PendingUsers}}<span class="admin-badge warn">{{.PendingUsers}}</span>{{end}}</a>
+            <a href="/admin/companies" class="admin-link {{if eq .ActivePage "companies"}}active{{end}}"><span>&#x1F3E2;</span><span>Companies</span>{{if .PendingVerifications}}<span class="admin-badge warn">{{.PendingVerifications}}</span>{{end}}</a>
+            <a href="/admin/jobs" class="admin-link {{if eq .ActivePage "jobs"}}active{{end}}"><span>&#x1F4BC;</span><span>Jobs</span>{{if .PendingJobs}}<span class="admin-badge warn">{{.PendingJobs}}</span>{{end}}</a>
+        </nav></div>
+        <div class="admin-nav-group"><div class="admin-nav-label">Moderation</div>
+        <nav class="admin-nav">
+            <a href="/admin/reports" class="admin-link {{if eq .ActivePage "reports"}}active{{end}}"><span>&#x1F6A9;</span><span>Reports</span>{{if .PendingReports}}<span class="admin-badge danger">{{.PendingReports}}</span>{{end}}</a>
+            <a href="/admin/audit" class="admin-link {{if eq .ActivePage "audit"}}active{{end}}"><span>&#x1F50D;</span><span>Audit Logs</span></a>
+        </nav></div>
+        <div class="admin-nav-group"><div class="admin-nav-label">System</div>
+        <nav class="admin-nav">
+            <a href="/admin/dashboard" class="admin-link {{if eq .ActivePage "dashboard"}}active{{end}}"><span>&#x1F4CA;</span><span>Overview</span></a>
+            <a href="/admin/analytics" class="admin-link {{if eq .ActivePage "analytics"}}active{{end}}"><span>&#x1F4C8;</span><span>Analytics</span></a>
+            <a href="/admin/subscriptions" class="admin-link {{if eq .ActivePage "subscriptions"}}active{{end}}"><span>&#x1F4B3;</span><span>Subscriptions</span></a>
+            <a href="/admin/settings" class="admin-link {{if eq .ActivePage "settings"}}active{{end}}"><span>&#x2699;&#xFE0F;</span><span>Settings</span></a>
+        </nav></div>
+        <div class="admin-footer-links"><a href="/" class="admin-link">&larr; Back to Site</a></div>
+    </aside>
+    <main class="admin-main">{{embed}}</main>
+</div>
+</main>
+<script>
+document.addEventListener('DOMContentLoaded',function(){initNavbar();});
+function initNavbar(){var n=document.getElementById('navbar');if(n){window.addEventListener('scroll',function(){if(window.scrollY>50)n.classList.add('scrolled');else n.classList.remove('scrolled');});}}
+</script>
+{{if .Scripts}}<script>{{.Scripts}}</script>{{end}}
+</body>
+</html>

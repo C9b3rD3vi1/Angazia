@@ -1,0 +1,14 @@
+.git
+.gitignore
+.env
+.env.*
+*.md
+data/
+tmp/
+node_modules/
+dist/
+build/
+.cache/
+.idea/
+.vscode/
+*.log

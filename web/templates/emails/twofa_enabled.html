@@ -1,0 +1,21 @@
+{{define "twofa_enabled"}}
+<h2>Two-Factor Authentication Enabled</h2>
+
+<p>Dear {{.Name}},</p>
+
+<p>Two-factor authentication (2FA) has been successfully enabled on your {{.AppName}} account.</p>
+
+<div class="success-box">
+    <p><strong>✅ Your account is now more secure.</strong></p>
+    <p>From now on, you'll need to provide a verification code from your authenticator app when signing in.</p>
+</div>
+
+<div class="info-box">
+    <p><strong>📱 Don't have backup codes?</strong></p>
+    <p>Make sure you've saved your backup codes. You can generate new ones from your account security settings.</p>
+</div>
+
+<hr>
+
+<p class="text-muted">If you didn't enable 2FA, please secure your account immediately and contact support.</p>
+{{end}}

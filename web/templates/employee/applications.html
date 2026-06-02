@@ -1,0 +1,202 @@
+{{/* Employee Applications Page */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">My Applications</h1>
+      <p class="emp-page-sub">Track the status of every job you've applied to</p>
+    </div>
+  </div>
+
+  <div class="emp-tabs">
+    <button class="emp-tab active">All <span class="emp-tab-count">{{.TotalApplications}}</span></button>
+    <button class="emp-tab">Pending <span class="emp-tab-count">{{.PendingCount}}</span></button>
+    <button class="emp-tab">Reviewed <span class="emp-tab-count">{{.ReviewedCount}}</span></button>
+    <button class="emp-tab">Interview <span class="emp-tab-count">{{.InterviewCount}}</span></button>
+    <button class="emp-tab">Offers <span class="emp-tab-count">{{.OfferCount}}</span></button>
+    <button class="emp-tab emp-tab-muted">Rejected <span class="emp-tab-count">{{.RejectedCount}}</span></button>
+  </div>
+
+  <div class="emp-app-list">
+    {{if .Applications}}
+    {{range .Applications}}
+    <div class="emp-app-card">
+      <div class="emp-app-head">
+        <div class="emp-app-brand">
+          {{if .CompanyLogo}}
+          <img src="{{.CompanyLogo}}" alt="{{.Company}}" class="emp-app-logo">
+          {{else}}
+          <span class="emp-app-logo-init">{{.CompanyInitials}}</span>
+          {{end}}
+          <div>
+            <h3 class="emp-app-title">{{.Title}}</h3>
+            <p class="emp-app-company">{{.Company}}</p>
+          </div>
+        </div>
+        <span class="emp-badge emp-badge-{{.Status}}">{{.Status}}</span>
+      </div>
+      <div class="emp-app-meta">
+        <span>&#x1F4C5; Applied {{.AppliedDate}}</span>
+        <span>&#x1F4CD; {{.Location}}</span>
+        <span>&#x1F4BC; {{.Type}}</span>
+      </div>
+      {{if .NextStep}}
+      <div class="emp-app-next">
+        <span class="emp-app-next-icon">&#x1F4CC;</span>
+        <span>Next step: <strong>{{.NextStep}}</strong></span>
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+    {{else}}
+    <div class="emp-empty">
+      <div class="emp-empty-icon">&#x1F4CB;</div>
+      <p class="emp-empty-text">You haven't applied to any jobs yet. Start exploring opportunities!</p>
+      <a href="/employee/jobs" class="emp-btn emp-btn-primary">Browse Jobs &rarr;</a>
+    </div>
+    {{end}}
+  </div>
+</div>
+
+<style>
+.emp-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.emp-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.emp-tab:hover { border-color: var(--accent); color: var(--text); }
+.emp-tab.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+.emp-tab.active .emp-tab-count { background: rgba(255,255,255,0.2); color: var(--bg); }
+.emp-tab-muted:hover { border-color: var(--border); color: var(--muted); cursor: default; }
+.emp-tab-count {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--s2);
+  color: var(--muted2);
+  min-width: 18px;
+  text-align: center;
+  line-height: 16px;
+}
+
+.emp-app-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.emp-app-card {
+  padding: 18px 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.15s;
+}
+.emp-app-card:hover { border-color: rgba(0,229,160,0.2); }
+.emp-app-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.emp-app-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.emp-app-logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.emp-app-logo-init {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fh);
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.emp-app-title {
+  font-family: var(--fh);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.emp-app-company {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.emp-badge {
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: var(--radius);
+  letter-spacing: 0.3px;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+.emp-badge-pending { background: rgba(245,166,35,0.1); color: var(--warn); border: 1px solid rgba(245,166,35,0.2); }
+.emp-badge-reviewed { background: rgba(59,130,246,0.1); color: #3b82f6; border: 1px solid rgba(59,130,246,0.2); }
+.emp-badge-interview { background: rgba(0,229,160,0.1); color: var(--accent); border: 1px solid rgba(0,229,160,0.2); }
+.emp-badge-offer { background: rgba(0,229,160,0.12); color: var(--accent); border: 1px solid rgba(0,229,160,0.25); }
+.emp-badge-rejected { background: rgba(255,79,79,0.08); color: var(--danger); border: 1px solid rgba(255,79,79,0.15); }
+.emp-badge-withdrawn { background: rgba(128,128,128,0.08); color: var(--muted); border: 1px solid rgba(128,128,128,0.15); }
+
+.emp-app-meta {
+  display: flex;
+  gap: 18px;
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--muted2);
+  letter-spacing: 0.2px;
+  flex-wrap: wrap;
+}
+.emp-app-next {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--muted);
+}
+.emp-app-next strong { color: var(--text); font-weight: 500; }
+.emp-app-next-icon { font-size: 13px; }
+</style>

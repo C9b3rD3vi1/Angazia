@@ -1,0 +1,22 @@
+{{define "twofa_code"}}
+<h2>Your Two-Factor Authentication Code</h2>
+
+<p>Dear {{.Name}},</p>
+
+<p>Your verification code for {{.AppName}} is:</p>
+
+<div class="success-box" style="text-align: center; font-size: 32px; letter-spacing: 5px;">
+    <strong>{{.Code}}</strong>
+</div>
+
+<p>This code will expire in <strong>5 minutes</strong>.</p>
+
+<div class="warning-box">
+    <strong>⚠️ Didn't request this?</strong>
+    <p>If you didn't request this code, please ignore this email. Your account is secure.</p>
+</div>
+
+<hr>
+
+<p class="text-muted">Never share this code with anyone, including {{.AppName}} support.</p>
+{{end}}
