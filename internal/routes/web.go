@@ -67,6 +67,8 @@ func SetupWebRoutes(
 	employer.Get("/company-edit", webHandler.EmployerCompanyEditPage)
 	employer.Get("/matches", webHandler.EmployerMatchesPage)
 	employer.Get("/job-post", webHandler.EmployerJobPostPage)
+	employer.Post("/job-post", webHandler.EmployerJobPostSubmit)
+	employer.Post("/company-edit", webHandler.EmployerCompanyEditSubmit)
 	employer.Get("/billing", webHandler.EmployerBillingPage)
 
 	// Admin pages

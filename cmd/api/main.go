@@ -179,7 +179,7 @@ func main() {
 	notificationHandler := handlers.NewNotificationHandler(notificationSvc)
 	alertHandler := handlers.NewAlertHandler(alertSvc)
 	planHandler := handlers.NewAdminPlanHandler(subscriptionSvc)
-	webHandler := handlers.NewWebHandler()
+	webHandler := handlers.NewWebHandler(jobSvc, companyService)
 	webAuthHandler := handlers.NewWebAuthHandler(authSvc)
 	companyHandler := handlers.NewCompanyHandler(companyService)
 	resumeHandler := handlers.NewResumeHandler(profileSvc)
