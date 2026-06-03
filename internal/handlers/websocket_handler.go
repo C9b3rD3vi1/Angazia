@@ -8,7 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
-	
+
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 )
@@ -40,16 +40,12 @@ func (h *WebSocketHandler) UpgradeWebSocket(c *fiber.Ctx) error {
 	}
 
 	if token == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "missing_token",
-		})
+		return utils.Unauthorized(c, "Missing token")
 	}
 
 	claims, err := utils.ValidateJWT(token)
 	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "invalid_token",
-		})
+		return utils.Unauthorized(c, "Invalid token")
 	}
 
 	err = upgrader.Upgrade(c.Context(), func(conn *websocket.Conn) {
@@ -70,9 +66,7 @@ func (h *WebSocketHandler) UpgradeWebSocket(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		log.Printf("WebSocket upgrade failed: %v", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "websocket_upgrade_failed",
-		})
+		return utils.InternalServerError(c, "WebSocket upgrade failed")
 	}
 
 	return nil

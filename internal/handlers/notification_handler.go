@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
 
@@ -23,11 +24,7 @@ func NewNotificationHandler(notificationService services.NotificationService) *N
 func (h *NotificationHandler) GetNotifications(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -35,362 +32,205 @@ func (h *NotificationHandler) GetNotifications(c *fiber.Ctx) error {
 	
 	notifications, err := h.notificationService.GetNotifications(c.Context(), userID.(string), page, limit)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "fetch_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    notifications,
-	})
+	return utils.Success(c, notifications)
 }
 
 // GetUnreadNotifications returns unread notifications
 func (h *NotificationHandler) GetUnreadNotifications(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	limit, _ := strconv.Atoi(c.Query("limit", "50"))
 	
 	notifications, err := h.notificationService.GetUnreadNotifications(c.Context(), userID.(string), limit)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "fetch_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    notifications,
-	})
+	return utils.Success(c, notifications)
 }
 
 // GetNotificationCounts returns unread notification counts
 func (h *NotificationHandler) GetNotificationCounts(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	counts, err := h.notificationService.GetUnreadCount(c.Context(), userID.(string))
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "fetch_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    counts,
-	})
+	return utils.Success(c, counts)
 }
 
 // GetNotification returns a single notification
 func (h *NotificationHandler) GetNotification(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	id := c.Params("id")
 	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "missing_id",
-			Message: "Notification ID is required",
-		})
+		return utils.BadRequest(c, "Notification ID is required")
 	}
 	
 	notification, err := h.notificationService.GetNotification(c.Context(), id, userID.(string))
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(APIResponse{
-			Success: false,
-			Error:   "not_found",
-			Message: err.Error(),
-		})
+		return utils.NotFound(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    notification,
-	})
+	return utils.Success(c, notification)
 }
 
 // MarkAsRead marks a notification as read
 func (h *NotificationHandler) MarkAsRead(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	id := c.Params("id")
 	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "missing_id",
-			Message: "Notification ID is required",
-		})
+		return utils.BadRequest(c, "Notification ID is required")
 	}
 	
 	if err := h.notificationService.MarkAsRead(c.Context(), id, userID.(string)); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "mark_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Notification marked as read",
-	})
+	return utils.SuccessWithMessage(c, "Notification marked as read", nil)
 }
 
 // MarkAllAsRead marks all notifications as read
 func (h *NotificationHandler) MarkAllAsRead(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	if err := h.notificationService.MarkAllAsRead(c.Context(), userID.(string)); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "mark_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "All notifications marked as read",
-	})
+	return utils.SuccessWithMessage(c, "All notifications marked as read", nil)
 }
 
 // MarkMultipleAsRead marks multiple notifications as read
 func (h *NotificationHandler) MarkMultipleAsRead(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	var req models.MarkReadRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "invalid_request",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
 	if req.MarkAll {
 		if err := h.notificationService.MarkAllAsRead(c.Context(), userID.(string)); err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-				Success: false,
-				Error:   "mark_failed",
-				Message: err.Error(),
-			})
+			return utils.InternalServerError(c, err.Error())
 		}
 	} else if len(req.NotificationIDs) > 0 {
 		if err := h.notificationService.MarkMultipleAsRead(c.Context(), req.NotificationIDs, userID.(string)); err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-				Success: false,
-				Error:   "mark_failed",
-				Message: err.Error(),
-			})
+			return utils.InternalServerError(c, err.Error())
 		}
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Notifications marked as read",
-	})
+	return utils.SuccessWithMessage(c, "Notifications marked as read", nil)
 }
 
 // Archive archives a notification
 func (h *NotificationHandler) Archive(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	id := c.Params("id")
 	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "missing_id",
-			Message: "Notification ID is required",
-		})
+		return utils.BadRequest(c, "Notification ID is required")
 	}
 	
 	if err := h.notificationService.Archive(c.Context(), id, userID.(string)); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "archive_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Notification archived",
-	})
+	return utils.SuccessWithMessage(c, "Notification archived", nil)
 }
 
 // Delete deletes a notification
 func (h *NotificationHandler) Delete(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	id := c.Params("id")
 	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "missing_id",
-			Message: "Notification ID is required",
-		})
+		return utils.BadRequest(c, "Notification ID is required")
 	}
 	
 	if err := h.notificationService.Delete(c.Context(), id, userID.(string)); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "delete_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Notification deleted",
-	})
+	return utils.SuccessWithMessage(c, "Notification deleted", nil)
 }
 
 // DeleteAll deletes all notifications
 func (h *NotificationHandler) DeleteAll(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	if err := h.notificationService.DeleteAll(c.Context(), userID.(string)); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "delete_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "All notifications deleted",
-	})
+	return utils.SuccessWithMessage(c, "All notifications deleted", nil)
 }
 
 // GetPreferences returns notification preferences
 func (h *NotificationHandler) GetPreferences(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	prefs, err := h.notificationService.GetPreferences(c.Context(), userID.(string))
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "fetch_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    prefs,
-	})
+	return utils.Success(c, prefs)
 }
 
 // UpdatePreferences updates notification preferences
 func (h *NotificationHandler) UpdatePreferences(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	var req services.UpdatePreferencesRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "invalid_request",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
 	prefs, err := h.notificationService.UpdatePreferences(c.Context(), userID.(string), &req)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "update_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Preferences updated successfully",
-		Data:    prefs,
-	})
+	return utils.SuccessWithMessage(c, "Preferences updated successfully", prefs)
 }

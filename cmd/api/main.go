@@ -405,7 +405,7 @@ func setupMiddleware(app *fiber.App, cfg *config.Config) {
 
 func setupHealthEndpoints(app *fiber.App, cfg *config.Config, db *gorm.DB) {
 	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
+		return utils.Success(c, fiber.Map{
 			"status":      "healthy",
 			"timestamp":   time.Now().Unix(),
 			"environment": cfg.Environment,
@@ -416,13 +416,10 @@ func setupHealthEndpoints(app *fiber.App, cfg *config.Config, db *gorm.DB) {
 	app.Get("/ready", func(c *fiber.Ctx) error {
 		sqlDB, err := db.DB()
 		if err != nil || sqlDB.Ping() != nil {
-			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
-				"status": "not ready",
-				"reason": "database connection failed",
-			})
+			return utils.Error(c, fiber.StatusServiceUnavailable, "database connection failed")
 		}
 		
-		return c.JSON(fiber.Map{
+		return utils.Success(c, fiber.Map{
 			"status": "ready",
 		})
 	})

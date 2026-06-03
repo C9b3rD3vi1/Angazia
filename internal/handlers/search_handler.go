@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
 
@@ -44,11 +45,7 @@ func (h *SearchHandler) SearchJobs(c *fiber.Ctx) error {
 	
 	results, err := h.searchService.SearchJobs(c.Context(), filters, page, limit)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "search_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
 	// Log search if user is authenticated
@@ -56,21 +53,14 @@ func (h *SearchHandler) SearchJobs(c *fiber.Ctx) error {
 		go h.searchService.SaveSearchHistory(c.Context(), userID.(string), filters.Keywords, filters, "job", int(results.Total), c.IP(), c.Get("User-Agent"))
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    results,
-	})
+	return utils.Success(c, results)
 }
 
 // SearchCandidates searches for candidates (employers only)
 func (h *SearchHandler) SearchCandidates(c *fiber.Ctx) error {
 	userRole := c.Locals("user_role")
 	if userRole != "employer" && userRole != "admin" {
-		return c.Status(fiber.StatusForbidden).JSON(APIResponse{
-			Success: false,
-			Error:   "forbidden",
-			Message: "Only employers can search for candidates",
-		})
+		return utils.Forbidden(c, "Only employers can search for candidates")
 	}
 	
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -80,17 +70,10 @@ func (h *SearchHandler) SearchCandidates(c *fiber.Ctx) error {
 	
 	results, err := h.searchService.SearchCandidates(c.Context(), filters, page, limit)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "search_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    results,
-	})
+	return utils.Success(c, results)
 }
 
 // SearchCompanies searches for companies
@@ -102,17 +85,10 @@ func (h *SearchHandler) SearchCompanies(c *fiber.Ctx) error {
 	
 	results, err := h.searchService.SearchCompanies(c.Context(), filters, page, limit)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "search_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    results,
-	})
+	return utils.Success(c, results)
 }
 
 // GetJobFacets returns job search facets
@@ -121,45 +97,27 @@ func (h *SearchHandler) GetJobFacets(c *fiber.Ctx) error {
 	
 	facets, err := h.searchService.GetJobFacets(c.Context(), filters)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "fetch_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    facets,
-	})
+	return utils.Success(c, facets)
 }
 
 // GetSearchHistory returns user's search history
 func (h *SearchHandler) GetSearchHistory(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	limit, _ := strconv.Atoi(c.Query("limit", "10"))
 	
 	history, err := h.searchService.GetSearchHistory(c.Context(), userID.(string), limit)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "fetch_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    history,
-	})
+	return utils.Success(c, history)
 }
 
 // GetPopularSearches returns popular searches
@@ -169,28 +127,17 @@ func (h *SearchHandler) GetPopularSearches(c *fiber.Ctx) error {
 	
 	popular, err := h.searchService.GetPopularSearches(c.Context(), days, limit)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "fetch_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    popular,
-	})
+	return utils.Success(c, popular)
 }
 
 // SaveSearch saves a search
 func (h *SearchHandler) SaveSearch(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	var req struct {
@@ -201,135 +148,78 @@ func (h *SearchHandler) SaveSearch(c *fiber.Ctx) error {
 	}
 	
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "invalid_request",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
 	saved, err := h.searchService.SaveSearch(c.Context(), userID.(string), req.Name, req.Filters, req.EntityType, req.Frequency)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "save_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusCreated).JSON(APIResponse{
-		Success: true,
-		Message: "Search saved successfully",
-		Data:    saved,
-	})
+	return utils.SuccessCreated(c, "Search saved successfully", saved)
 }
 
 // GetSavedSearches returns user's saved searches
 func (h *SearchHandler) GetSavedSearches(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	entityType := c.Query("entity_type", "")
 	
 	searches, err := h.searchService.GetSavedSearches(c.Context(), userID.(string), entityType)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "fetch_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    searches,
-	})
+	return utils.Success(c, searches)
 }
 
 // DeleteSavedSearch deletes a saved search
 func (h *SearchHandler) DeleteSavedSearch(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	id := c.Params("id")
 	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "missing_id",
-			Message: "Search ID is required",
-		})
+		return utils.BadRequest(c, "Search ID is required")
 	}
 	
 	if err := h.searchService.DeleteSavedSearch(c.Context(), id, userID.(string)); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "delete_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Saved search deleted",
-	})
+	return utils.SuccessWithMessage(c, "Saved search deleted", nil)
 }
 
 // RunSavedSearch executes a saved search
 func (h *SearchHandler) RunSavedSearch(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	id := c.Params("id")
 	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "missing_id",
-			Message: "Search ID is required",
-		})
+		return utils.BadRequest(c, "Search ID is required")
 	}
 	
 	results, err := h.searchService.RunSavedSearch(c.Context(), id, userID.(string))
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "search_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    results,
-	})
+	return utils.Success(c, results)
 }
 
 // AutoComplete returns auto-complete suggestions
 func (h *SearchHandler) AutoComplete(c *fiber.Ctx) error {
 	prefix := c.Query("q", "")
 	if prefix == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "missing_query",
-			Message: "Search query is required",
-		})
+		return utils.BadRequest(c, "Search query is required")
 	}
 	
 	entityType := c.Query("type", "job")
@@ -337,17 +227,10 @@ func (h *SearchHandler) AutoComplete(c *fiber.Ctx) error {
 	
 	suggestions, err := h.searchService.AutoComplete(c.Context(), prefix, entityType, limit)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "suggest_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    suggestions,
-	})
+	return utils.Success(c, suggestions)
 }
 
 // parseSearchFilters parses query parameters into SearchFilters

@@ -3,9 +3,10 @@ package middleware
 import (
 	"crypto/rand"
 	"encoding/hex"
-	
+
 	"github.com/gofiber/fiber/v2"
-	
+
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
 
@@ -28,19 +29,13 @@ func TwoFAMiddleware(twoFAService services.TwoFAService) fiber.Handler {
 
 		twoFACode := c.Get("X-2FA-Code")
 		if twoFACode == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error":   "twofa_required",
-				"message": "2FA verification required",
-			})
+			return utils.Unauthorized(c, "2FA verification required")
 		}
 
 		deviceID := generateDeviceID()
 		valid, err := twoFAService.VerifyCode(c.Context(), userID.(string), twoFACode, deviceID)
 		if err != nil || !valid {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error":   "invalid_2fa_code",
-				"message": "Invalid 2FA verification code",
-			})
+			return utils.Unauthorized(c, "Invalid 2FA verification code")
 		}
 
 		c.Cookie(&fiber.Cookie{

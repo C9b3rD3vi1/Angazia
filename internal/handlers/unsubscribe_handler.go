@@ -3,9 +3,10 @@ package handlers
 import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
-	
+
 	"github.com/C9b3rD3vi1/Angazia/internal/repository"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 )
 
 type UnsubscribeHandler struct {
@@ -24,51 +25,37 @@ func NewUnsubscribeHandler(unsubscribeRepo repository.UnsubscribeRepository, ema
 func (h *UnsubscribeHandler) Unsubscribe(c *fiber.Ctx) error {
 	token := c.Query("token")
 	if token == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":   "missing_token",
-			"message": "Unsubscribe token is required",
-		})
+		return utils.BadRequest(c, "Unsubscribe token is required")
 	}
-	
+
 	// Validate token
 	unsubscribeToken, err := h.unsubscribeRepo.GetToken(c.Context(), token)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error":   "invalid_token",
-			"message": "Invalid or expired unsubscribe token",
-		})
+		return utils.NotFound(c, "Token")
 	}
-	
+
 	// Deactivate token
 	if err := h.unsubscribeRepo.DeactivateToken(c.Context(), token); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error":   "unsubscribe_failed",
-			"message": "Failed to unsubscribe. Please try again later.",
-		})
+		return utils.InternalServerError(c, "Failed to unsubscribe. Please try again later.")
 	}
-	
+
 	// Also unsubscribe from all email types for this user
 	if err := h.unsubscribeRepo.UnsubscribeAll(c.Context(), unsubscribeToken.Email); err != nil {
 		// Log error but don't fail
 		fmt.Printf("Failed to unsubscribe all for %s: %v\n", unsubscribeToken.Email, err)
 	}
-	
+
 	// Return success page
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"success": true,
-		"message": "Successfully unsubscribed from email notifications",
-	})
+	return utils.SuccessWithMessage(c, "Successfully unsubscribed from email notifications", nil)
 }
 
 // UpdatePreferences updates user email preferences
 func (h *UnsubscribeHandler) UpdatePreferences(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	if userID == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "unauthorized",
-		})
+		return utils.Unauthorized(c, "")
 	}
-	
+
 	var req struct {
 		JobAlerts          *bool   `json:"job_alerts"`
 		ApplicationUpdates *bool   `json:"application_updates"`
@@ -77,13 +64,11 @@ func (h *UnsubscribeHandler) UpdatePreferences(c *fiber.Ctx) error {
 		Newsletter         *bool   `json:"newsletter"`
 		DigestFrequency    string  `json:"digest_frequency"`
 	}
-	
+
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid_request",
-		})
+		return utils.BadRequest(c, "Invalid request")
 	}
-	
+
 	updates := make(map[string]interface{})
 	if req.JobAlerts != nil {
 		updates["job_alerts"] = *req.JobAlerts
@@ -103,37 +88,27 @@ func (h *UnsubscribeHandler) UpdatePreferences(c *fiber.Ctx) error {
 	if req.DigestFrequency != "" {
 		updates["digest_frequency"] = req.DigestFrequency
 	}
-	
+
 	if err := h.unsubscribeRepo.UpdatePreferences(c.Context(), userID, updates); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "update_failed",
-		})
+		return utils.InternalServerError(c, "Failed to update preferences")
 	}
-	
-	return c.JSON(fiber.Map{
-		"success": true,
-		"message": "Email preferences updated successfully",
-	})
+
+	return utils.SuccessWithMessage(c, "Email preferences updated successfully", nil)
 }
 
 // GetPreferences returns user email preferences
 func (h *UnsubscribeHandler) GetPreferences(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	if userID == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "unauthorized",
-		})
+		return utils.Unauthorized(c, "")
 	}
-	
+
 	prefs, err := h.unsubscribeRepo.GetPreferences(c.Context(), userID)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "not_found",
-		})
+		return utils.NotFound(c, "Preferences")
 	}
-	
-	return c.JSON(fiber.Map{
-		"success":    true,
+
+	return utils.Success(c, fiber.Map{
 		"preferences": prefs,
 	})
 }

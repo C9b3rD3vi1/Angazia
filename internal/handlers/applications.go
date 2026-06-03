@@ -7,6 +7,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
 
@@ -50,28 +51,16 @@ func NewApplicationHandler(applicationService services.ApplicationService) *Appl
 func (h *ApplicationHandler) Apply(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	var req ApplyRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "invalid_request",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
 	if err := h.validator.Struct(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "validation_failed",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
 	application, err := h.applicationService.Apply(c.Context(), userID.(string), &services.ApplyRequest{
@@ -87,18 +76,10 @@ func (h *ApplicationHandler) Apply(c *fiber.Ctx) error {
 		} else if err.Error() == "you have already applied for this job" {
 			status = fiber.StatusConflict
 		}
-		return c.Status(status).JSON(APIResponse{
-			Success: false,
-			Error:   "application_failed",
-			Message: err.Error(),
-		})
+		return utils.Error(c, status, err.Error())
 	}
 	
-	return c.Status(fiber.StatusCreated).JSON(APIResponse{
-		Success: true,
-		Message: "Application submitted successfully",
-		Data:    application,
-	})
+	return utils.SuccessCreated(c, "Application submitted successfully", application)
 }
 
 // WithdrawApplication withdraws an application
@@ -114,20 +95,12 @@ func (h *ApplicationHandler) Apply(c *fiber.Ctx) error {
 func (h *ApplicationHandler) WithdrawApplication(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	applicationID := c.Params("id")
 	if applicationID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "missing_id",
-			Message: "Application ID is required",
-		})
+		return utils.BadRequest(c, "Application ID is required")
 	}
 	
 	if err := h.applicationService.WithdrawApplication(c.Context(), applicationID, userID.(string)); err != nil {
@@ -135,17 +108,10 @@ func (h *ApplicationHandler) WithdrawApplication(c *fiber.Ctx) error {
 		if err.Error() == "application not found" {
 			status = fiber.StatusNotFound
 		}
-		return c.Status(status).JSON(APIResponse{
-			Success: false,
-			Error:   "withdrawal_failed",
-			Message: err.Error(),
-		})
+		return utils.Error(c, status, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Application withdrawn successfully",
-	})
+	return utils.SuccessWithMessage(c, "Application withdrawn successfully", nil)
 }
 
 // GetApplication retrieves application details
@@ -161,21 +127,13 @@ func (h *ApplicationHandler) WithdrawApplication(c *fiber.Ctx) error {
 func (h *ApplicationHandler) GetApplication(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	role := c.Locals("user_role").(string)
 	
 	applicationID := c.Params("id")
 	if applicationID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "missing_id",
-			Message: "Application ID is required",
-		})
+		return utils.BadRequest(c, "Application ID is required")
 	}
 	
 	application, err := h.applicationService.GetApplication(c.Context(), applicationID, userID.(string), role)
@@ -186,17 +144,10 @@ func (h *ApplicationHandler) GetApplication(c *fiber.Ctx) error {
 		} else if err.Error() == "unauthorized" {
 			status = fiber.StatusForbidden
 		}
-		return c.Status(status).JSON(APIResponse{
-			Success: false,
-			Error:   "fetch_failed",
-			Message: err.Error(),
-		})
+		return utils.Error(c, status, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    application,
-	})
+	return utils.Success(c, application)
 }
 
 // ListMyApplications lists applications for the authenticated candidate
@@ -211,11 +162,7 @@ func (h *ApplicationHandler) GetApplication(c *fiber.Ctx) error {
 func (h *ApplicationHandler) ListMyApplications(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -223,17 +170,10 @@ func (h *ApplicationHandler) ListMyApplications(c *fiber.Ctx) error {
 	
 	result, err := h.applicationService.ListMyApplications(c.Context(), userID.(string), page, limit)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "list_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    result,
-	})
+	return utils.Success(c, result)
 }
 
 // ListJobApplications lists applications for a specific job (employer only)
@@ -250,20 +190,12 @@ func (h *ApplicationHandler) ListMyApplications(c *fiber.Ctx) error {
 func (h *ApplicationHandler) ListJobApplications(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	jobID := c.Params("jobId")
 	if jobID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "missing_job_id",
-			Message: "Job ID is required",
-		})
+		return utils.BadRequest(c, "Job ID is required")
 	}
 	
 	status := c.Query("status", "")
@@ -278,17 +210,10 @@ func (h *ApplicationHandler) ListJobApplications(c *fiber.Ctx) error {
 		} else if err.Error() == "unauthorized" {
 			statusCode = fiber.StatusForbidden
 		}
-		return c.Status(statusCode).JSON(APIResponse{
-			Success: false,
-			Error:   "list_failed",
-			Message: err.Error(),
-		})
+		return utils.Error(c, statusCode, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    result,
-	})
+	return utils.Success(c, result)
 }
 
 // ListCompanyApplications lists all applications for the employer's company
@@ -304,11 +229,7 @@ func (h *ApplicationHandler) ListJobApplications(c *fiber.Ctx) error {
 func (h *ApplicationHandler) ListCompanyApplications(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	status := c.Query("status", "")
@@ -317,17 +238,10 @@ func (h *ApplicationHandler) ListCompanyApplications(c *fiber.Ctx) error {
 	
 	result, err := h.applicationService.ListCompanyApplications(c.Context(), userID.(string), status, page, limit)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "list_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    result,
-	})
+	return utils.Success(c, result)
 }
 
 // ShortlistApplication shortlists an application
@@ -342,20 +256,12 @@ func (h *ApplicationHandler) ListCompanyApplications(c *fiber.Ctx) error {
 func (h *ApplicationHandler) ShortlistApplication(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	applicationID := c.Params("id")
 	if applicationID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "missing_id",
-			Message: "Application ID is required",
-		})
+		return utils.BadRequest(c, "Application ID is required")
 	}
 	
 	var req struct {
@@ -370,17 +276,10 @@ func (h *ApplicationHandler) ShortlistApplication(c *fiber.Ctx) error {
 		} else if err.Error() == "unauthorized" {
 			statusCode = fiber.StatusForbidden
 		}
-		return c.Status(statusCode).JSON(APIResponse{
-			Success: false,
-			Error:   "shortlist_failed",
-			Message: err.Error(),
-		})
+		return utils.Error(c, statusCode, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Application shortlisted successfully",
-	})
+	return utils.SuccessWithMessage(c, "Application shortlisted successfully", nil)
 }
 
 // RejectApplication rejects an application
@@ -395,20 +294,12 @@ func (h *ApplicationHandler) ShortlistApplication(c *fiber.Ctx) error {
 func (h *ApplicationHandler) RejectApplication(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	applicationID := c.Params("id")
 	if applicationID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "missing_id",
-			Message: "Application ID is required",
-		})
+		return utils.BadRequest(c, "Application ID is required")
 	}
 	
 	var req struct {
@@ -423,17 +314,10 @@ func (h *ApplicationHandler) RejectApplication(c *fiber.Ctx) error {
 		} else if err.Error() == "unauthorized" {
 			statusCode = fiber.StatusForbidden
 		}
-		return c.Status(statusCode).JSON(APIResponse{
-			Success: false,
-			Error:   "reject_failed",
-			Message: err.Error(),
-		})
+		return utils.Error(c, statusCode, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Application rejected",
-	})
+	return utils.SuccessWithMessage(c, "Application rejected", nil)
 }
 
 // ScheduleInterview schedules an interview
@@ -448,37 +332,21 @@ func (h *ApplicationHandler) RejectApplication(c *fiber.Ctx) error {
 func (h *ApplicationHandler) ScheduleInterview(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	applicationID := c.Params("id")
 	if applicationID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "missing_id",
-			Message: "Application ID is required",
-		})
+		return utils.BadRequest(c, "Application ID is required")
 	}
 	
 	var req ScheduleInterviewRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "invalid_request",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
 	if err := h.validator.Struct(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "validation_failed",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
 	if err := h.applicationService.ScheduleInterview(c.Context(), applicationID, userID.(string), req.InterviewDate, req.InterviewType); err != nil {
@@ -488,17 +356,10 @@ func (h *ApplicationHandler) ScheduleInterview(c *fiber.Ctx) error {
 		} else if err.Error() == "unauthorized" {
 			statusCode = fiber.StatusForbidden
 		}
-		return c.Status(statusCode).JSON(APIResponse{
-			Success: false,
-			Error:   "schedule_failed",
-			Message: err.Error(),
-		})
+		return utils.Error(c, statusCode, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Interview scheduled successfully",
-	})
+	return utils.SuccessWithMessage(c, "Interview scheduled successfully", nil)
 }
 
 // GetApplicationStats returns application statistics
@@ -511,27 +372,16 @@ func (h *ApplicationHandler) ScheduleInterview(c *fiber.Ctx) error {
 func (h *ApplicationHandler) GetApplicationStats(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	role := c.Locals("user_role").(string)
 	
 	stats, err := h.applicationService.GetApplicationStats(c.Context(), userID.(string), role)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "stats_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    stats,
-	})
+	return utils.Success(c, stats)
 }
 
 // BulkShortlist bulk shortlists applications
@@ -545,40 +395,21 @@ func (h *ApplicationHandler) GetApplicationStats(c *fiber.Ctx) error {
 func (h *ApplicationHandler) BulkShortlist(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	var ids []string
 	if err := c.BodyParser(&ids); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "invalid_request",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
 	if len(ids) == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "empty_ids",
-			Message: "No application IDs provided",
-		})
+		return utils.BadRequest(c, "No application IDs provided")
 	}
 	
 	if err := h.applicationService.BulkShortlist(c.Context(), ids, userID.(string)); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "bulk_shortlist_failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Applications shortlisted successfully",
-	})
+	return utils.SuccessWithMessage(c, "Applications shortlisted successfully", nil)
 }

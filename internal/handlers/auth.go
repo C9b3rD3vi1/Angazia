@@ -71,13 +71,6 @@ type UpdateProfileRequest struct {
 	CompanySize        string `json:"company_size"`
 }
 
-type APIResponse struct {
-	Success bool        `json:"success"`
-	Message string      `json:"message,omitempty"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
-}
-
 func NewAuthHandler(authService services.AuthService) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
@@ -92,38 +85,26 @@ func NewAuthHandler(authService services.AuthService) *AuthHandler {
 // @Accept json
 // @Produce json
 // @Param request body RegisterRequest true "Registration details"
-// @Success 201 {object} APIResponse
-// @Failure 400 {object} APIResponse
-// @Failure 409 {object} APIResponse
+// @Success 201 {object} utils.APIResponse
+// @Failure 400 {object} utils.APIResponse
+// @Failure 409 {object} utils.APIResponse
 // @Router /auth/register [post]
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	var req RegisterRequest
 	
-	// Parse request body
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Invalid request body",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
-	// Validate request
 	if err := h.validator.Struct(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Validation failed",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
-	// Get client IP
 	ipAddress := c.IP()
 	if forwarded := c.Get("X-Forwarded-For"); forwarded != "" {
 		ipAddress = strings.Split(forwarded, ",")[0]
 	}
 	
-	// Register user
 	authReq := &services.RegisterRequest{
 		Email:     req.Email,
 		Password:  req.Password,
@@ -134,28 +115,18 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	
 	response, err := h.authService.Register(c.Context(), authReq)
 	if err != nil {
-		status := fiber.StatusInternalServerError
 		message := err.Error()
 		
-		// Handle specific errors
 		if strings.Contains(err.Error(), "already exists") {
-			status = fiber.StatusConflict
+			return utils.Conflict(c, message)
 		} else if strings.Contains(err.Error(), "invalid") {
-			status = fiber.StatusBadRequest
+			return utils.BadRequest(c, message)
 		}
 		
-		return c.Status(status).JSON(APIResponse{
-			Success: false,
-			Error:   "Registration failed",
-			Message: message,
-		})
+		return utils.InternalServerError(c, message)
 	}
 	
-	return c.Status(fiber.StatusCreated).JSON(APIResponse{
-		Success: true,
-		Message: "User registered successfully. Please check your email for verification.",
-		Data:    response,
-	})
+	return utils.SuccessCreated(c, "User registered successfully. Please check your email for verification.", response)
 }
 
 // Login handles user authentication
@@ -165,56 +136,38 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param request body LoginRequest true "Login credentials"
-// @Success 200 {object} APIResponse
-// @Failure 400 {object} APIResponse
-// @Failure 401 {object} APIResponse
+// @Success 200 {object} utils.APIResponse
+// @Failure 400 {object} utils.APIResponse
+// @Failure 401 {object} utils.APIResponse
 // @Router /auth/login [post]
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	var req LoginRequest
 	
-	// Parse request body
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Invalid request body",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
-	// Validate request
 	if err := h.validator.Struct(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Validation failed",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
-	// Get client info
 	ipAddress := c.IP()
 	if forwarded := c.Get("X-Forwarded-For"); forwarded != "" {
 		ipAddress = strings.Split(forwarded, ",")[0]
 	}
 	userAgent := c.Get("User-Agent")
 	
-	// Login user
 	response, err := h.authService.Login(c.Context(), req.Email, req.Password, ipAddress, userAgent)
 	if err != nil {
-		status := fiber.StatusUnauthorized
 		message := err.Error()
 		
 		if strings.Contains(err.Error(), "verification") {
-			status = fiber.StatusForbidden
+			return utils.Forbidden(c, message)
 		}
 		
-		return c.Status(status).JSON(APIResponse{
-			Success: false,
-			Error:   "Authentication failed",
-			Message: message,
-		})
+		return utils.Unauthorized(c, message)
 	}
 	
-	// Set HTTP-only cookies for web client compatibility (WebAuthMiddleware reads access_token from cookie)
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
 		Value:    response.AccessToken,
@@ -222,7 +175,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		Secure:   !utils.IsDevelopment(),
 		SameSite: "Strict",
 		Path:     "/",
-		MaxAge:   24 * 3600, // 24 hours
+		MaxAge:   24 * 3600,
 	})
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
@@ -231,14 +184,10 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		Secure:   !utils.IsDevelopment(),
 		SameSite: "Strict",
 		Path:     "/api/v1/auth/refresh",
-		MaxAge:   7 * 24 * 3600, // 7 days
+		MaxAge:   7 * 24 * 3600,
 	})
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Login successful",
-		Data:    response,
-	})
+	return utils.SuccessWithMessage(c, "Login successful", response)
 }
 
 // Logout handles user logout
@@ -246,20 +195,15 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 // @Description Invalidate user tokens
 // @Tags Auth
 // @Security BearerAuth
-// @Success 200 {object} APIResponse
-// @Failure 401 {object} APIResponse
+// @Success 200 {object} utils.APIResponse
+// @Failure 401 {object} utils.APIResponse
 // @Router /auth/logout [post]
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "Unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
-	// Get token from Authorization header
 	authHeader := c.Get("Authorization")
 	token := ""
 	if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
@@ -267,21 +211,13 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	}
 	
 	if err := h.authService.Logout(c.Context(), userID.(string), token); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
-			Success: false,
-			Error:   "Logout failed",
-			Message: err.Error(),
-		})
+		return utils.InternalServerError(c, err.Error())
 	}
 	
-	// Clear auth cookies with correct paths
 	c.Cookie(&fiber.Cookie{Name: "access_token", Value: "", Path: "/", MaxAge: -1})
 	c.Cookie(&fiber.Cookie{Name: "refresh_token", Value: "", Path: "/api/v1/auth/refresh", MaxAge: -1})
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Logout successful",
-	})
+	return utils.SuccessWithMessage(c, "Logout successful", nil)
 }
 
 // RefreshToken handles token refresh
@@ -291,32 +227,25 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param request body RefreshTokenRequest true "Refresh token"
-// @Success 200 {object} APIResponse
-// @Failure 400 {object} APIResponse
-// @Failure 401 {object} APIResponse
+// @Success 200 {object} utils.APIResponse
+// @Failure 400 {object} utils.APIResponse
+// @Failure 401 {object} utils.APIResponse
 // @Router /auth/refresh [post]
 func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 	var req RefreshTokenRequest
 	
-	// Try to get refresh token from cookie first (web clients)
 	refreshToken := c.Cookies("refresh_token")
 	
 	if refreshToken == "" {
-		// Then try from request body (mobile/API clients)
 		if err := c.BodyParser(&req); err == nil && req.RefreshToken != "" {
 			refreshToken = req.RefreshToken
 		}
 	}
 	
 	if refreshToken == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Missing refresh token",
-			Message: "Refresh token is required",
-		})
+		return utils.BadRequest(c, "Refresh token is required")
 	}
 	
-	// Get client IP
 	ipAddress := c.IP()
 	if forwarded := c.Get("X-Forwarded-For"); forwarded != "" {
 		ipAddress = strings.Split(forwarded, ",")[0]
@@ -324,14 +253,9 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 	
 	response, err := h.authService.RefreshToken(c.Context(), refreshToken, ipAddress)
 	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "Token refresh failed",
-			Message: err.Error(),
-		})
+		return utils.Unauthorized(c, err.Error())
 	}
 	
-	// Update cookie if web client
 	if c.Get("X-Client-Type") == "web" {
 		c.Cookie(&fiber.Cookie{
 			Name:     "refresh_token",
@@ -344,11 +268,7 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 		})
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Token refreshed successfully",
-		Data:    response,
-	})
+	return utils.SuccessWithMessage(c, "Token refreshed successfully", response)
 }
 
 // ForgotPassword handles password reset request
@@ -358,46 +278,32 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param request body ForgotPasswordRequest true "Email address"
-// @Success 200 {object} APIResponse
-// @Failure 400 {object} APIResponse
+// @Success 200 {object} utils.APIResponse
+// @Failure 400 {object} utils.APIResponse
 // @Router /auth/forgot-password [post]
 func (h *AuthHandler) ForgotPassword(c *fiber.Ctx) error {
 	var req ForgotPasswordRequest
 	
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Invalid request body",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
 	if err := h.validator.Struct(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Validation failed",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
-	// Get client IP
 	ipAddress := c.IP()
 	if forwarded := c.Get("X-Forwarded-For"); forwarded != "" {
 		ipAddress = strings.Split(forwarded, ",")[0]
 	}
 	
+	message := "If an account exists with this email, you will receive a password reset link"
+	
 	if err := h.authService.ForgotPassword(c.Context(), req.Email, ipAddress); err != nil {
-		// Don't expose error details for security
-		return c.Status(fiber.StatusOK).JSON(APIResponse{
-			Success: true,
-			Message: "If an account exists with this email, you will receive a password reset link",
-		})
+		return utils.SuccessWithMessage(c, message, nil)
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "If an account exists with this email, you will receive a password reset link",
-	})
+	return utils.SuccessWithMessage(c, message, nil)
 }
 
 // ResetPassword handles password reset
@@ -407,40 +313,25 @@ func (h *AuthHandler) ForgotPassword(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param request body ResetPasswordRequest true "Reset password details"
-// @Success 200 {object} APIResponse
-// @Failure 400 {object} APIResponse
+// @Success 200 {object} utils.APIResponse
+// @Failure 400 {object} utils.APIResponse
 // @Router /auth/reset-password [post]
 func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
 	var req ResetPasswordRequest
 	
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Invalid request body",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
 	if err := h.validator.Struct(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Validation failed",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
 	if err := h.authService.ResetPassword(c.Context(), req.Token, req.NewPassword); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Password reset failed",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Password reset successfully. You can now login with your new password.",
-	})
+	return utils.SuccessWithMessage(c, "Password reset successfully. You can now login with your new password.", nil)
 }
 
 // ChangePassword handles password change for authenticated users
@@ -451,49 +342,30 @@ func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param request body ChangePasswordRequest true "Password change details"
-// @Success 200 {object} APIResponse
-// @Failure 400 {object} APIResponse
-// @Failure 401 {object} APIResponse
+// @Success 200 {object} utils.APIResponse
+// @Failure 400 {object} utils.APIResponse
+// @Failure 401 {object} utils.APIResponse
 // @Router /auth/change-password [post]
 func (h *AuthHandler) ChangePassword(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "Unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	var req ChangePasswordRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Invalid request body",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
 	if err := h.validator.Struct(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Validation failed",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
 	if err := h.authService.ChangePassword(c.Context(), userID.(string), req.OldPassword, req.NewPassword); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Password change failed",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Password changed successfully",
-	})
+	return utils.SuccessWithMessage(c, "Password changed successfully", nil)
 }
 
 // VerifyEmail handles email verification
@@ -501,31 +373,20 @@ func (h *AuthHandler) ChangePassword(c *fiber.Ctx) error {
 // @Description Verify user email using token
 // @Tags Auth
 // @Param token path string true "Verification token"
-// @Success 200 {object} APIResponse
-// @Failure 400 {object} APIResponse
+// @Success 200 {object} utils.APIResponse
+// @Failure 400 {object} utils.APIResponse
 // @Router /auth/verify-email/{token} [get]
 func (h *AuthHandler) VerifyEmail(c *fiber.Ctx) error {
 	token := c.Params("token")
 	if token == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Missing token",
-			Message: "Verification token is required",
-		})
+		return utils.BadRequest(c, "Verification token is required")
 	}
 	
 	if err := h.authService.VerifyEmail(c.Context(), token); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Verification failed",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Email verified successfully. You can now login to your account.",
-	})
+	return utils.SuccessWithMessage(c, "Email verified successfully. You can now login to your account.", nil)
 }
 
 // ResendVerificationEmail resends verification email
@@ -533,8 +394,8 @@ func (h *AuthHandler) VerifyEmail(c *fiber.Ctx) error {
 // @Description Resend email verification link
 // @Tags Auth
 // @Security BearerAuth
-// @Success 200 {object} APIResponse
-// @Failure 401 {object} APIResponse
+// @Success 200 {object} utils.APIResponse
+// @Failure 401 {object} utils.APIResponse
 // @Router /auth/resend-verification [post]
 func (h *AuthHandler) ResendVerificationEmail(c *fiber.Ctx) error {
 	var req struct {
@@ -545,11 +406,7 @@ func (h *AuthHandler) ResendVerificationEmail(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
 		if req.UserID == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-				Success: false,
-				Error:   "Unauthorized",
-				Message: "User not authenticated",
-			})
+			return utils.Unauthorized(c, "User not authenticated")
 		}
 		userID = req.UserID
 	}
@@ -560,17 +417,10 @@ func (h *AuthHandler) ResendVerificationEmail(c *fiber.Ctx) error {
 	}
 
 	if err := h.authService.ResendVerificationEmail(c.Context(), userID.(string), ipAddress); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Failed to resend verification",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Verification email sent successfully. Please check your inbox.",
-	})
+	return utils.SuccessWithMessage(c, "Verification email sent successfully. Please check your inbox.", nil)
 }
 
 // GetProfile retrieves user profile
@@ -578,32 +428,21 @@ func (h *AuthHandler) ResendVerificationEmail(c *fiber.Ctx) error {
 // @Description Get authenticated user's profile
 // @Tags Auth
 // @Security BearerAuth
-// @Success 200 {object} APIResponse
-// @Failure 401 {object} APIResponse
+// @Success 200 {object} utils.APIResponse
+// @Failure 401 {object} utils.APIResponse
 // @Router /profile [get]
 func (h *AuthHandler) GetProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "Unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	profile, err := h.authService.GetProfile(c.Context(), userID.(string))
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(APIResponse{
-			Success: false,
-			Error:   "Profile not found",
-			Message: err.Error(),
-		})
+		return utils.NotFound(c, "Profile")
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Data:    profile,
-	})
+	return utils.Success(c, profile)
 }
 
 // UpdateProfile updates user profile
@@ -614,30 +453,21 @@ func (h *AuthHandler) GetProfile(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param request body UpdateProfileRequest true "Profile update details"
-// @Success 200 {object} APIResponse
-// @Failure 400 {object} APIResponse
-// @Failure 401 {object} APIResponse
+// @Success 200 {object} utils.APIResponse
+// @Failure 400 {object} utils.APIResponse
+// @Failure 401 {object} utils.APIResponse
 // @Router /profile [put]
 func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(APIResponse{
-			Success: false,
-			Error:   "Unauthorized",
-			Message: "User not authenticated",
-		})
+		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
 	var req UpdateProfileRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Invalid request body",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
-	// Convert to service request
 	serviceReq := &services.UpdateProfileRequest{
 		FullName:          req.FullName,
 		Headline:          req.Headline,
@@ -661,17 +491,10 @@ func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 	}
 	
 	if err := h.authService.UpdateProfile(c.Context(), userID.(string), serviceReq); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(APIResponse{
-			Success: false,
-			Error:   "Profile update failed",
-			Message: err.Error(),
-		})
+		return utils.BadRequest(c, err.Error())
 	}
 	
-	return c.Status(fiber.StatusOK).JSON(APIResponse{
-		Success: true,
-		Message: "Profile updated successfully",
-	})
+	return utils.SuccessWithMessage(c, "Profile updated successfully", nil)
 }
 
 // WebLogout handles GET/POST /logout — clears cookies and redirects

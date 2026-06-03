@@ -10,9 +10,6 @@ func SetupAnalyticsRoutes(router fiber.Router, analyticsHandler *handlers.Analyt
 	// All analytics routes require authentication and employer role
 	analytics := router.Group("/employer/analytics", middleware.AuthMiddleware(), middleware.RequireRole("employer"))
 	
-	// Dashboard overview
-	analytics.Get("/dashboard", analyticsHandler.GetDashboardOverview)
-	
 	// Application trends
 	analytics.Get("/trends", analyticsHandler.GetApplicationTrends)
 	
