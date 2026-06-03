@@ -93,6 +93,10 @@ func AutoMigrate() error {
 		// 2FA models
 		&models.TwoFASecret{},
 		&models.TwoFAAuditLog{},
+
+		// Notification models
+		&models.Notification{},
+		&models.NotificationPreferences{},
 	)
 	
 	if err != nil {

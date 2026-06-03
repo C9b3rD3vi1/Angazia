@@ -3,13 +3,11 @@
 
   function init() {
     initMatchActions();
-    initSkillGap();
     initInterviewQuestions();
   }
 
   window.__matchesInit = init;
   window.__initMatchActions = initMatchActions;
-  window.__initSkillGap = initSkillGap;
   window.__initInterviewQuestions = initInterviewQuestions;
 
   function initMatchActions() {
@@ -101,18 +99,6 @@
       .catch(function () {
         showToast('Failed to load analysis', 'error');
       });
-  }
-
-  function initSkillGap() {
-    var container = document.getElementById('skill-gap-chart');
-    if (!container || typeof AngaziaChart === 'undefined') return;
-    var data = [];
-    container.querySelectorAll('[data-skill]').forEach(function (el) {
-      data.push({ label: el.dataset.skill, value: parseInt(el.dataset.score) || 0 });
-    });
-    if (data.length) {
-      AngaziaChart.bar(container, data, { height: 200, barRadius: 6, showValues: true });
-    }
   }
 
   function initInterviewQuestions() {

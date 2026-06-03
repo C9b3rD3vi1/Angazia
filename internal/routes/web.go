@@ -61,6 +61,8 @@ func SetupWebRoutes(
 	employer.Get("/matches", webHandler.EmployerMatchesPage)
 	employer.Get("/job-post", webHandler.EmployerJobPostPage)
 	employer.Get("/billing", webHandler.EmployerBillingPage)
+	employer.Get("/billing/invoices", webHandler.EmployerBillingInvoicesPage)
+	employer.Get("/billing/upgrade/:plan", webHandler.EmployerBillingUpgradePage)
 
 	// Admin pages
 	admin := app.Group("/admin", middleware.WebAuthMiddleware(), middleware.WebRequireRole("admin"))

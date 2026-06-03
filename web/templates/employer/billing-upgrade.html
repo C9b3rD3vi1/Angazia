@@ -1,0 +1,192 @@
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">Upgrade to {{title .Plan}}</h1>
+      <p class="emp-page-sub">Confirm your subscription upgrade</p>
+    </div>
+  </div>
+
+  <div class="emp-upgrade-layout">
+    <div class="emp-upgrade-plan emp-card">
+      <div class="emp-upgrade-plan-icon">
+        {{if eq .Plan "pro"}}&#x1F525;
+        {{else if eq .Plan "basic"}}&#x1F4A0;
+        {{else}}&#x1F3F0;{{end}}
+      </div>
+      <h2 class="emp-upgrade-plan-name">{{title .Plan}}</h2>
+      <p class="emp-upgrade-price">
+        {{if eq .Plan "basic"}}KSh 2,500{{else if eq .Plan "pro"}}KSh 6,500{{else}}Custom{{end}}
+        {{if ne .Plan "enterprise"}}<span>/month</span>{{end}}
+      </p>
+      <ul class="emp-upgrade-features">
+        {{if eq .Plan "basic"}}
+        <li>&#x2705; 10 active jobs</li>
+        <li>&#x2705; Advanced filters</li>
+        <li>&#x2705; Basic analytics</li>
+        <li>&#x2705; Email support</li>
+        {{else if eq .Plan "pro"}}
+        <li>&#x2705; 50 active jobs</li>
+        <li>&#x2705; AI-powered matching</li>
+        <li>&#x2705; Advanced analytics</li>
+        <li>&#x2705; Priority support</li>
+        <li>&#x2705; Custom branding</li>
+        {{else}}
+        <li>&#x2705; Unlimited jobs</li>
+        <li>&#x2705; Full analytics suite</li>
+        <li>&#x2705; API access</li>
+        <li>&#x2705; Dedicated manager</li>
+        <li>&#x2705; Custom integrations</li>
+        <li>&#x2705; SLA guarantee</li>
+        {{end}}
+      </ul>
+    </div>
+
+    <div class="emp-upgrade-confirm emp-card">
+      <h3 class="emp-upgrade-confirm-title">Confirm Upgrade</h3>
+      <p class="emp-upgrade-confirm-desc">
+        You are about to upgrade to the <strong>{{title .Plan}}</strong> plan.
+        {{if ne .Plan "enterprise"}}You will be charged <strong>{{if eq .Plan "basic"}}KSh 2,500{{else}}KSh 6,500{{end}}</strong> per month.{{end}}
+      </p>
+
+      <div id="upgrade-error" class="emp-alert emp-alert-error" style="display:none"></div>
+      <div id="upgrade-success" class="emp-alert emp-alert-success" style="display:none"></div>
+
+      <button id="btn-confirm-upgrade" class="emp-btn emp-btn-primary emp-btn-full" data-plan="{{.Plan}}">
+        Confirm Upgrade
+      </button>
+      <a href="/employer/billing" class="emp-btn emp-btn-outline emp-btn-full">Cancel</a>
+    </div>
+  </div>
+</div>
+
+<style>
+.emp-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.emp-page-title {
+  font-family: var(--fh);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  text-transform: capitalize;
+}
+.emp-page-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.emp-upgrade-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: flex-start;
+}
+.emp-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+}
+.emp-upgrade-plan { text-align: center; }
+.emp-upgrade-plan-icon { font-size: 48px; margin-bottom: 12px; }
+.emp-upgrade-plan-name {
+  font-family: var(--fh);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: capitalize;
+  margin-bottom: 8px;
+}
+.emp-upgrade-price {
+  font-family: var(--fh);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+.emp-upgrade-price span {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.emp-upgrade-features {
+  list-style: none;
+  padding: 0;
+  text-align: left;
+  display: inline-block;
+}
+.emp-upgrade-features li {
+  font-size: 13px;
+  padding: 5px 0;
+  color: var(--text);
+}
+.emp-upgrade-confirm-title {
+  font-family: var(--fh);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+.emp-upgrade-confirm-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+.emp-alert {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+.emp-alert-error {
+  background: rgba(239,68,68,0.08);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.15);
+}
+.emp-alert-success {
+  background: rgba(0,229,160,0.08);
+  color: var(--accent);
+  border: 1px solid rgba(0,229,160,0.15);
+}
+.emp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 20px;
+  font-family: var(--fm);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  transition: all 0.15s;
+  cursor: pointer;
+  border: none;
+  margin-bottom: 8px;
+}
+.emp-btn:active { transform: scale(0.97); }
+.emp-btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--purple) 0%, #ec4899 100%);
+}
+.emp-btn-primary:hover { opacity: 0.85; }
+.emp-btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.emp-btn-outline:hover { border-color: var(--purple); color: var(--purple); }
+.emp-btn-full { width: 100%; text-align: center; }
+@media (max-width: 860px) {
+  .emp-upgrade-layout { grid-template-columns: 1fr; }
+}
+</style>
+
+<script src="/static/js/pages/employer/billing-upgrade.js"></script>

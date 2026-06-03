@@ -253,6 +253,24 @@ func (h *WebHandler) EmployerBillingPage(c *fiber.Ctx) error {
 	}), "layouts/employer")
 }
 
+// EmployerBillingInvoicesPage renders the invoices history page
+func (h *WebHandler) EmployerBillingInvoicesPage(c *fiber.Ctx) error {
+	return c.Render("employer/billing-invoices", mergePageData(c, fiber.Map{
+		"Title":      "Invoices - Angazia",
+		"ActivePage": "billing",
+	}), "layouts/employer")
+}
+
+// EmployerBillingUpgradePage renders the plan upgrade page
+func (h *WebHandler) EmployerBillingUpgradePage(c *fiber.Ctx) error {
+	plan := c.Params("plan")
+	return c.Render("employer/billing-upgrade", mergePageData(c, fiber.Map{
+		"Title":      "Upgrade Plan - Angazia",
+		"ActivePage": "billing",
+		"Plan":       plan,
+	}), "layouts/employer")
+}
+
 // EmployerMatchesPage renders the AI candidate matches page
 func (h *WebHandler) EmployerMatchesPage(c *fiber.Ctx) error {
 	return c.Render("employer/matches", mergePageData(c, fiber.Map{

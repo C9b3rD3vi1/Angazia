@@ -47,15 +47,15 @@ type JobService interface {
 
 type CreateJobRequest struct {
 	Title             string   `json:"title" validate:"required,min=5,max=255"`
-	Description       string   `json:"description" validate:"required,min=50"`
-	Requirements      string   `json:"requirements" validate:"required,min=50"`
+	Description       string   `json:"description" validate:"required,min=20"`
+	Requirements      string   `json:"requirements" validate:"required,min=20"`
 	Responsibilities  string   `json:"responsibilities"`
 	Benefits          []string `json:"benefits"`
 	
 	RequiredSkills    []string `json:"required_skills" validate:"required,min=1"`
 	NiceToHaveSkills  []string `json:"nice_to_have_skills"`
 	
-	ExperienceLevel   string   `json:"experience_level" validate:"oneof=entry junior mid senior lead"`
+	ExperienceLevel   string   `json:"experience_level"`
 	MinExperience     int      `json:"min_experience"`
 	MaxExperience     int      `json:"max_experience"`
 	EducationLevel    string   `json:"education_level"`
@@ -75,7 +75,7 @@ type CreateJobRequest struct {
 	
 	IsFeatured        bool     `json:"is_featured"`
 	IsUrgent          bool     `json:"is_urgent"`
-	ExpiresAt         *time.Time `json:"expires_at"`
+	ExpiresAt         string   `json:"expires_at"`
 }
 
 type UpdateJobRequest struct {
@@ -106,9 +106,9 @@ type UpdateJobRequest struct {
 	EmploymentType    *string   `json:"employment_type"`
 	WorkHours         *string   `json:"work_hours"`
 	
-	IsFeatured        *bool     `json:"is_featured"`
-	IsUrgent          *bool     `json:"is_urgent"`
-	ExpiresAt         *time.Time `json:"expires_at"`
+	IsFeatured        *bool   `json:"is_featured"`
+	IsUrgent          *bool   `json:"is_urgent"`
+	ExpiresAt         string  `json:"expires_at"`
 }
 
 type JobFilters struct {
@@ -167,12 +167,19 @@ func (s *JobServiceImpl) CreateJob(ctx context.Context, employerID string, req *
 	if req.EmploymentType == "" {
 		req.EmploymentType = "full-time"
 	}
-	if req.ExperienceLevel == "" {
+	if req.ExperienceLevel == "" || req.ExperienceLevel == "any" {
 		req.ExperienceLevel = "mid"
 	}
 	
 	// Set expiration date (default 30 days)
-	expiresAt := req.ExpiresAt
+	var expiresAt *time.Time
+	if req.ExpiresAt != "" {
+		parsed, err := time.Parse("2006-01-02", req.ExpiresAt)
+		if err != nil {
+			return nil, fmt.Errorf("invalid expires_at format, expected YYYY-MM-DD")
+		}
+		expiresAt = &parsed
+	}
 	if expiresAt == nil {
 		defaultExpiry := time.Now().AddDate(0, 1, 0)
 		expiresAt = &defaultExpiry
@@ -323,8 +330,12 @@ func (s *JobServiceImpl) UpdateJob(ctx context.Context, jobID string, employerID
 	if req.IsUrgent != nil {
 		job.IsUrgent = *req.IsUrgent
 	}
-	if req.ExpiresAt != nil {
-		job.ExpiresAt = req.ExpiresAt
+	if req.ExpiresAt != "" {
+		parsed, err := time.Parse("2006-01-02", req.ExpiresAt)
+		if err != nil {
+			return nil, fmt.Errorf("invalid expires_at format, expected YYYY-MM-DD")
+		}
+		job.ExpiresAt = &parsed
 	}
 	
 	if err := s.jobRepo.Update(ctx, job); err != nil {
@@ -617,14 +628,14 @@ func (s *JobServiceImpl) validateCreateRequest(req *CreateJobRequest) error {
 	if req.Description == "" {
 		return errors.New("job description is required")
 	}
-	if len(req.Description) < 50 {
+	if len(req.Description) < 20 {
 		return errors.New("job description must be at least 50 characters")
 	}
 	
 	if req.Requirements == "" {
 		return errors.New("job requirements are required")
 	}
-	if len(req.Requirements) < 50 {
+	if len(req.Requirements) < 20 {
 		return errors.New("job requirements must be at least 50 characters")
 	}
 	
@@ -640,8 +651,14 @@ func (s *JobServiceImpl) validateCreateRequest(req *CreateJobRequest) error {
 		return errors.New("minimum salary cannot be greater than maximum salary")
 	}
 	
-	if req.ExpiresAt != nil && req.ExpiresAt.Before(time.Now()) {
-		return errors.New("expiration date cannot be in the past")
+	if req.ExpiresAt != "" {
+		parsed, err := time.Parse("2006-01-02", req.ExpiresAt)
+		if err != nil {
+			return errors.New("invalid expires_at format, expected YYYY-MM-DD")
+		}
+		if parsed.Before(time.Now().Truncate(24 * time.Hour)) {
+			return errors.New("expiration date cannot be in the past")
+		}
 	}
 	
 	return nil
