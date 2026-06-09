@@ -321,6 +321,30 @@ func (h *TalentPoolHandler) GetEmployerStats(c *fiber.Ctx) error {
 	return utils.Success(c, stats)
 }
 
+// GetCandidatePools returns all talent pools containing a specific candidate
+func (h *TalentPoolHandler) GetCandidatePools(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+
+	candidateID := c.Params("id")
+	if candidateID == "" {
+		return utils.BadRequest(c, "Candidate ID is required")
+	}
+
+	pools, err := h.talentPoolService.GetCandidatePools(c.Context(), userID.(string), candidateID)
+	if err != nil {
+		return utils.InternalServerError(c, err.Error())
+	}
+
+	if pools == nil {
+		pools = []*models.TalentPool{}
+	}
+
+	return utils.Success(c, pools)
+}
+
 // SearchCandidates searches for candidates in a talent pool
 func (h *TalentPoolHandler) SearchCandidates(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")

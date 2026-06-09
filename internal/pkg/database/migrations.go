@@ -187,6 +187,38 @@ func getAllMigrations() []Migration {
 		},
 		{
 			ID:   "20250101000004",
+			Name: "Rename company_linked_in to company_linkedin in employer_profiles",
+			Up: func(tx *gorm.DB) error {
+				query := `
+					DO $$
+					BEGIN
+						IF EXISTS (
+							SELECT 1 FROM information_schema.columns
+							WHERE table_name = 'employer_profiles' AND column_name = 'company_linked_in'
+						) THEN
+							ALTER TABLE employer_profiles RENAME COLUMN company_linked_in TO company_linkedin;
+						END IF;
+					END $$;
+				`
+				return tx.Exec(query).Error
+			},
+			Down: func(tx *gorm.DB) error {
+				query := `
+					DO $$
+					BEGIN
+						IF EXISTS (
+							SELECT 1 FROM information_schema.columns
+							WHERE table_name = 'employer_profiles' AND column_name = 'company_linkedin'
+						) THEN
+							ALTER TABLE employer_profiles RENAME COLUMN company_linkedin TO company_linked_in;
+						END IF;
+					END $$;
+				`
+				return tx.Exec(query).Error
+			},
+		},
+		{
+			ID:   "20250101000005",
 			Name: "Add composite indexes for common queries",
 			Up: func(tx *gorm.DB) error {
 				indexes := []string{

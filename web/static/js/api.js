@@ -164,10 +164,11 @@ var AngaziaAPI = (function () {
         verify: function (data) { return apiPost('/auth/2fa/verify', data); },
         disable: function (data) { return apiPost('/auth/2fa/disable', data); },
         status: function () { return apiGet('/auth/2fa/status'); },
-        generateBackupCodes: function () { return apiPost('/auth/2fa/backup-codes/generate'); },
-        getBackupCodes: function () { return apiGet('/auth/2fa/backup-codes'); },
-        recovery: function (data) { return apiPost('/auth/2fa/recovery', data); },
-        recover: function (data) { return apiGet('/auth/2fa/recover', data); },
+		generateBackupCodes: function () { return apiPost('/auth/2fa/backup-codes/generate'); },
+		getBackupCodes: function () { return apiGet('/auth/2fa/backup-codes'); },
+		loginVerify: function (data) { return apiPost('/auth/2fa/login-verify', data); },
+		recovery: function (data) { return apiPost('/auth/2fa/recovery', data); },
+		recover: function (data) { return apiGet('/auth/2fa/recover', data); },
       },
     },
 
@@ -200,6 +201,13 @@ var AngaziaAPI = (function () {
       reject: function (id) { return apiPost('/employer/applications/' + id + '/reject'); },
       interview: function (id, data) { return apiPost('/employer/applications/' + id + '/interview', data); },
       bulkShortlist: function (data) { return apiPost('/employer/applications/bulk-shortlist', data); },
+      hire: function (id) { return apiPost('/employer/applications/' + id + '/hire'); },
+      bulkReject: function (data) { return apiPost('/employer/applications/bulk-reject', data); },
+    },
+
+    candidates: {
+      detail: function (id) { return apiGet('/employer/candidates/' + id); },
+      pools: function (id) { return apiGet('/employer/candidates/' + id + '/pools'); },
     },
 
     companies: {
@@ -213,13 +221,57 @@ var AngaziaAPI = (function () {
       myCompany: function () { return apiGet('/employer/company'); },
       updateCompany: function (data) { return apiPut('/employer/company', data); },
       uploadLogo: function (fd, cb) { return upload('/employer/company/logo', fd, cb); },
-      verify: function () { return apiPost('/employer/company/verify'); },
+      submitVerification: function (data) { return apiPost('/employer/company/verify', data || {}); },
+      reject: function (companyId, data) { return apiPost('/admin/companies/' + companyId + '/reject', data); },
       verificationStatus: function () { return apiGet('/employer/company/verification'); },
       getBadges: function () { return apiGet('/employer/company/badges'); },
       team: function () { return apiGet('/employer/team'); },
       inviteTeam: function (data) { return apiPost('/employer/team/invite', data); },
       removeTeamMember: function (id) { return apiDelete('/employer/team/' + id); },
       analytics: function () { return apiGet('/employer/analytics'); },
+    },
+
+    admin: {
+      // Dashboard & Statistics
+      platformStats: function () { return apiGet('/admin/stats/platform'); },
+      userStats: function () { return apiGet('/admin/stats/users'); },
+      jobStats: function () { return apiGet('/admin/stats/jobs'); },
+      engagementStats: function () { return apiGet('/admin/stats/engagement'); },
+      
+      // User Management
+      users: function (params) { return apiGet('/admin/users', params); },
+      userDetail: function (id) { return apiGet('/admin/users/' + id); },
+      suspendUser: function (id) { return apiPost('/admin/users/' + id + '/suspend'); },
+      activateUser: function (id) { return apiPost('/admin/users/' + id + '/activate'); },
+      deleteUser: function (id) { return apiDelete('/admin/users/' + id); },
+      verifyUser: function (id) { return apiPost('/admin/users/' + id + '/verify'); },
+      
+      // Company Management
+      companies: function (params) { return apiGet('/admin/companies', params); },
+      companyDetail: function (id) { return apiGet('/admin/companies/' + id); },
+      verifyCompany: function (id) { return apiPost('/admin/companies/' + id + '/verify'); },
+      pendingVerifications: function (params) { return apiGet('/admin/companies/pending', params); },
+      rejectCompany: function (id, data) { return apiPost('/admin/companies/' + id + '/reject', data); },
+      
+      // Moderation
+      moderation: function (params) { return apiGet('/admin/moderation', params); },
+      approveContent: function (id) { return apiPost('/admin/moderation/' + id + '/approve'); },
+      rejectContent: function (id) { return apiPost('/admin/moderation/' + id + '/reject'); },
+      
+      // Settings
+      settings: function () { return apiGet('/admin/settings'); },
+      updateSetting: function (key, data) { return apiPut('/admin/settings/' + key, data); },
+      reportReasons: function () { return apiGet('/admin/report-reasons'); },
+      auditLogs: function (params) { return apiGet('/admin/audit-logs', params); },
+      report: function (data) { return apiPost('/report', data); },
+
+      // Subscription Management
+      listSubscriptions: function (params) { return apiGet('/admin/subscriptions', params); },
+      getSubscription: function (id) { return apiGet('/admin/subscriptions/' + id); },
+      cancelSubscription: function (id, data) { return apiPost('/admin/subscriptions/' + id + '/cancel', data); },
+      reactivateSubscription: function (id) { return apiPost('/admin/subscriptions/' + id + '/reactivate'); },
+      changeSubscriptionPlan: function (id, data) { return apiPost('/admin/subscriptions/' + id + '/change-plan', data); },
+      assignSubscription: function (data) { return apiPost('/admin/subscriptions', data); },
     },
 
     notifications: {
@@ -257,6 +309,9 @@ var AngaziaAPI = (function () {
       skillsGap: function (jobId) { return apiGet('/employee/matches/skills-gap/' + jobId); },
       analysis: function (jobId, empId) { return apiGet('/employee/matches/analysis/' + jobId + '/' + empId); },
       candidateMatches: function (jobId) { return apiGet('/employer/matches/candidates/' + jobId); },
+      employerAnalysis: function (jobId, empId) { return apiGet('/employer/matches/analysis/' + jobId + '/' + empId); },
+      employerSkillsGap: function (jobId, empId) { return apiGet('/employer/matches/skills-gap/' + jobId + '/' + empId); },
+      submitFeedback: function (data) { return apiPost('/employer/matches/feedback', data); },
       interviewQuestions: function (jobId) { return apiGet('/employer/matches/interview-questions/' + jobId); },
     },
 
@@ -289,9 +344,12 @@ var AngaziaAPI = (function () {
       markHired: function (poolId, candId) { return apiPost('/employer/talent-pools/' + poolId + '/candidates/' + candId + '/hire'); },
     },
 
+    dashboard: {
+        employer: function (params) { return apiGet('/employer/dashboard', params); },
+    },
     analytics: {
-      employerDashboard: function () { return apiGet('/employer/analytics/dashboard'); },
-      employerTrends: function () { return apiGet('/employer/analytics/trends'); },
+        employerDashboard: function () { return apiGet('/employer/analytics/dashboard'); },
+      employerTrends: function (params) { return apiGet('/employer/analytics/trends', params); },
       employerFunnel: function () { return apiGet('/employer/analytics/funnel'); },
       employerJobs: function () { return apiGet('/employer/analytics/jobs'); },
       employerJobDetail: function (id) { return apiGet('/employer/analytics/jobs/' + id); },
@@ -310,27 +368,6 @@ var AngaziaAPI = (function () {
       recentActivity: function () { return apiGet('/employee/analytics/recent-activity'); },
     },
 
-    admin: {
-      platformStats: function () { return apiGet('/admin/stats/platform'); },
-      userStats: function () { return apiGet('/admin/stats/users'); },
-      jobStats: function () { return apiGet('/admin/stats/jobs'); },
-      engagementStats: function () { return apiGet('/admin/stats/engagement'); },
-      users: function (params) { return apiGet('/admin/users', params); },
-      userDetail: function (id) { return apiGet('/admin/users/' + id); },
-      suspendUser: function (id) { return apiPost('/admin/users/' + id + '/suspend'); },
-      activateUser: function (id) { return apiPost('/admin/users/' + id + '/activate'); },
-      deleteUser: function (id) { return apiDelete('/admin/users/' + id); },
-      verifyUser: function (id) { return apiPost('/admin/users/' + id + '/verify'); },
-      moderation: function (params) { return apiGet('/admin/moderation', params); },
-      approveContent: function (id) { return apiPost('/admin/moderation/' + id + '/approve'); },
-      rejectContent: function (id) { return apiPost('/admin/moderation/' + id + '/reject'); },
-      settings: function () { return apiGet('/admin/settings'); },
-      updateSetting: function (key, data) { return apiPut('/admin/settings/' + key, data); },
-      reportReasons: function () { return apiGet('/admin/report-reasons'); },
-      auditLogs: function (params) { return apiGet('/admin/audit-logs', params); },
-      report: function (data) { return apiPost('/report', data); },
-    },
-
     plans: {
       list: function () { return apiGet('/plans'); },
       get: function (id) { return apiGet('/plans/' + id); },
@@ -339,15 +376,16 @@ var AngaziaAPI = (function () {
       adminCreate: function (data) { return apiPost('/admin/plans', data); },
       adminUpdate: function (id, data) { return apiPut('/admin/plans/' + id, data); },
       adminDelete: function (id) { return apiDelete('/admin/plans/' + id); },
-      adminToggle: function (id) { return apiPost('/admin/plans/' + id + '/toggle'); },
+      // data should be { is_active: true/false }
+			adminToggle: function (id, data) { return apiPost('/admin/plans/' + id + '/toggle', data); },
     },
 
     subscriptions: {
       plans: function () { return apiGet('/subscriptions/plans'); },
       current: function () { return apiGet('/subscriptions/current'); },
       subscribe: function (data) { return apiPost('/subscriptions/subscribe', data); },
-      cancel: function () { return apiPost('/subscriptions/cancel'); },
-      reactivate: function () { return apiPost('/subscriptions/reactivate'); },
+      cancel: function (data) { return apiPost('/subscriptions/cancel', data); },
+      reactivate: function (data) { return apiPost('/subscriptions/reactivate', data); },
       upgrade: function (data) { return apiPost('/subscriptions/upgrade', data); },
       downgrade: function (data) { return apiPost('/subscriptions/downgrade', data); },
       proration: function (data) { return apiPost('/subscriptions/proration', data); },
@@ -366,6 +404,7 @@ var AngaziaAPI = (function () {
       suggestedSkills: function () { return apiGet('/employee/skills/suggested'); },
       wizard: function () { return apiGet('/employee/profile/wizard'); },
       uploadResume: function (fd, cb) { return upload('/employee/resume/upload', fd, cb); },
+      uploadAvatar: function (fd, cb) { return upload('/user/avatar', fd, cb); },
     },
 
     github: {

@@ -158,7 +158,7 @@ func (r *SubscriptionRepositoryImpl) ListSubscriptions(ctx context.Context, filt
 func (r *SubscriptionRepositoryImpl) GetExpiredSubscriptions(ctx context.Context) ([]*models.Subscription, error) {
 	var subs []*models.Subscription
 	err := r.db.WithContext(ctx).
-		Where("status = ? AND end_date < ?", "active", time.Now()).
+		Where("status IN ? AND end_date < ?", []string{"active", "trialing"}, time.Now()).
 		Find(&subs).Error
 	return subs, err
 }
@@ -171,6 +171,7 @@ func (r *SubscriptionRepositoryImpl) GetExpiringSoonSubscriptions(ctx context.Co
 	return subs, err
 }
 
+// CreatePlan creates a new subscription plan
 func (r *SubscriptionRepositoryImpl) CreatePlan(ctx context.Context, plan *models.SubscriptionPlan) error {
 	plan.ID = uuid.New().String()
 	plan.CreatedAt = time.Now()
@@ -189,12 +190,14 @@ func (r *SubscriptionRepositoryImpl) GetPlan(ctx context.Context, id string) (*m
 
 func (r *SubscriptionRepositoryImpl) GetPlanByPlanID(ctx context.Context, planID string) (*models.SubscriptionPlan, error) {
 	var plan models.SubscriptionPlan
-	err := r.db.WithContext(ctx).Where("plan_id = ? AND is_active = ?", planID, true).First(&plan).Error
+	// Remove the is_active filter so we can find inactive plans too
+	err := r.db.WithContext(ctx).Where("plan_id = ?", planID).First(&plan).Error
 	if err != nil {
 		return nil, err
 	}
 	return &plan, nil
 }
+
 
 func (r *SubscriptionRepositoryImpl) GetAllPlans(ctx context.Context, includeInactive bool) ([]*models.SubscriptionPlan, error) {
 	var plans []*models.SubscriptionPlan

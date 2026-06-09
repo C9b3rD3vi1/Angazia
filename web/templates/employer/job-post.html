@@ -73,8 +73,9 @@
         </div>
 
         <div class="emp-field">
-          <label class="emp-label">Requirements</label>
-          <textarea name="requirements" class="emp-textarea" rows="5" placeholder="List the key requirements and qualifications for this role. One per line or paragraph."></textarea>
+          <label class="emp-label">Requirements <span class="emp-req">*</span></label>
+          <textarea name="requirements" id="field-requirements" class="emp-textarea emp-textarea-list" rows="6" placeholder="- List each requirement on a new line&#10;- Start with a hyphen, number, or plain text&#10;- Example: 5+ years experience in Go" required></textarea>
+          <div id="requirements-preview" class="emp-req-preview"></div>
         </div>
       </div>
 
@@ -287,6 +288,42 @@
   color: var(--muted2);
   margin-left: auto;
 }
+.emp-textarea-list {
+  font-family: var(--fm);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.emp-req-preview {
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-height: 0;
+  display: none;
+}
+.emp-req-preview.has-items {
+  display: block;
+}
+.emp-req-preview ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.emp-req-preview li {
+  padding: 3px 0 3px 18px;
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.6;
+  position: relative;
+}
+.emp-req-preview li::before {
+  content: "\\2022";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
 
 @media (max-width: 860px) {
   .emp-page-head { flex-direction: column; align-items: flex-start; }
@@ -304,6 +341,32 @@
       AngaziaApp.showToast(msg, type);
     } else {
       alert((type === 'error' ? 'Error: ' : '') + msg);
+    }
+  }
+
+  var reqField = document.getElementById('field-requirements');
+  var reqPreview = document.getElementById('requirements-preview');
+  if (reqField && reqPreview) {
+    reqField.addEventListener('input', function () {
+      var lines = reqField.value.split('\n').filter(function(l) { return l.trim(); });
+      if (lines.length === 0) {
+        reqPreview.classList.remove('has-items');
+        reqPreview.innerHTML = '';
+        return;
+      }
+      reqPreview.classList.add('has-items');
+      var html = '<ul>';
+      for (var i = 0; i < lines.length; i++) {
+        var text = lines[i].trim();
+        if (text) html += '<li>' + escapeHtml(text) + '</li>';
+      }
+      html += '</ul>';
+      reqPreview.innerHTML = html;
+    });
+    function escapeHtml(s) {
+      var d = document.createElement('div');
+      d.appendChild(document.createTextNode(s));
+      return d.innerHTML;
     }
   }
 

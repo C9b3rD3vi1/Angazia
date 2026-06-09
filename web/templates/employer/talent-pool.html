@@ -5,53 +5,84 @@
       <h1 class="emp-page-title">Talent Pool</h1>
       <p class="emp-page-sub">Candidates you've saved for future opportunities</p>
     </div>
-    <div class="emp-page-info">
-      {{if .TalentPool}}<span class="emp-count">{{len .TalentPool}} saved</span>{{end}}
+    <div class="emp-page-actions">
+      <button id="tp-create-btn" class="emp-btn emp-btn-primary">+ New Pool</button>
     </div>
   </div>
 
-  <section class="emp-section">
-    <div class="emp-section-head">
-      <h2 class="emp-section-title">Saved Candidates</h2>
-      {{if .TalentPool}}<button class="emp-btn emp-btn-sm emp-btn-ghost">Export All</button>{{end}}
-    </div>
+  <div id="tp-loading" class="emp-loading">
+    <div class="emp-spinner"></div>
+    <p>Loading talent pools...</p>
+  </div>
 
-    {{if .TalentPool}}
-    <div class="emp-talent-list">
-      {{range .TalentPool}}
-      <div class="emp-talent-card">
-        <div class="emp-talent-main">
-          <div class="emp-talent-avatar">
-            <span class="emp-talent-initials">{{.Initials}}</span>
-          </div>
-          <div class="emp-talent-info">
-            <h3 class="emp-talent-name">{{.Name}}</h3>
-            <span class="emp-talent-headline">{{.Headline}}</span>
-            <div class="emp-talent-tags">
-              {{range .Skills}}<span class="emp-tag">{{.}}</span>{{end}}
-            </div>
-          </div>
-        </div>
-        <div class="emp-talent-side">
-          <span class="emp-talent-date">Saved {{.SavedAt.Format "Jan 2, 2006"}}</span>
-          <div class="emp-talent-actions">
-            <a href="/employer/candidates/{{.ID}}" class="emp-btn emp-btn-sm emp-btn-outline">View</a>
-            <button class="emp-btn emp-btn-sm emp-btn-ghost emp-btn-danger">Remove</button>
-          </div>
-        </div>
+  <div id="tp-error" class="emp-error" style="display:none;">
+    <div class="emp-error-icon">&#x26A0;&#xFE0F;</div>
+    <h3>Failed to load talent pools</h3>
+    <p id="tp-error-msg"></p>
+    <button class="emp-btn emp-btn-primary" onclick="location.reload()">Retry</button>
+  </div>
+
+  <div id="tp-content" style="display:none;">
+    <div id="tp-pools"></div>
+    <div id="tp-empty" style="display:none;">
+      <div class="emp-empty">
+        <div class="emp-empty-icon">&#x1F4E6;</div>
+        <h3 class="emp-empty-title">Your talent pool is empty</h3>
+        <p class="emp-empty-desc">Create a pool and save candidates you're interested in from the Candidates page.</p>
+        <a href="/employer/candidates" class="emp-btn emp-btn-primary emp-btn-lg">Browse Candidates</a>
       </div>
-      {{end}}
     </div>
-    {{else}}
-    <div class="emp-empty">
-      <div class="emp-empty-icon">&#x1F4E6;</div>
-      <h3 class="emp-empty-title">Your talent pool is empty</h3>
-      <p class="emp-empty-desc">Save candidates you're interested in from the Candidates page to revisit them later.</p>
-      <a href="/employer/candidates" class="emp-btn emp-btn-primary emp-btn-lg">Browse Candidates</a>
-    </div>
-    {{end}}
-  </section>
+  </div>
 </div>
+
+<div class="emp-modal-overlay" id="tp-create-modal" style="display:none;">
+  <div class="emp-modal">
+    <div class="emp-modal-head">
+      <h3 class="emp-modal-title">Create Talent Pool</h3>
+      <button class="emp-modal-close" id="tp-create-modal-close">&times;</button>
+    </div>
+    <div class="emp-modal-body">
+      <div id="tp-create-error" class="emp-modal-error" style="display:none;margin-bottom:16px;">
+        <p id="tp-create-error-msg"></p>
+      </div>
+      <div class="emp-field">
+        <label class="emp-label">Pool Name</label>
+        <input type="text" id="tp-create-name" class="emp-input" placeholder="e.g. Backend Engineers">
+      </div>
+      <div class="emp-field">
+        <label class="emp-label">Description (Optional)</label>
+        <textarea id="tp-create-desc" class="emp-textarea" rows="2" placeholder="What kind of candidates belong here?"></textarea>
+      </div>
+    </div>
+    <div class="emp-modal-foot">
+      <button class="emp-btn emp-btn-ghost" id="tp-create-cancel">Cancel</button>
+      <button class="emp-btn emp-btn-primary" id="tp-create-confirm" disabled>Create Pool</button>
+    </div>
+  </div>
+</div>
+
+<div class="emp-modal-overlay" id="tp-delete-modal" style="display:none;">
+  <div class="emp-modal" style="max-width:420px;">
+    <div class="emp-modal-head">
+      <h3 class="emp-modal-title">Delete Pool</h3>
+      <button class="emp-modal-close" id="tp-delete-modal-close">&times;</button>
+    </div>
+    <div class="emp-modal-body">
+      <p style="margin:0;font-size:14px;color:var(--text);">
+        Delete <strong id="tp-delete-name">this pool</strong> and remove all its candidates?
+      </p>
+      <div id="tp-delete-error" class="emp-modal-error" style="display:none;margin-top:16px;">
+        <p id="tp-delete-error-msg"></p>
+      </div>
+    </div>
+    <div class="emp-modal-foot">
+      <button class="emp-btn emp-btn-ghost" id="tp-delete-cancel">Cancel</button>
+      <button class="emp-btn emp-btn-danger" id="tp-delete-confirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="tp-toast" class="emp-toast" style="display:none;"></div>
 
 <style>
 .emp-page-head {
@@ -60,6 +91,7 @@
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 .emp-page-title {
   font-family: var(--fh);
@@ -73,15 +105,9 @@
   color: var(--muted);
   margin-top: 4px;
 }
-.emp-count {
-  font-family: var(--fm);
-  font-size: 10px;
-  padding: 4px 12px;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  color: var(--muted);
-  letter-spacing: 0.3px;
+.emp-page-actions {
+  display: flex;
+  gap: 12px;
 }
 
 .emp-btn {
@@ -94,7 +120,7 @@
   letter-spacing: 0.5px;
   border-radius: var(--radius);
   white-space: nowrap;
-  transition: all 0.15s;
+  transition: opacity 0.15s, transform 0.1s;
   cursor: pointer;
   border: none;
 }
@@ -106,132 +132,47 @@
   background: linear-gradient(135deg, var(--purple) 0%, #ec4899 100%);
 }
 .emp-btn-primary:hover { opacity: 0.85; }
+.emp-btn-secondary {
+  color: var(--text);
+  background: var(--s2);
+  border: 1px solid var(--border);
+}
+.emp-btn-secondary:hover { border-color: var(--muted2); }
 .emp-btn-outline {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text);
 }
 .emp-btn-outline:hover { border-color: var(--purple); color: var(--purple); }
-.emp-btn-ghost {
-  background: transparent;
-  color: var(--muted);
-}
-.emp-btn-ghost:hover { color: var(--text); background: var(--s2); }
-.emp-btn-danger:hover { color: var(--danger); background: rgba(255,79,79,0.06); }
+.emp-btn-ghost { background: transparent; color: var(--muted); }
+.emp-btn-ghost:hover { background: var(--s2); color: var(--text); }
+.emp-btn-danger { color: var(--danger); }
+.emp-btn-danger:hover { background: rgba(255,79,79,0.06); }
 
-.emp-section {
+.emp-loading, .emp-error {
+  text-align: center;
+  padding: 60px 20px;
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 24px;
   margin-top: 20px;
 }
-.emp-section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-.emp-section-title {
-  font-family: var(--fm);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--text);
-}
-
-.emp-talent-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.emp-talent-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  transition: border-color 0.15s;
-}
-.emp-talent-card:hover { border-color: var(--purple-lt); }
-.emp-talent-main {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex: 1;
-  min-width: 0;
-}
-.emp-talent-avatar {
-  width: 42px;
-  height: 42px;
+.emp-spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--purple);
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--purple), #ec4899);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
 }
-.emp-talent-initials {
-  font-family: var(--fh);
-  font-size: 13px;
-  font-weight: 700;
-  color: #fff;
-}
-.emp-talent-info { flex: 1; min-width: 0; }
-.emp-talent-name {
-  font-family: var(--fh);
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 2px;
-}
-.emp-talent-headline {
-  display: block;
-  font-size: 11px;
-  color: var(--muted);
-  margin-bottom: 6px;
-}
-.emp-talent-tags {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-.emp-tag {
-  font-size: 9px;
-  padding: 2px 7px;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  color: var(--muted);
-  border-radius: 4px;
-}
-.emp-talent-side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.emp-talent-date {
-  font-size: 11px;
-  color: var(--muted2);
-}
-.emp-talent-actions {
-  display: flex;
-  gap: 6px;
-}
+@keyframes spin { to { transform: rotate(360deg); } }
+.emp-error-icon { font-size: 48px; margin-bottom: 16px; }
 
 .emp-empty {
   text-align: center;
   padding: 48px 24px;
 }
-.emp-empty-icon {
-  font-size: 40px;
-  margin-bottom: 16px;
-  opacity: 0.6;
-}
+.emp-empty-icon { font-size: 40px; margin-bottom: 16px; opacity: 0.6; }
 .emp-empty-title {
   font-family: var(--fh);
   font-size: 18px;
@@ -247,9 +188,229 @@
   line-height: 1.5;
 }
 
-@media (max-width: 700px) {
+.tp-pool {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-top: 20px;
+  overflow: hidden;
+}
+.tp-pool-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--s2);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.tp-pool-head:hover { background: var(--s3); }
+.tp-pool-head-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.tp-pool-name {
+  font-family: var(--fh);
+  font-size: 15px;
+  font-weight: 600;
+}
+.tp-pool-count {
+  font-family: var(--fm);
+  font-size: 10px;
+  padding: 2px 8px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+}
+.tp-pool-head-actions {
+  display: flex;
+  gap: 6px;
+}
+.tp-pool-body {
+  padding: 0;
+}
+.tp-candidate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.tp-candidate:last-child { border-bottom: none; }
+.tp-candidate:hover { background: var(--s2); }
+.tp-candidate-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+.tp-candidate-avatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), #ec4899);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.tp-candidate-initials {
+  font-family: var(--fh);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+.tp-candidate-info { flex: 1; min-width: 0; }
+.tp-candidate-name {
+  font-family: var(--fh);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.tp-candidate-headline {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tp-candidate-date {
+  font-size: 10px;
+  color: var(--muted2);
+  white-space: nowrap;
+}
+.tp-candidate-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.tp-candidate-empty {
+  text-align: center;
+  padding: 32px 20px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.emp-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.emp-modal {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+}
+.emp-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.emp-modal-title {
+  font-family: var(--fh);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+.emp-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--muted);
+}
+.emp-modal-body { padding: 24px; }
+.emp-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+}
+.emp-modal-error {
+  text-align: center;
+  padding: 12px;
+  background: rgba(255,79,79,0.08);
+  border-radius: 8px;
+  color: var(--danger);
+  font-size: 13px;
+}
+.emp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.emp-label {
+  font-family: var(--fm);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.emp-input {
+  padding: 10px 12px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+.emp-input:focus { border-color: var(--purple); }
+.emp-textarea {
+  padding: 10px 12px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.emp-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  z-index: 2000;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  animation: toast-in 0.25s ease-out;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.emp-toast.success { background: var(--accent); color: #000; }
+.emp-toast.error { background: var(--danger); color: #fff; }
+
+@media (max-width: 860px) {
   .emp-page-head { flex-direction: column; align-items: flex-start; }
-  .emp-talent-card { flex-direction: column; align-items: stretch; }
-  .emp-talent-side { flex-direction: row; align-items: center; justify-content: space-between; }
+  .emp-page-actions { width: 100%; }
+  .tp-candidate { flex-direction: column; align-items: stretch; }
+  .tp-candidate-main { flex-wrap: wrap; }
+  .tp-candidate-actions { justify-content: flex-end; }
 }
 </style>
+
+<script src="/static/js/pages/employer/talent-pool.js"></script>

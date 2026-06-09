@@ -73,7 +73,9 @@ type Config struct {
 	IntaSendPublishableKey string
 
 	// Admin
-	AdminEmail string
+	AdminEmail    string
+	AdminPassword string
+	AdminPort     string
 
 	// App Settings
 	AppName     string
@@ -81,6 +83,7 @@ type Config struct {
 	AppDomain   string
 	PageSize    int
 	MaxJobPosts int // Free tier limit
+	UploadDir   string
 
 	TwoFAEncryptionKey     string
 	SMSProvider            string
@@ -170,7 +173,9 @@ func LoadConfig() (*Config, error) {
 		IntaSendPublishableKey: getEnv("INTASEND_PUBLISHABLE_KEY", ""),
 
 		// Admin
-		AdminEmail: getEnv("ADMIN_EMAIL", ""),
+		AdminEmail:    getEnv("ADMIN_EMAIL", "admin@angazia.com"),
+		AdminPassword: getEnv("ADMIN_PASSWORD", ""),
+		AdminPort:     getEnv("ADMIN_PORT", "3001"),
 
 		// App Settings
 		AppName:     getEnv("APP_NAME", "Kenyan Dev Marketplace"),
@@ -178,6 +183,7 @@ func LoadConfig() (*Config, error) {
 		AppDomain:   getEnv("APP_DOMAIN", "localhost"),
 		PageSize:    getEnvAsInt("PAGE_SIZE", 20),
 		MaxJobPosts: getEnvAsInt("MAX_JOB_POSTS", 3),
+		UploadDir:   getEnv("UPLOAD_DIR", "web/uploads"),
 
 		// 2FA
 		TwoFAEncryptionKey:    getEnv("TWOFA_ENCRYPTION_KEY", ""),

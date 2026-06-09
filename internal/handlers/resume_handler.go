@@ -92,6 +92,44 @@ func (h *ResumeHandler) GetSuggestedSkills(c *fiber.Ctx) error {
 	})
 }
 
+// UploadAvatar handles profile picture upload
+func (h *ResumeHandler) UploadAvatar(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		return utils.BadRequest(c, "Please upload an avatar image")
+	}
+
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	allowedExts := map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".webp": true}
+	if !allowedExts[ext] {
+		return utils.BadRequest(c, "Invalid file type. Allowed: JPG, PNG, WEBP")
+	}
+
+	if file.Size > 2*1024*1024 {
+		return utils.BadRequest(c, "File size must be less than 2MB")
+	}
+
+	f, err := file.Open()
+	if err != nil {
+		return utils.InternalServerError(c, "Failed to open file")
+	}
+	defer f.Close()
+
+	avatarURL, err := h.profileService.UploadAvatar(c.Context(), userID.(string), f, file.Filename)
+	if err != nil {
+		return utils.InternalServerError(c, err.Error())
+	}
+
+	return utils.SuccessWithMessage(c, "Avatar uploaded successfully", fiber.Map{
+		"avatar_url": avatarURL,
+	})
+}
+
 // GetProfileWizard returns wizard data
 func (h *ResumeHandler) GetProfileWizard(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")

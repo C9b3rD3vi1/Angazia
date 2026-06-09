@@ -61,9 +61,10 @@ type UserReport struct {
 	ID              string    `json:"id"`
 	Email           string    `json:"email"`
 	Role            string    `json:"role"`
-	FullName        string    `json:"full_name"`
-	CompanyName     string    `json:"company_name"`
-	IsVerified      bool      `json:"is_verified"`
+	FullName              string    `json:"full_name"`
+	CompanyName           string    `json:"company_name"`
+	VerificationStatus    string    `json:"verification_status"`
+	IsVerified            bool      `json:"is_verified"`
 	IsActive        bool      `json:"is_active"`
 	CreatedAt       time.Time `json:"created_at"`
 	LastLoginAt     *time.Time `json:"last_login_at"`

@@ -1,0 +1,246 @@
+{{/* Employer - Job Applications */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title" id="ja-title">Applications</h1>
+      <p class="emp-page-sub" id="ja-subtitle">Loading...</p>
+    </div>
+    <div class="emp-page-actions">
+      <a href="/employer/jobs/{{.JobID}}" class="emp-btn emp-btn-secondary">View Job</a>
+    </div>
+  </div>
+
+  <div id="ja-loading" class="emp-loading">
+    <div class="emp-spinner"></div>
+    <p>Loading applications...</p>
+  </div>
+
+  <div id="ja-error" class="emp-error" style="display:none;">
+    <div class="emp-error-icon">&#x26A0;&#xFE0F;</div>
+    <h3>Failed to load applications</h3>
+    <p id="ja-error-msg"></p>
+    <button class="emp-btn emp-btn-primary" onclick="location.reload()">Retry</button>
+  </div>
+
+  <div id="ja-content" style="display:none;">
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <div class="emp-card-header-left">
+          <h2 class="emp-card-title">All Applications</h2>
+          <span id="ja-count" class="emp-count-badge">0</span>
+        </div>
+        <div class="emp-card-actions">
+          <select id="ja-status-filter" class="emp-period-select">
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="shortlisted">Shortlisted</option>
+            <option value="interview">Interview</option>
+            <option value="rejected">Rejected</option>
+            <option value="hired">Hired</option>
+          </select>
+          <select id="ja-sort" class="emp-period-select">
+            <option value="newest">Newest First</option>
+            <option value="match">Best Match</option>
+          </select>
+        </div>
+      </div>
+      <div class="emp-card-body p-0">
+        <div class="ja-bulk-bar" id="ja-bulk-bar" style="display:none;">
+          <span id="ja-selected-count">0 selected</span>
+          <button id="ja-bulk-shortlist" class="emp-btn emp-btn-primary">Shortlist</button>
+          <button id="ja-bulk-reject" class="emp-btn emp-btn-danger">Reject</button>
+          <button id="ja-clear-selection" class="emp-btn emp-btn-secondary">Clear</button>
+        </div>
+        <div class="emp-table-responsive">
+          <table class="emp-table emp-table-hover">
+            <thead>
+              <tr>
+                <th style="width:40px;"><input type="checkbox" id="ja-select-all"></th>
+                <th>Candidate</th>
+                <th>Applied</th>
+                <th>Match</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="ja-tbody">
+              <tr><td colspan="6" class="emp-loading-cell">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="ja-pagination" class="emp-pagination"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.emp-loading, .emp-error {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-top: 20px;
+}
+.emp-spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--purple);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.emp-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.emp-page-title {
+  font-family: var(--fh);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.emp-page-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.emp-page-actions { display: flex; gap: 12px; }
+.emp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  transition: opacity 0.15s, transform 0.1s;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+}
+.emp-btn:active { transform: scale(0.97); }
+.emp-btn-primary { color: #fff; background: linear-gradient(135deg, var(--purple) 0%, #ec4899 100%); }
+.emp-btn-primary:hover { opacity: 0.85; }
+.emp-btn-secondary { color: var(--text); background: var(--s2); border: 1px solid var(--border); }
+.emp-btn-secondary:hover { border-color: var(--muted2); }
+.emp-btn-danger { color: #fff; background: var(--danger); }
+.emp-btn-danger:hover { opacity: 0.85; }
+.emp-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.emp-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--s2);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.emp-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.emp-card-title {
+  font-family: var(--fm);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 0;
+}
+.emp-count-badge {
+  background: var(--purple);
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.emp-card-actions { display: flex; gap: 8px; }
+.emp-period-select {
+  padding: 6px 12px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.emp-card-body { padding: 0; }
+.emp-card-body.p-0 { padding: 0; }
+.emp-table-responsive { overflow-x: auto; }
+.emp-table { width: 100%; border-collapse: collapse; }
+.emp-table th {
+  text-align: left;
+  padding: 12px 16px;
+  background: var(--s1);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+.emp-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.emp-table-hover tbody tr:hover { background: var(--s2); cursor: pointer; }
+.emp-loading-cell { text-align: center; padding: 40px !important; color: var(--muted); }
+.emp-link { color: var(--purple); text-decoration: none; font-size: 12px; }
+.emp-link:hover { text-decoration: underline; }
+.emp-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), #ec4899);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 600; font-size: 14px; flex-shrink: 0;
+}
+.emp-match-score { font-weight: 600; color: var(--accent); }
+.emp-status-badge {
+  display: inline-block; padding: 4px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 500;
+}
+.emp-status-badge.pending { background: rgba(245,166,35,0.12); color: var(--warn); }
+.emp-status-badge.shortlisted { background: rgba(0,229,160,0.12); color: var(--accent); }
+.emp-status-badge.rejected { background: rgba(239,68,68,0.12); color: var(--danger); }
+.emp-status-badge.hired { background: rgba(0,229,160,0.2); color: var(--accent); }
+.emp-status-badge.interview { background: rgba(139,92,246,0.12); color: var(--purple); }
+.ja-bulk-bar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px; background: var(--s2); border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.emp-pagination {
+  display: flex; justify-content: center; align-items: center; gap: 8px;
+  padding: 16px;
+}
+.emp-page-btn {
+  padding: 6px 14px; background: var(--s2); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); font-size: 12px; cursor: pointer;
+}
+.emp-page-btn:hover { border-color: var(--purple); }
+.emp-page-btn.active { background: var(--purple); color: #fff; border-color: var(--purple); }
+.emp-page-btn:disabled { opacity: 0.4; cursor: default; }
+.emp-page-info { font-size: 12px; color: var(--muted); }
+
+@media (max-width: 860px) {
+  .emp-page-head { flex-direction: column; align-items: flex-start; }
+  .emp-card-header { flex-direction: column; align-items: flex-start; }
+}
+</style>
+
+<script src="/static/js/pages/employer/job-applications.js"></script>

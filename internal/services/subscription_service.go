@@ -37,6 +37,7 @@ type CalculateProrationResult struct {
 type SubscriptionService interface {
 	// Plan management
 	GetPlans(ctx context.Context) ([]*models.SubscriptionPlan, error)
+	GetAllPlans(ctx context.Context, includeInactive bool) ([]*models.SubscriptionPlan, error)
 	GetPlanByID(ctx context.Context, planID string) (*models.SubscriptionPlan, error)
 	CreatePlan(ctx context.Context, req *CreatePlanRequest) (*models.SubscriptionPlan, error)
 	UpdatePlan(ctx context.Context, planID string, req *UpdatePlanRequest) (*models.SubscriptionPlan, error)
@@ -92,6 +93,7 @@ type SubscriptionService interface {
 	// Admin
 	GetAllSubscriptions(ctx context.Context, filters map[string]interface{}, page, limit int) ([]*models.Subscription, int64, error)
 	GetSubscriptionHistory(ctx context.Context, subscriptionID string, page, limit int) ([]*models.SubscriptionHistory, int64, error)
+	AdminAssignSubscription(ctx context.Context, userID, planID string) (*models.Subscription, error)
 }
 
 type SubscribeRequest struct {
@@ -159,12 +161,25 @@ func (s *SubscriptionServiceImpl) GetPlans(ctx context.Context) ([]*models.Subsc
 	return s.subscriptionRepo.GetAllPlans(ctx, false)
 }
 
-func (s *SubscriptionServiceImpl) GetPlanByID(ctx context.Context, planID string) (*models.SubscriptionPlan, error) {
-	return s.subscriptionRepo.GetPlanByPlanID(ctx, planID)
+func (s *SubscriptionServiceImpl) GetAllPlans(ctx context.Context, includeInactive bool) ([]*models.SubscriptionPlan, error) {
+	return s.subscriptionRepo.GetAllPlans(ctx, includeInactive)
 }
 
+// GetPlanByID retrieves a plan by ID (supports both UUID and plan_id)
+func (s *SubscriptionServiceImpl) GetPlanByID(ctx context.Context, id string) (*models.SubscriptionPlan, error) {
+	// Try by plan_id first (string key like "free", "pro_monthly")
+	plan, err := s.subscriptionRepo.GetPlanByPlanID(ctx, id)
+	if err == nil {
+		return plan, nil
+	}
+	
+	// If not found, try by UUID
+	return s.subscriptionRepo.GetPlan(ctx, id)
+}
+
+
 func (s *SubscriptionServiceImpl) CreatePlan(ctx context.Context, req *CreatePlanRequest) (*models.SubscriptionPlan, error) {
-	features := make(models.JSONArray, len(req.Features))
+	features := make(models.StringArray, len(req.Features))
 	for i, f := range req.Features {
 		features[i] = f
 	}
@@ -574,6 +589,48 @@ func (s *SubscriptionServiceImpl) ExpireSubscriptions(ctx context.Context) error
 	}
 	
 	for _, sub := range expired {
+		// Trial expired — downgrade to free plan instead of marking expired
+		if sub.Status == "trialing" {
+			freePlan, err := s.subscriptionRepo.GetPlanByPlanID(ctx, "free")
+			if err != nil {
+				// If free plan doesn't exist, just expire it
+				sub.Status = "expired"
+				s.subscriptionRepo.UpdateSubscription(ctx, sub)
+				continue
+			}
+			
+			sub.Status = "active"
+			sub.PlanID = freePlan.PlanID
+			sub.PlanName = freePlan.Name
+			sub.Amount = freePlan.Price
+			sub.JobPostLimit = freePlan.JobPostLimit
+			sub.Features = freePlan.Features
+			sub.FeatureFlags = freePlan.FeatureFlags
+			// Set end_date far in the future since free plans don't expire
+			sub.EndDate = time.Now().AddDate(100, 0, 0)
+			sub.CurrentPeriodEnd = time.Now().AddDate(100, 0, 0)
+			sub.TrialEndsAt = nil
+			sub.AutoRenew = false
+			sub.UpdatedAt = time.Now()
+			s.subscriptionRepo.UpdateSubscription(ctx, sub)
+			
+			history := &models.SubscriptionHistory{
+				SubscriptionID: sub.ID,
+				UserID:         sub.UserID,
+				OldPlanID:      sub.PlanID,
+				NewPlanID:      freePlan.PlanID,
+				Action:         "downgraded_from_trial",
+				Reason:         "Trial period ended",
+			}
+			s.subscriptionRepo.AddHistory(ctx, history)
+
+			// Update employer profile's subscription_plan field
+			s.userRepo.UpdateEmployerProfile(ctx, sub.UserID, map[string]interface{}{
+				"subscription_plan": "free",
+			})
+			continue
+		}
+		
 		sub.Status = "expired"
 		s.subscriptionRepo.UpdateSubscription(ctx, sub)
 		
@@ -1128,6 +1185,72 @@ func (s *SubscriptionServiceImpl) GetAllSubscriptions(ctx context.Context, filte
 
 func (s *SubscriptionServiceImpl) GetSubscriptionHistory(ctx context.Context, subscriptionID string, page, limit int) ([]*models.SubscriptionHistory, int64, error) {
 	return s.subscriptionRepo.GetSubscriptionHistory(ctx, subscriptionID, page, limit)
+}
+
+func (s *SubscriptionServiceImpl) AdminAssignSubscription(ctx context.Context, userID, planID string) (*models.Subscription, error) {
+	plan, err := s.subscriptionRepo.GetPlanByPlanID(ctx, planID)
+	if err != nil {
+		return nil, fmt.Errorf("plan not found: %w", err)
+	}
+
+	// Cancel any existing active subscription
+	existing, _ := s.subscriptionRepo.GetActiveSubscriptionByUser(ctx, userID)
+	if existing != nil {
+		s.CancelSubscription(ctx, userID, existing.ID, "Admin reassigned to "+plan.PlanID)
+	}
+
+	now := time.Now()
+	periodEnd := s.calculatePeriodEnd(now, plan.Interval, plan.IntervalCount)
+
+	subscription := &models.Subscription{
+		UserID:             userID,
+		PlanID:             plan.PlanID,
+		PlanName:           plan.Name,
+		Amount:             plan.Price,
+		Currency:           plan.Currency,
+		Interval:           plan.Interval,
+		Status:             "active",
+		StartDate:          now,
+		EndDate:            periodEnd,
+		AutoRenew:          true,
+		JobPostLimit:       plan.JobPostLimit,
+		FeatureFlags:       plan.FeatureFlags,
+		Features:           plan.Features,
+		CurrentPeriodStart: now,
+		CurrentPeriodEnd:   periodEnd,
+	}
+
+	if plan.TrialDays > 0 {
+		trialEnd := now.AddDate(0, 0, plan.TrialDays)
+		subscription.TrialEndsAt = &trialEnd
+	}
+
+	if err := s.subscriptionRepo.CreateSubscription(ctx, subscription); err != nil {
+		return nil, fmt.Errorf("failed to create subscription: %w", err)
+	}
+
+	// Update employer profile
+	updates := map[string]interface{}{
+		"subscription_plan":       plan.PlanID,
+		"subscription_expires_at": periodEnd,
+		"subscription_job_posts":  plan.JobPostLimit,
+	}
+	s.userRepo.UpdateEmployerProfile(ctx, userID, updates)
+
+	// Create subscription usage records
+	s.createUsageRecords(ctx, subscription.ID, userID, plan)
+
+	// Log history
+	history := &models.SubscriptionHistory{
+		SubscriptionID: subscription.ID,
+		UserID:         userID,
+		NewPlanID:      plan.PlanID,
+		NewAmount:      plan.Price,
+		Action:         "admin_assigned",
+	}
+	s.subscriptionRepo.AddHistory(ctx, history)
+
+	return subscription, nil
 }
 
 // ========== HELPER METHODS ==========

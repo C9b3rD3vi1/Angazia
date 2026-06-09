@@ -11,6 +11,25 @@
 
     <section class="emp-section">
       <div class="emp-section-head">
+        <h2 class="emp-section-title">&#x1F5BC; Profile Picture</h2>
+      </div>
+      <div class="emp-avatar-section">
+        <div class="emp-avatar-preview">
+          <div class="emp-avatar-img-wrap">
+            {{if .User.Avatar}}<img src="{{.User.Avatar}}" alt="Profile" id="avatar-preview-img" class="emp-avatar-img">{{else}}<span class="emp-avatar-placeholder" id="avatar-preview-init">{{.User.Initials}}</span>{{end}}
+          </div>
+        </div>
+        <div class="emp-avatar-actions">
+          <label class="emp-btn emp-btn-secondary emp-btn-sm" for="avatar-upload-input">Choose Photo</label>
+          <input type="file" id="avatar-upload-input" accept="image/jpeg,image/png,image/webp" hidden>
+          <button type="button" id="avatar-upload-btn" class="emp-btn emp-btn-primary emp-btn-sm" disabled>Upload</button>
+          <span class="emp-hint" id="avatar-file-name"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="emp-section">
+      <div class="emp-section-head">
         <h2 class="emp-section-title">&#x1F464; Profile Information</h2>
       </div>
       <form id="form-profile" class="emp-form">
@@ -95,6 +114,31 @@
 
     <section class="emp-section">
       <div class="emp-section-head">
+        <h2 class="emp-section-title">&#x1F510; Two-Factor Authentication</h2>
+      </div>
+      <div id="tfa-section" class="emp-form">
+        <div id="tfa-status-loading" class="emp-form-group">
+          <p class="emp-form-label" style="text-transform:none;letter-spacing:0">Checking 2FA status...</p>
+        </div>
+        <div id="tfa-not-enabled" style="display:none">
+          <p style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5">Add an extra layer of security to your account by enabling two-factor authentication.</p>
+          <button class="emp-btn emp-btn-primary" id="tfa-enable-btn">Enable Two-Factor Authentication</button>
+        </div>
+        <div id="tfa-enabled" style="display:none">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+            <span class="emp-toast emp-toast-success" style="display:inline-block;padding:6px 14px">&#x2713; 2FA is active</span>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="emp-btn emp-btn-outline" id="tfa-view-backup-btn">Generate New Backup Codes</button>
+            <button class="emp-btn emp-btn-outline" id="tfa-disable-btn" style="border-color:rgba(255,79,79,0.3);color:var(--danger)">Disable 2FA</button>
+          </div>
+        </div>
+        <div id="tfa-error" class="emp-toast emp-toast-error" style="display:none;margin-top:8px"></div>
+      </div>
+    </section>
+
+    <section class="emp-section">
+      <div class="emp-section-head">
         <h2 class="emp-section-title">&#x1F4E8; Notification Preferences</h2>
       </div>
       <form id="form-notifications" class="emp-form">
@@ -116,6 +160,49 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+.emp-avatar-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 0;
+}
+.emp-avatar-preview .emp-avatar-img-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,229,160,.12);
+}
+.emp-avatar-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.emp-avatar-placeholder {
+  font-family: var(--fm);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.emp-avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.emp-avatar-actions .emp-hint {
+  font-size: 11px;
+  color: var(--muted2);
+}
+.emp-btn-sm {
+  padding: 8px 16px;
+  font-size: 11px;
 }
 .emp-form {
   display: flex;
@@ -211,6 +298,53 @@
     }
   }
 
+  // Avatar upload
+  var avatarInput = document.getElementById('avatar-upload-input');
+  var avatarBtn = document.getElementById('avatar-upload-btn');
+  var avatarFileName = document.getElementById('avatar-file-name');
+  var avatarPreviewImg = document.getElementById('avatar-preview-img');
+  var avatarPreviewInit = document.getElementById('avatar-preview-init');
+  var selectedAvatarFile = null;
+  if (avatarInput && avatarBtn) {
+    avatarInput.addEventListener('change', function () {
+      selectedAvatarFile = avatarInput.files[0];
+      if (selectedAvatarFile) {
+        avatarBtn.disabled = false;
+        avatarFileName.textContent = selectedAvatarFile.name;
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          if (avatarPreviewImg) {
+            avatarPreviewImg.src = e.target.result;
+            avatarPreviewImg.style.display = '';
+          }
+          if (avatarPreviewInit) avatarPreviewInit.style.display = 'none';
+        };
+        reader.readAsDataURL(selectedAvatarFile);
+      } else {
+        avatarBtn.disabled = true;
+        avatarFileName.textContent = '';
+      }
+    });
+    avatarBtn.addEventListener('click', function () {
+      if (!selectedAvatarFile) return;
+      avatarBtn.disabled = true;
+      avatarBtn.textContent = 'Uploading...';
+      var fd = new FormData();
+      fd.append('avatar', selectedAvatarFile);
+      AngaziaAPI.profile.uploadAvatar(fd).then(function (resp) {
+        toast('Profile picture updated!', 'success');
+        selectedAvatarFile = null;
+        avatarBtn.textContent = 'Upload';
+        avatarFileName.textContent = '';
+        avatarInput.value = '';
+      }).catch(function (err) {
+        toast(err.message || 'Failed to upload avatar', 'error');
+        avatarBtn.disabled = false;
+        avatarBtn.textContent = 'Upload';
+      });
+    });
+  }
+
   // Profile form
   var pf = document.getElementById('form-profile');
   if (pf) {
@@ -266,6 +400,83 @@
       });
     });
   }
+
+  // Two-Factor Authentication
+  (function(){
+    var loadingEl=document.getElementById('tfa-status-loading');
+    var notEnabled=document.getElementById('tfa-not-enabled');
+    var enabledDiv=document.getElementById('tfa-enabled');
+    var tfaError=document.getElementById('tfa-error');
+    function showTfaError(m){
+      if(tfaError){tfaError.textContent=m;tfaError.style.display='';}
+    }
+    function hideTfaError(){
+      if(tfaError)tfaError.style.display='none';
+    }
+    AngaziaAPI.auth.twoFA.status().then(function(data){
+      if(loadingEl)loadingEl.style.display='none';
+      if(data&&data.enabled){
+        if(notEnabled)notEnabled.style.display='none';
+        if(enabledDiv)enabledDiv.style.display='';
+      }else{
+        if(notEnabled)notEnabled.style.display='';
+        if(enabledDiv)enabledDiv.style.display='none';
+      }
+    }).catch(function(){
+      if(loadingEl)loadingEl.style.display='none';
+      if(notEnabled)notEnabled.style.display='';
+      if(enabledDiv)enabledDiv.style.display='none';
+    });
+    var enableBtn=document.getElementById('tfa-enable-btn');
+    if(enableBtn){
+      enableBtn.addEventListener('click',function(){
+        window.open('/auth/2fa/setup','_blank');
+      });
+    }
+    var disableBtn=document.getElementById('tfa-disable-btn');
+    if(disableBtn){
+      disableBtn.addEventListener('click',function(){
+        if(!confirm('Are you sure you want to disable two-factor authentication?'))return;
+        var code=prompt('Enter your current TOTP code (or a backup code):');
+        if(!code)return;
+        var password=prompt('Confirm your password:');
+        if(!password)return;
+        hideTfaError();
+        disableBtn.disabled=true;
+        disableBtn.textContent='Disabling\u2026';
+        AngaziaAPI.auth.twoFA.disable({code:code,password:password}).then(function(){
+          window.location.reload();
+        }).catch(function(err){
+          disableBtn.disabled=false;
+          disableBtn.textContent='Disable 2FA';
+          showTfaError((err.body&&err.body.message)||err.message||'Failed to disable 2FA');
+        });
+      });
+    }
+    var viewBackupBtn=document.getElementById('tfa-view-backup-btn');
+    if(viewBackupBtn){
+      viewBackupBtn.addEventListener('click',function(){
+        hideTfaError();
+        if(!confirm('Generate new backup codes? Your existing codes will be invalidated.'))return;
+        viewBackupBtn.disabled=true;
+        viewBackupBtn.textContent='Generating\u2026';
+        AngaziaAPI.auth.twoFA.generateBackupCodes().then(function(data){
+          viewBackupBtn.disabled=false;
+          viewBackupBtn.textContent='Generate New Backup Codes';
+          if(data&&data.backup_codes&&data.backup_codes.length){
+            var msg='Your New Backup Codes:\n\n'+data.backup_codes.join('\n')+'\n\nStore these securely! You will not be able to view them again.';
+            alert(msg);
+          }else{
+            showTfaError('Failed to generate backup codes');
+          }
+        }).catch(function(err){
+          viewBackupBtn.disabled=false;
+          viewBackupBtn.textContent='Generate New Backup Codes';
+          showTfaError((err.body&&err.body.message)||err.message||'Failed to generate backup codes');
+        });
+      });
+    }
+  })();
 
   // Notifications form
   var nf = document.getElementById('form-notifications');

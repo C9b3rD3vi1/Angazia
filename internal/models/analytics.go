@@ -32,6 +32,7 @@ type JobPerformance struct {
 	Applications       int       `json:"applications"`
 	Shortlisted        int       `json:"shortlisted"`
 	Hired              int       `json:"hired"`
+	IsActive           bool      `json:"is_active"`
 	ViewToAppRate      float64   `json:"view_to_app_rate"`
 	AppToShortlistRate float64   `json:"app_to_shortlist_rate"`
 	ShortlistToHireRate float64  `json:"shortlist_to_hire_rate"`
@@ -39,6 +40,16 @@ type JobPerformance struct {
 	DaysToHire         *int      `json:"days_to_hire,omitempty"`
 	CostPerHire        *float64  `json:"cost_per_hire,omitempty"`
 	PostedAt           time.Time `json:"posted_at"`
+}
+
+// DashboardStats represents the key metrics for the employer dashboard
+type DashboardStats struct {
+	ActiveJobs       int     `json:"active_jobs"`
+	TotalApplicants  int     `json:"total_applicants"`
+	NewApplications  int     `json:"new_applications"`
+	ProfileViews     int     `json:"profile_views"`
+	ShortlistedCount int     `json:"shortlisted_count"`
+	HiredCount       int     `json:"hired_count"`
 }
 
 // TimeToHireMetric represents time-to-hire statistics
@@ -100,6 +111,40 @@ type DropOffPoint struct {
 	DropOffCount int    `json:"drop_off_count"`
 	DropOffRate  float64 `json:"drop_off_rate"`
 	Suggestion   string  `json:"suggestion"`
+}
+
+// DashboardResponse combines all dashboard data into a single API response
+type DashboardResponse struct {
+	Stats            *DashboardStats           `json:"stats"`
+	Trends           *ApplicationTrendsResponse `json:"trends"`
+	Funnel           *FunnelResponse           `json:"funnel"`
+	Jobs             []JobPerformance          `json:"jobs"`
+	RecentApps       []RecentApplication       `json:"recent_applications"`
+	Subscription     *SubscriptionInfo         `json:"subscription"`
+}
+
+// RecentApplication is a lightweight application for dashboard lists
+type RecentApplication struct {
+	ID            string `json:"id"`
+	CandidateName string `json:"candidate_name"`
+	CandidateEmail string `json:"candidate_email"`
+	JobTitle      string `json:"job_title"`
+	JobID         string `json:"job_id"`
+	Status        string `json:"status"`
+	MatchScore    float64 `json:"match_score"`
+	AppliedAt     string `json:"applied_at"`
+}
+
+// SubscriptionInfo is a lightweight subscription view for the dashboard
+type SubscriptionInfo struct {
+	PlanName    string   `json:"plan_name"`
+	Amount      float64  `json:"amount"`
+	Currency    string   `json:"currency"`
+	Interval    string   `json:"interval"`
+	JobsUsed    int      `json:"jobs_used"`
+	JobsLimit   int      `json:"jobs_limit"`
+	Features    []string `json:"features"`
+	Status      string   `json:"status"`
 }
 
 // ExportFormat defines export options

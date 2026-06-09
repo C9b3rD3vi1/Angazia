@@ -28,6 +28,9 @@ type TalentPoolRepository interface {
 	ListCandidatesByPool(ctx context.Context, poolID string, filters CandidateFilters, page, limit int) ([]*models.TalentPoolCandidate, int64, error)
 	ListCandidatesByEmployer(ctx context.Context, employerID string, page, limit int) ([]*models.TalentPoolCandidate, int64, error)
 	
+	// Candidate pool lookup
+	GetCandidatePools(ctx context.Context, employerID, employeeID string) ([]*models.TalentPool, error)
+
 	// Bulk operations
 	BulkAddCandidates(ctx context.Context, candidates []*models.TalentPoolCandidate) error
 	BulkUpdateStatus(ctx context.Context, candidateIDs []string, status string) error
@@ -270,6 +273,19 @@ func (r *TalentPoolRepositoryImpl) ListCandidatesByEmployer(ctx context.Context,
 		Find(&candidates).Error
 	
 	return candidates, total, err
+}
+
+func (r *TalentPoolRepositoryImpl) GetCandidatePools(ctx context.Context, employerID, employeeID string) ([]*models.TalentPool, error) {
+	var pools []*models.TalentPool
+	err := r.db.WithContext(ctx).
+		Model(&models.TalentPool{}).
+		Joins("JOIN talent_pool_candidates ON talent_pool_candidates.talent_pool_id = talent_pools.id").
+		Where("talent_pools.employer_id = ? AND talent_pool_candidates.employee_id = ?", employerID, employeeID).
+		Find(&pools).Error
+	if err != nil {
+		return nil, err
+	}
+	return pools, nil
 }
 
 func (r *TalentPoolRepositoryImpl) BulkAddCandidates(ctx context.Context, candidates []*models.TalentPoolCandidate) error {

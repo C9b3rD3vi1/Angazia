@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	// "github.com/google/uuid"
 	
+	"github.com/C9b3rD3vi1/Angazia/internal/config"
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
@@ -15,6 +16,12 @@ import (
 type AuthHandler struct {
 	authService services.AuthService
 	validator   *validator.Validate
+	cfg         *config.Config
+	twoFAService services.TwoFAService
+}
+
+func (h *AuthHandler) SetTwoFAService(s services.TwoFAService) {
+	h.twoFAService = s
 }
 
 type RegisterRequest struct {
@@ -71,10 +78,11 @@ type UpdateProfileRequest struct {
 	CompanySize        string `json:"company_size"`
 }
 
-func NewAuthHandler(authService services.AuthService) *AuthHandler {
+func NewAuthHandler(authService services.AuthService, cfg *config.Config) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
 		validator:   validator.New(),
+		cfg:         cfg,
 	}
 }
 
@@ -167,6 +175,13 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		
 		return utils.Unauthorized(c, message)
 	}
+
+	if h.twoFAService != nil {
+		userID := response.User.ID
+		if enabled, _ := h.twoFAService.IsEnabled(c.Context(), userID); enabled {
+			response.RequiresTwoFA = true
+		}
+	}
 	
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
@@ -188,6 +203,69 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	})
 	
 	return utils.SuccessWithMessage(c, "Login successful", response)
+}
+
+type AdminLoginRequest struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}
+
+func (h *AuthHandler) AdminLogin(c *fiber.Ctx) error {
+	var req AdminLoginRequest
+	if err := c.BodyParser(&req); err != nil {
+		return utils.BadRequest(c, err.Error())
+	}
+	if err := h.validator.Struct(req); err != nil {
+		return utils.BadRequest(c, err.Error())
+	}
+
+	if req.Email != h.cfg.AdminEmail || req.Password != h.cfg.AdminPassword {
+		return utils.Unauthorized(c, "Invalid admin credentials")
+	}
+
+	ctx := c.Context()
+	user, err := h.authService.GetOrCreateAdmin(ctx, req.Email)
+	if err != nil {
+		return utils.InternalServerError(c, "Failed to authenticate admin")
+	}
+
+	ipAddress := c.IP()
+	if forwarded := c.Get("X-Forwarded-For"); forwarded != "" {
+		ipAddress = strings.Split(forwarded, ",")[0]
+	}
+	userAgent := c.Get("User-Agent")
+
+	response, err := h.authService.GenerateTokens(ctx, user.ID, user.Role, user.Email, ipAddress, userAgent)
+	if err != nil {
+		return utils.InternalServerError(c, "Failed to generate tokens")
+	}
+
+	if h.twoFAService != nil {
+		if enabled, _ := h.twoFAService.IsEnabled(ctx, user.ID); enabled {
+			response.RequiresTwoFA = true
+		}
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    response.AccessToken,
+		HTTPOnly: true,
+		Secure:   !utils.IsDevelopment(),
+		SameSite: "Strict",
+		Path:     "/",
+		MaxAge:   24 * 3600,
+	})
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    response.RefreshToken,
+		HTTPOnly: true,
+		Secure:   !utils.IsDevelopment(),
+		SameSite: "Strict",
+		Path:     "/api/v1/auth/refresh",
+		MaxAge:   7 * 24 * 3600,
+	})
+
+	return utils.SuccessWithMessage(c, "Admin login successful", response)
 }
 
 // Logout handles user logout
@@ -442,6 +520,33 @@ func (h *AuthHandler) GetProfile(c *fiber.Ctx) error {
 		return utils.NotFound(c, "Profile")
 	}
 	
+	return utils.Success(c, profile)
+}
+
+// GetCandidateProfile returns a candidate's profile for employer viewing
+// @Summary Get candidate profile
+// @Description Get a candidate's full profile (employer access)
+// @Tags Candidates
+// @Security BearerAuth
+// @Param id path string true "Candidate ID"
+// @Success 200 {object} APIResponse
+// @Router /employer/candidates/{id} [get]
+func (h *AuthHandler) GetCandidateProfile(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+
+	candidateID := c.Params("id")
+	if candidateID == "" {
+		return utils.BadRequest(c, "Candidate ID is required")
+	}
+
+	profile, err := h.authService.GetCandidateProfile(c.Context(), candidateID)
+	if err != nil {
+		return utils.NotFound(c, "Candidate")
+	}
+
 	return utils.Success(c, profile)
 }
 

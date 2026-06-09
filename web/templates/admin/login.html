@@ -1,0 +1,25 @@
+<link rel="stylesheet" href="/static/css/admin.css">
+{{if .Success}}<div class="alert alert-success">{{.Success}}</div>{{end}}
+{{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
+<div class="al-wrap">
+  <div class="al-card">
+    <div class="al-header">
+      <div class="al-logo">ANGAZ<span>IA</span></div>
+      <h1 class="al-title">Admin Login</h1>
+      <p class="al-sub">Authorized personnel only</p>
+    </div>
+    <div id="al-error" class="al-error" style="display:none"></div>
+    <form id="al-form" class="al-form">
+      <div class="al-field">
+        <label class="al-label" for="al-email">Email</label>
+        <input type="email" id="al-email" class="al-input" value="{{.Email}}" required autocomplete="email" placeholder="admin@angazia.com" autofocus>
+      </div>
+      <div class="al-field">
+        <label class="al-label" for="al-password">Password</label>
+        <input type="password" id="al-password" class="al-input" required autocomplete="current-password" placeholder="Enter your password">
+      </div>
+      <button type="submit" class="al-btn" id="al-submit">Sign In</button>
+    </form>
+  </div>
+</div>
+<script src="/static/js/pages/admin/login.js"></script>

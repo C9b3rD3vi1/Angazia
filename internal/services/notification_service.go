@@ -74,22 +74,25 @@ type UpdatePreferencesRequest struct {
 }
 
 type NotificationServiceImpl struct {
-	cfg             *config.Config
+	cfg              *config.Config
 	notificationRepo repository.NotificationRepository
-	websocketHub    *WebSocketHub
-	emailService    EmailService
+	userRepo         repository.UserRepository
+	websocketHub     *WebSocketHub
+	emailService     EmailService
 }
 
 func NewNotificationService(
 	cfg *config.Config,
 	notificationRepo repository.NotificationRepository,
+	userRepo repository.UserRepository,
 	emailService EmailService,
 ) NotificationService {
 	return &NotificationServiceImpl{
-		cfg:             cfg,
+		cfg:              cfg,
 		notificationRepo: notificationRepo,
-		websocketHub:    GetHub(),
-		emailService:    emailService,
+		userRepo:         userRepo,
+		websocketHub:     GetHub(),
+		emailService:     emailService,
 	}
 }
 
@@ -502,6 +505,12 @@ func (s *NotificationServiceImpl) getIconForType(notifType string) string {
 }
 
 func (s *NotificationServiceImpl) sendEmailNotification(notification *models.Notification, userID string) {
-	// Send email via email service
-	// This would fetch user email and send
+	user, err := s.userRepo.GetByID(context.Background(), userID)
+	if err != nil || user == nil {
+		return
+	}
+	subject := notification.Title
+	textBody := notification.Content
+	htmlBody := fmt.Sprintf("<div style=\"font-family:sans-serif;padding:20px;max-width:600px;margin:0 auto\"><h2>%s</h2><p>%s</p><hr style=\"border:none;border-top:1px solid #eee;margin:20px 0\"><p style=\"color:#888;font-size:12px\">You received this because notifications are enabled on your account.</p></div>", notification.Title, notification.Content)
+	s.emailService.SendNotificationEmail(user.Email, subject, htmlBody, textBody, user.Email)
 }

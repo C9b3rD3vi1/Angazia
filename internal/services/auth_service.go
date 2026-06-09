@@ -42,6 +42,11 @@ type AuthService interface {
 	// Profile management
 	GetProfile(ctx context.Context, userID string) (*ProfileResponse, error)
 	UpdateProfile(ctx context.Context, userID string, req *UpdateProfileRequest) error
+	GetCandidateProfile(ctx context.Context, candidateID string) (*ProfileResponse, error)
+
+	// Admin
+	GetOrCreateAdmin(ctx context.Context, email string) (*models.User, error)
+	GenerateTokens(ctx context.Context, userID string, role models.UserRole, email, ipAddress, userAgent string) (*AuthResponse, error)
 }
 
 
@@ -55,10 +60,11 @@ type RegisterRequest struct {
 }
 
 type AuthResponse struct {
-	User         *UserResponse `json:"user"`
-	AccessToken  string        `json:"access_token"`
-	RefreshToken string        `json:"refresh_token"`
-	ExpiresAt    int64         `json:"expires_at"`
+	User          *UserResponse `json:"user"`
+	AccessToken   string        `json:"access_token"`
+	RefreshToken  string        `json:"refresh_token"`
+	ExpiresAt     int64         `json:"expires_at"`
+	RequiresTwoFA bool          `json:"requires_2fa,omitempty"`
 }
 
 type UserResponse struct {
@@ -68,6 +74,7 @@ type UserResponse struct {
 	IsVerified  bool            `json:"is_verified"`
 	FullName    string          `json:"full_name,omitempty"`
 	CompanyName string          `json:"company_name,omitempty"`
+	AvatarURL   string          `json:"avatar_url,omitempty"`
 	CreatedAt   time.Time       `json:"created_at"`
 }
 
@@ -242,6 +249,42 @@ func (s *AuthServiceImpl) Register(ctx context.Context, req *RegisterRequest) (*
 		if err := tx.WithContext(ctx).Create(employerProfile).Error; err != nil {
 			tx.Rollback()
 			return nil, fmt.Errorf("failed to create employer profile: %w", err)
+		}
+
+		// Auto-create a trial subscription
+		var plan models.SubscriptionPlan
+		if err := tx.WithContext(ctx).Where("plan_id = ? AND is_active = ?", "pro_monthly", true).First(&plan).Error; err != nil {
+			if err := tx.WithContext(ctx).Where("plan_id = ?", "free").First(&plan).Error; err != nil {
+				tx.Rollback()
+				return nil, fmt.Errorf("failed to find subscription plan: %w", err)
+			}
+		}
+		now := time.Now()
+		trialEnd := now.AddDate(0, 0, plan.TrialDays)
+		sub := &models.Subscription{
+			ID:                uuid.New().String(),
+			UserID:            user.ID,
+			PlanID:            plan.PlanID,
+			PlanName:          plan.Name,
+			Amount:            plan.Price,
+			Currency:          plan.Currency,
+			Interval:          plan.Interval,
+			Status:            "trialing",
+			StartDate:         now,
+			EndDate:           trialEnd,
+			AutoRenew:         false,
+			JobPostLimit:      plan.JobPostLimit,
+			Features:          plan.Features,
+			FeatureFlags:      plan.FeatureFlags,
+			CurrentPeriodStart: now,
+			CurrentPeriodEnd:  trialEnd,
+			TrialEndsAt:       &trialEnd,
+			CreatedAt:         now,
+			UpdatedAt:         now,
+		}
+		if err := tx.WithContext(ctx).Create(sub).Error; err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("failed to create trial subscription: %w", err)
 		}
 	}
 	
@@ -614,6 +657,7 @@ func (s *AuthServiceImpl) GetProfile(ctx context.Context, userID string) (*Profi
 			Email:      user.Email,
 			Role:       user.Role,
 			IsVerified: user.IsVerified,
+			AvatarURL:  user.AvatarURL,
 			CreatedAt:  user.CreatedAt,
 		},
 	}
@@ -685,6 +729,85 @@ func (s *AuthServiceImpl) UpdateProfile(ctx context.Context, userID string, req 
 	}
 	
 	return errors.New("invalid user role")
+}
+
+func (s *AuthServiceImpl) GetOrCreateAdmin(ctx context.Context, email string) (*models.User, error) {
+	user, err := s.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+	if user != nil {
+		return user, nil
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(s.cfg.AdminPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash admin password: %w", err)
+	}
+
+	adminUser := &models.User{
+		ID:           uuid.New().String(),
+		Email:        email,
+		PasswordHash: string(hashedPassword),
+		Role:         models.RoleAdmin,
+		IsVerified:   true,
+		IsActive:     true,
+	}
+	if err := s.userRepo.Create(ctx, adminUser); err != nil {
+		return nil, fmt.Errorf("failed to create admin user: %w", err)
+	}
+	return adminUser, nil
+}
+
+func (s *AuthServiceImpl) GetCandidateProfile(ctx context.Context, candidateID string) (*ProfileResponse, error) {
+	user, err := s.userRepo.GetByID(ctx, candidateID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+	if user == nil {
+		return nil, errors.New("candidate not found")
+	}
+
+	response := &ProfileResponse{
+		User: &UserResponse{
+			ID:         user.ID,
+			Email:      user.Email,
+			Role:       user.Role,
+			IsVerified: user.IsVerified,
+			CreatedAt:  user.CreatedAt,
+		},
+	}
+
+	profile, githubProfile, err := s.userRepo.GetEmployeeWithGitHub(ctx, candidateID)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("failed to get candidate profile: %w", err)
+	}
+	if profile != nil {
+		response.EmployeeProfile = profile
+		response.User.FullName = profile.FullName
+	}
+
+	if githubProfile != nil {
+		if response.EmployeeProfile != nil {
+			response.EmployeeProfile.GithubProfile = githubProfile
+		}
+	}
+
+	return response, nil
+}
+
+func (s *AuthServiceImpl) GenerateTokens(ctx context.Context, userID string, role models.UserRole, email, ipAddress, userAgent string) (*AuthResponse, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+	if user == nil {
+		return nil, errors.New("user not found")
+	}
+
+	s.logSuccessfulLogin(ctx, user.ID, ipAddress, userAgent)
+
+	return s.generateAuthResponse(ctx, user)
 }
 
 // Private helper methods

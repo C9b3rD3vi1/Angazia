@@ -1,0 +1,95 @@
+{{/* Admin - Settings */}}
+
+<div class="as-wrap">
+  <div class="as-header">
+    <div>
+      <h1 class="as-title">Settings</h1>
+      <p class="as-sub">Manage account security and system-wide configuration</p>
+    </div>
+  </div>
+
+  {{/* Account Section */}}
+  <section class="as-section">
+    <div class="as-section-head">
+      <h2 class="as-section-title">Account</h2>
+    </div>
+    <div class="as-form">
+      <p style="font-size:12px;color:var(--muted);line-height:1.5">
+        Manage your profile information, email, and password on the
+        <a href="/admin/profile" style="color:var(--accent);text-decoration:none;font-weight:500">Profile page</a>.
+      </p>
+    </div>
+  </section>
+
+  {{/* Two-Factor Authentication */}}
+  <section class="as-section">
+    <div class="as-section-head">
+      <h2 class="as-section-title">Two-Factor Authentication</h2>
+    </div>
+    <div id="tfa-section" class="as-form">
+      <div id="tfa-status-loading" class="as-form-group">
+        <p class="as-form-label" style="text-transform:none;letter-spacing:0">Checking 2FA status...</p>
+      </div>
+      <div id="tfa-not-enabled" style="display:none">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">Secure your administrative account by enabling two-factor authentication.</p>
+        <button class="ap-btn ap-btn-primary" id="tfa-enable-btn" style="padding:10px 20px">Enable Two-Factor Authentication</button>
+      </div>
+      <div id="tfa-enabled" style="display:none">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <span class="as-toast as-toast-success" style="display:inline-block;padding:6px 14px">2FA is active</span>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="ap-btn" id="tfa-view-backup-btn" style="padding:10px 20px">Generate New Backup Codes</button>
+          <button class="ap-btn" id="tfa-disable-btn" style="padding:10px 20px;border-color:rgba(255,79,79,0.3);color:var(--danger)">Disable 2FA</button>
+        </div>
+        <div id="tfa-error" class="as-toast as-toast-error" style="display:none;margin-top:8px"></div>
+      </div>
+    </div>
+  </section>
+
+  {{/* System Configuration */}}
+  <section class="as-section">
+    <div class="as-section-head">
+      <h2 class="as-section-title">System Configuration</h2>
+    </div>
+    {{if .GroupedSettings}}
+    <div class="as-settings-list">
+      {{range $category, $settings := .GroupedSettings}}
+      <div class="as-setting-category" style="padding: 14px 16px; border-bottom: 1px solid var(--border);">
+        <span style="font-family:var(--fm);font-size:10px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:0.5px;">{{$category}}</span>
+      </div>
+      {{range $settings}}
+      <div class="as-setting" data-key="{{.Key}}" data-type="{{.Type}}">
+        <div class="as-setting-info">
+          <span class="as-setting-key">{{.Key}}</span>
+          {{if .Description}}<p class="as-setting-desc">{{.Description}}</p>{{end}}
+        </div>
+        <div class="as-setting-control">
+          {{if eq .Type "bool"}}
+          <label class="as-toggle">
+            <input type="checkbox" {{if eq .Value "true"}}checked{{end}} data-action="save-setting">
+            <span class="as-toggle-slider"></span>
+          </label>
+          {{else if eq .Type "int"}}
+          <input class="as-input as-input-sm" type="number" value="{{.Value}}" data-original="{{.Value}}" data-action="save-setting">
+          {{else if eq .Type "json"}}
+          <textarea class="as-input as-textarea as-textarea-code" rows="3" data-key="{{.Key}}" data-original="{{.Value}}">{{.Value}}</textarea>
+          <button class="ap-btn" data-action="save-setting" style="font-size:9px;padding:6px 12px">Save</button>
+          {{else}}
+          <input class="as-input as-input-sm" type="text" value="{{.Value}}" data-original="{{.Value}}" data-action="save-setting">
+          {{end}}
+        </div>
+      </div>
+      {{end}}
+      {{end}}
+    </div>
+    {{else}}
+    <div class="as-empty">
+      <div class="as-empty-icon" style="font-size:28px;opacity:0.3;text-align:center;padding-top:32px">S</div>
+      <p class="as-empty-desc" style="text-align:center;padding:16px;font-size:11px;color:var(--muted2)">No system settings configured. Add entries to the system_settings table to enable configuration.</p>
+    </div>
+    {{end}}
+  </section>
+</div>
+
+<script src="/static/js/pages/admin/settings.js"></script>

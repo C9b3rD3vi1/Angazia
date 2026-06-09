@@ -19,6 +19,7 @@ func SetupTwoFARoutes(api fiber.Router, twoFAHandler *handlers.TwoFAHandler) {
 	twoFA.Get("/backup-codes", twoFAHandler.GetBackupCodes)
 	twoFA.Post("/recovery", twoFAHandler.InitiateRecovery)
 	twoFA.Get("/recover", twoFAHandler.CompleteRecovery)
+	twoFA.Post("/login-verify", twoFAHandler.LoginVerify)
 }
 
 func SetupTwoFAGlobalMiddleware(app *fiber.App, twoFAService services.TwoFAService) {

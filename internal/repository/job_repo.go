@@ -83,13 +83,16 @@ func NewJobRepository(db *gorm.DB) JobRepository {
 }
 
 func (r *JobRepositoryImpl) Create(ctx context.Context, job *models.Job) error {
-	job.ID = uuid.New().String()
-	job.ViewsCount = 0
-	job.ApplicationsCount = 0
-	job.ShortlistedCount = 0
-	job.HiredCount = 0
-	
-	return r.db.WithContext(ctx).Create(job).Error
+    job.ID = uuid.New().String()
+    job.PostedAt = time.Now()
+    job.UpdatedAt = time.Now()
+    job.ViewsCount = 0
+    job.ApplicationsCount = 0
+    job.ShortlistedCount = 0
+    job.HiredCount = 0
+    
+    // Use raw SQL for array types to ensure proper formatting
+    return r.db.WithContext(ctx).Create(job).Error
 }
 
 func (r *JobRepositoryImpl) GetByID(ctx context.Context, id string) (*models.Job, error) {

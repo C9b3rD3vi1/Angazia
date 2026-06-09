@@ -21,6 +21,20 @@ func NewAnalyticsHandler(analyticsService services.AnalyticsService) *AnalyticsH
 	}
 }
 
+func (h *AnalyticsHandler) GetDashboardStats(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+
+	stats, err := h.analyticsService.GetDashboardStats(c.Context(), userID.(string))
+	if err != nil {
+		return utils.InternalServerError(c, err.Error())
+	}
+
+	return utils.Success(c, stats)
+}
+
 func (h *AnalyticsHandler) GetApplicationTrends(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
@@ -29,6 +43,9 @@ func (h *AnalyticsHandler) GetApplicationTrends(c *fiber.Ctx) error {
 
 	period := c.Query("period", "daily")
 	duration, _ := strconv.Atoi(c.Query("duration", "30"))
+	if d := c.QueryInt("days", 0); d > 0 {
+		duration = d
+	}
 
 	trends, err := h.analyticsService.GetApplicationTrends(c.Context(), userID.(string), period, duration)
 	if err != nil {

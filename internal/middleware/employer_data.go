@@ -7,7 +7,7 @@ import (
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
 
-func EmployerPageData(authService services.AuthService) fiber.Handler {
+func EmployerPageData(authService services.AuthService, notificationService services.NotificationService, jobService services.JobService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userID, _ := c.Locals("user_id").(string)
 		if userID == "" {
@@ -24,6 +24,7 @@ func EmployerPageData(authService services.AuthService) fiber.Handler {
 		verified := false
 		plan := "free"
 		jobsUsed := 0
+		logo := ""
 
 		if profile.EmployerProfile != nil {
 			ep := profile.EmployerProfile
@@ -31,6 +32,7 @@ func EmployerPageData(authService services.AuthService) fiber.Handler {
 			verified = ep.IsVerified()
 			plan = ep.SubscriptionPlan
 			jobsUsed = ep.TotalJobsPosted
+			logo = ep.CompanyLogo
 
 			parts := strings.Fields(ep.CompanyName)
 			for _, p := range parts {
@@ -53,6 +55,7 @@ func EmployerPageData(authService services.AuthService) fiber.Handler {
 		userMap := fiber.Map{
 			"Name":     companyName,
 			"Email":    profile.User.Email,
+			"Avatar":   profile.User.AvatarURL,
 			"Initials": initials,
 		}
 
@@ -65,7 +68,7 @@ func EmployerPageData(authService services.AuthService) fiber.Handler {
 		companyMap := fiber.Map{
 			"Name":     companyName,
 			"Initials": initials,
-			"Logo":     "",
+			"Logo":     logo,
 			"Verified": verified,
 		}
 
@@ -76,13 +79,25 @@ func EmployerPageData(authService services.AuthService) fiber.Handler {
 			"JobsLimit":  jobsLimit,
 		}
 
+		unreadCount := 0
+		if counts, err := notificationService.GetUnreadCount(c.Context(), userID); err == nil {
+			unreadCount = counts.TotalUnread
+		}
+
+		jobCount := 0
+		candidateCount := 0
+		if stats, err := jobService.GetJobStats(c.Context(), userID); err == nil {
+			jobCount = int(stats.ActiveJobs)
+			candidateCount = int(stats.TotalApplications)
+		}
+
 		data := fiber.Map{
 			"User":           userMap,
 			"Company":        companyMap,
 			"Subscription":   subMap,
-			"JobCount":       0,
-			"CandidateCount": 0,
-			"UnreadCount":    0,
+			"JobCount":       jobCount,
+			"CandidateCount": candidateCount,
+			"UnreadCount":    unreadCount,
 		}
 
 		c.Locals("_pageData", data)

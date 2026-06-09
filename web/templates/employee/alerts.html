@@ -5,47 +5,114 @@
       <h1 class="emp-page-title">Job Alerts</h1>
       <p class="emp-page-sub">Get notified when matching opportunities open up</p>
     </div>
-    <button class="emp-btn emp-btn-primary">+ New Alert</button>
+    <button class="emp-btn emp-btn-primary" id="create-alert-btn">+ New Alert</button>
   </div>
 
-  <div class="emp-alerts-list">
-    {{if .Alerts}}
-    {{range .Alerts}}
-    <div class="emp-alert-card">
-      <div class="emp-alert-head">
-        <div class="emp-alert-info">
-          <h3 class="emp-alert-name">{{.Name}}</h3>
-          <span class="emp-dot {{if .Active}}emp-dot-green{{else}}emp-dot-gray{{end}}"></span>
-          <span class="emp-alert-state">{{if .Active}}Active{{else}}Paused{{end}}</span>
-        </div>
-        <div class="emp-alert-actions">
-          <button class="emp-alert-toggle">{{if .Active}}Pause{{else}}Resume{{end}}</button>
-          <button class="emp-alert-del">&times;</button>
-        </div>
-      </div>
-      <div class="emp-alert-criteria">
-        <span class="emp-alert-crit">&#x1F4CD; {{.Location}}</span>
-        <span class="emp-alert-crit">&#x1F4BC; {{.JobType}}</span>
-        {{if .Keywords}}<span class="emp-alert-crit">&#x1F50D; {{.Keywords}}</span>{{end}}
-        {{if .SalaryMin}}<span class="emp-alert-crit">&#x1F4B0; {{.SalaryMin}}{{if .SalaryMax}} - {{.SalaryMax}}{{end}}</span>{{end}}
-      </div>
-      <div class="emp-alert-meta">
-        <span>Frequency: <strong>{{.Frequency}}</strong></span>
-        <span>Matches this week: <strong>{{.WeeklyMatches}}</strong></span>
-      </div>
+  {{/* Loading State */}}
+  <div id="alerts-loading" class="emp-loading" style="display: none;">
+    <div class="emp-spinner"></div>
+    <p>Loading your alerts...</p>
+  </div>
+
+  {{/* Error State */}}
+  <div id="alerts-error" class="emp-error" style="display: none;">
+    <div class="emp-error-icon">⚠️</div>
+    <h3>Failed to load alerts</h3>
+    <p id="alerts-error-msg"></p>
+    <button class="emp-btn emp-btn-primary" onclick="location.reload()">Retry</button>
+  </div>
+
+  {{/* Alerts Content */}}
+  <div id="alerts-content" style="display: none;">
+    <div id="alerts-list" class="emp-alerts-list"></div>
+  </div>
+</div>
+
+{{/* Create/Edit Alert Modal */}}
+<div id="alert-modal" class="emp-modal-overlay" style="display: none;">
+  <div class="emp-modal">
+    <div class="emp-modal-head">
+      <h3 class="emp-modal-title" id="modal-title">Create New Alert</h3>
+      <button class="emp-modal-close" id="modal-close">&times;</button>
     </div>
-    {{end}}
-    {{else}}
-    <div class="emp-empty">
-      <div class="emp-empty-icon">&#x1F514;</div>
-      <p class="emp-empty-text">No job alerts set up. Create alerts to get notified about jobs that match your preferences.</p>
-      <button class="emp-btn emp-btn-primary">+ Create Your First Alert</button>
+    <div class="emp-modal-body">
+      <form id="alert-form">
+        <div class="emp-field">
+          <label class="emp-label">Alert Name</label>
+          <input type="text" name="name" class="emp-input" placeholder="e.g., Senior Developer Jobs" required>
+        </div>
+        
+        <div class="emp-field">
+          <label class="emp-label">Keywords</label>
+          <input type="text" name="keywords" class="emp-input" placeholder="e.g., React, Go, Python">
+          <span class="emp-hint">Separate keywords with commas</span>
+        </div>
+        
+        <div class="emp-row-2">
+          <div class="emp-field">
+            <label class="emp-label">Location</label>
+            <input type="text" name="location" class="emp-input" placeholder="Nairobi, Remote, etc.">
+          </div>
+          <div class="emp-field">
+            <label class="emp-label">Job Type</label>
+            <select name="job_type" class="emp-input">
+              <option value="">Any Type</option>
+              <option value="full-time">Full-time</option>
+              <option value="part-time">Part-time</option>
+              <option value="contract">Contract</option>
+              <option value="remote">Remote</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="emp-row-2">
+          <div class="emp-field">
+            <label class="emp-label">Min Salary (KES)</label>
+            <input type="number" name="salary_min" class="emp-input" placeholder="e.g., 100000">
+          </div>
+          <div class="emp-field">
+            <label class="emp-label">Max Salary (KES)</label>
+            <input type="number" name="salary_max" class="emp-input" placeholder="e.g., 200000">
+          </div>
+        </div>
+        
+        <div class="emp-field">
+          <label class="emp-label">Experience Level</label>
+          <select name="experience_level" class="emp-input">
+            <option value="">Any Level</option>
+            <option value="entry">Entry Level</option>
+            <option value="junior">Junior</option>
+            <option value="mid">Mid Level</option>
+            <option value="senior">Senior</option>
+            <option value="lead">Lead</option>
+          </select>
+        </div>
+        
+        <div class="emp-field">
+          <label class="emp-label">Required Skills</label>
+          <input type="text" name="skills" class="emp-input" placeholder="e.g., Go, PostgreSQL, React">
+          <span class="emp-hint">Separate skills with commas</span>
+        </div>
+        
+        <div class="emp-field">
+          <label class="emp-label">Frequency</label>
+          <select name="frequency" class="emp-input">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="instant">Instant (Real-time)</option>
+          </select>
+        </div>
+      </form>
     </div>
-    {{end}}
+    <div class="emp-modal-foot">
+      <button class="emp-btn emp-btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="emp-btn emp-btn-primary" id="modal-save">Save Alert</button>
+    </div>
   </div>
 </div>
 
 <style>
+/* ── Alerts Styles ── */
 .emp-alerts-list {
   display: flex;
   flex-direction: column;
@@ -59,9 +126,10 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  transition: border-color 0.15s;
+  transition: all 0.2s;
 }
-.emp-alert-card:hover { border-color: rgba(0,229,160,0.2); }
+.emp-alert-card:hover { border-color: var(--accent); }
+
 .emp-alert-head {
   display: flex;
   align-items: center;
@@ -73,26 +141,31 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex-wrap: wrap;
 }
 .emp-alert-name {
   font-family: var(--fh);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text);
 }
 .emp-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-.emp-dot-green { background: var(--accent); }
+.emp-dot-green { background: var(--accent); box-shadow: 0 0 4px var(--accent); }
 .emp-dot-gray { background: var(--muted2); }
 .emp-alert-state {
   font-family: var(--fm);
   font-size: 10px;
+  padding: 2px 8px;
+  background: var(--s2);
+  border-radius: 12px;
   color: var(--muted);
 }
+
 .emp-alert-actions {
   display: flex;
   gap: 8px;
@@ -111,9 +184,9 @@
   transition: all 0.15s;
 }
 .emp-alert-toggle:hover { border-color: var(--accent); color: var(--accent); }
-.emp-alert-del {
-  width: 28px;
-  height: 28px;
+.emp-alert-delete {
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -124,14 +197,16 @@
   border-radius: var(--radius);
   cursor: pointer;
   transition: all 0.15s;
-  line-height: 1;
 }
-.emp-alert-del:hover { color: var(--danger); border-color: var(--danger); }
+.emp-alert-delete:hover { color: var(--danger); border-color: var(--danger); }
 
 .emp-alert-criteria {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 .emp-alert-crit {
   font-family: var(--fm);
@@ -139,22 +214,137 @@
   padding: 4px 12px;
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 20px;
   color: var(--muted);
 }
+
 .emp-alert-meta {
   display: flex;
-  gap: 20px;
+  justify-content: space-between;
+  align-items: center;
   font-family: var(--fm);
   font-size: 11px;
   color: var(--muted2);
   letter-spacing: 0.2px;
 }
-.emp-alert-meta strong { color: var(--text); font-weight: 500; }
+.emp-alert-meta strong { color: var(--accent); font-weight: 600; }
+.emp-alert-last-sent {
+  font-size: 10px;
+  color: var(--muted);
+}
 
+/* Modal Styles */
+.emp-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.emp-modal {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.3);
+}
+.emp-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.emp-modal-title {
+  font-family: var(--fh);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+.emp-modal-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--muted);
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.emp-modal-close:hover { color: var(--danger); border-color: var(--danger); }
+.emp-modal-body { padding: 24px; }
+.emp-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+}
+
+.emp-field { margin-bottom: 18px; }
+.emp-label {
+  display: block;
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.emp-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.emp-input:focus { border-color: var(--accent); }
+.emp-input::placeholder { color: var(--muted2); }
+.emp-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--muted2);
+  margin-top: 4px;
+}
+.emp-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.emp-btn-secondary {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.emp-btn-secondary:hover { border-color: var(--muted2); }
+
+/* Responsive */
 @media (max-width: 640px) {
   .emp-alert-head { flex-direction: column; align-items: flex-start; }
-  .emp-alert-actions { width: 100%; }
-  .emp-alert-toggle { flex: 1; text-align: center; }
+  .emp-alert-actions { width: 100%; justify-content: flex-end; }
+  .emp-row-2 { grid-template-columns: 1fr; }
+  .emp-modal { width: 95%; margin: 16px; }
 }
 </style>
+
+<script src="/static/js/pages/employee/alerts.js"></script>

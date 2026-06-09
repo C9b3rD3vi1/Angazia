@@ -1,4 +1,3 @@
-// cmd/seed/main.go or internal/pkg/database/seed_plans.go
 package database
 
 import (
@@ -180,7 +179,7 @@ func SeedSubscriptionPlans(ctx context.Context, planService services.Subscriptio
 				"dedicated_manager":  true,
 			},
 		},
-		// Enterprise Plan (Custom)
+		// Enterprise Plan
 		{
 			PlanID:        "enterprise",
 			Name:          "Enterprise",
@@ -221,29 +220,18 @@ func SeedSubscriptionPlans(ctx context.Context, planService services.Subscriptio
 		// Check if plan already exists
 		existing, _ := planService.GetPlanByID(ctx, planReq.PlanID)
 		if existing != nil {
-			log.Printf("Plan %s already exists, updating...", planReq.PlanID)
-			updateReq := &services.UpdatePlanRequest{
-				Name:         &planReq.Name,
-				Description:  &planReq.Description,
-				Price:        &planReq.Price,
-				IsActive:     boolPtr(true),
-				IsPopular:    &planReq.IsPopular,
-				SortOrder:    &planReq.SortOrder,
-				JobPostLimit: &planReq.JobPostLimit,
-			}
-			planService.UpdatePlan(ctx, planReq.PlanID, updateReq)
+			log.Printf("Plan %s already exists, skipping...", planReq.PlanID)
+			continue
+		}
+		
+		log.Printf("Creating plan %s...", planReq.PlanID)
+		if _, err := planService.CreatePlan(ctx, &planReq); err != nil {
+			log.Printf("Failed to create plan %s: %v", planReq.PlanID, err)
 		} else {
-			log.Printf("Creating plan %s...", planReq.PlanID)
-			if _, err := planService.CreatePlan(ctx, &planReq); err != nil {
-				log.Printf("Failed to create plan %s: %v", planReq.PlanID, err)
-			}
+			log.Printf("✅ Created plan: %s", planReq.PlanID)
 		}
 	}
 
 	log.Println("✅ Subscription plans seeded successfully")
 	return nil
-}
-
-func boolPtr(b bool) *bool {
-	return &b
 }

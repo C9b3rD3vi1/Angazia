@@ -5,91 +5,111 @@
       <h1 class="emp-page-title">Company Profile</h1>
       <p class="emp-page-sub">Manage how candidates see your company</p>
     </div>
-    <a href="/employer/company-edit" class="emp-btn emp-btn-primary">Edit Profile</a>
+    <a href="/employer/company-edit" class="emp-btn emp-btn-primary">✏️ Edit Profile</a>
   </div>
 
-  <div class="emp-grid-2col">
-    <section class="emp-section emp-card-center">
-      <div class="emp-company-logo-wrap">
-        <div class="emp-company-logo">
-          {{if .Company.Logo}}
-          <img src="{{.Company.Logo}}" alt="{{.Company.Name}}">
-          {{else}}
-          <span class="emp-company-logo-init">{{.Company.Initials}}</span>
-          {{end}}
-        </div>
-      </div>
-      <h2 class="emp-company-name">{{.Company.Name}}</h2>
-      <span class="emp-badge {{if .Company.Verified}}emp-badge-verified{{else}}emp-badge-pending{{end}}">
-        {{if .Company.Verified}}&#x2705; Verified Employer{{else}}&#x23F3; Verification Pending{{end}}
-      </span>
+  {{/* Loading State */}}
+  <div id="company-loading" class="emp-loading">
+    <div class="emp-spinner"></div>
+    <p>Loading company profile...</p>
+  </div>
 
-      <div class="emp-company-stats">
-        <div class="emp-company-stat">
-          <span class="emp-company-stat-val">{{.Stats.TotalJobs}}</span>
-          <span class="emp-company-stat-lbl">Jobs Posted</span>
-        </div>
-        <div class="emp-company-stat">
-          <span class="emp-company-stat-val">{{.Stats.TotalHires}}</span>
-          <span class="emp-company-stat-lbl">Hires Made</span>
-        </div>
-        <div class="emp-company-stat">
-          <span class="emp-company-stat-val">{{.Stats.ActiveJobs}}</span>
-          <span class="emp-company-stat-lbl">Active Now</span>
-        </div>
-      </div>
-    </section>
+  {{/* Error State */}}
+  <div id="company-error" class="emp-error" style="display:none;">
+    <div class="emp-error-icon">⚠️</div>
+    <h3>Failed to load company profile</h3>
+    <p id="company-error-msg"></p>
+    <button class="emp-btn emp-btn-primary" onclick="location.reload()">Retry</button>
+  </div>
 
-    <section class="emp-section">
-      <div class="emp-section-head">
-        <h2 class="emp-section-title">Company Details</h2>
-      </div>
-      <dl class="emp-dl">
-        <div class="emp-dl-row">
-          <dt>Industry</dt>
-          <dd>{{.Company.Industry}}</dd>
+  {{/* Content */}}
+  <div id="company-content" style="display:none;">
+    <div class="emp-grid-2col">
+      {{/* Left Column - Company Identity */}}
+      <section class="emp-section emp-card-center">
+        <div class="emp-company-logo-wrap">
+          <div class="emp-company-logo">
+            <img id="company-logo-img" src="" style="display:none;">
+            <span id="company-logo-initials" class="emp-company-logo-init">??</span>
+          </div>
         </div>
-        <div class="emp-dl-row">
-          <dt>Company Size</dt>
-          <dd>{{.Company.Size}}</dd>
-        </div>
-        <div class="emp-dl-row">
-          <dt>Location</dt>
-          <dd>{{.Company.Location}}</dd>
-        </div>
-        <div class="emp-dl-row">
-          <dt>Website</dt>
-          <dd>
-            {{if .Company.Website}}
-            <a href="{{.Company.Website}}" class="emp-link" target="_blank" rel="noopener">{{.Company.Website}}</a>
-            {{else}}
-            <span class="emp-na">Not set</span>
-            {{end}}
-          </dd>
-        </div>
-        <div class="emp-dl-row">
-          <dt>LinkedIn</dt>
-          <dd>
-            {{if .Company.LinkedIn}}
-            <a href="{{.Company.LinkedIn}}" class="emp-link" target="_blank" rel="noopener">{{.Company.LinkedIn}}</a>
-            {{else}}
-            <span class="emp-na">Not set</span>
-            {{end}}
-          </dd>
-        </div>
-      </dl>
+        <h2 id="company-name" class="emp-company-name">Company Name</h2>
+        <span id="verification-badge" class="emp-badge emp-badge-pending">⏳ Verification Pending</span>
 
-      <div class="emp-section-divider"></div>
+        <div class="emp-company-stats">
+          <div class="emp-company-stat">
+            <span id="stat-jobs" class="emp-company-stat-val">0</span>
+            <span class="emp-company-stat-lbl">Jobs Posted</span>
+          </div>
+          <div class="emp-company-stat">
+            <span id="stat-hires" class="emp-company-stat-val">0</span>
+            <span class="emp-company-stat-lbl">Hires Made</span>
+          </div>
+          <div class="emp-company-stat">
+            <span id="stat-active" class="emp-company-stat-val">0</span>
+            <span class="emp-company-stat-lbl">Active Now</span>
+          </div>
+        </div>
 
-      <div class="emp-section-head">
-        <h2 class="emp-section-title">About</h2>
-      </div>
-      <p class="emp-company-desc">
-        {{if .Company.Description}}{{.Company.Description}}{{else}}
-        <span class="emp-na">No description provided. Add a company description to attract more candidates.</span>
-        {{end}}
-      </p>
-    </section>
+        {{/* Verification Request Button */}}
+        <div class="emp-verify-section">
+          <button id="request-verify" class="emp-btn emp-btn-outline emp-btn-sm">📋 Request Verification</button>
+          <p class="emp-verify-hint">Get verified badge to build trust with candidates</p>
+        </div>
+      </section>
+
+      {{/* Right Column - Company Details */}}
+      <section class="emp-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">Company Details</h2>
+        </div>
+        <dl class="emp-dl">
+          <div class="emp-dl-row">
+            <dt>Industry</dt>
+            <dd id="detail-industry">-</dd>
+          </div>
+          <div class="emp-dl-row">
+            <dt>Company Size</dt>
+            <dd id="detail-size">-</dd>
+          </div>
+          <div class="emp-dl-row">
+            <dt>Location</dt>
+            <dd id="detail-location">-</dd>
+          </div>
+          <div class="emp-dl-row">
+            <dt>Website</dt>
+            <dd id="detail-website">-</dd>
+          </div>
+          <div class="emp-dl-row">
+            <dt>LinkedIn</dt>
+            <dd id="detail-linkedin">-</dd>
+          </div>
+          <div class="emp-dl-row">
+            <dt>Business Reg No.</dt>
+            <dd id="detail-business-reg">-</dd>
+          </div>
+          <div class="emp-dl-row">
+            <dt>Tax ID</dt>
+            <dd id="detail-tax-id">-</dd>
+          </div>
+          <div class="emp-dl-row">
+            <dt>Phone</dt>
+            <dd id="detail-phone">-</dd>
+          </div>
+          <div class="emp-dl-row">
+            <dt>Contact Email</dt>
+            <dd id="detail-email">-</dd>
+          </div>
+        </dl>
+
+        <div class="emp-section-divider"></div>
+
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">About</h2>
+        </div>
+        <p id="detail-description" class="emp-company-desc">-</p>
+      </section>
+    </div>
   </div>
 </div>
 
@@ -135,6 +155,35 @@
   background: linear-gradient(135deg, var(--purple) 0%, #ec4899 100%);
 }
 .emp-btn-primary:hover { opacity: 0.85; }
+.emp-btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.emp-btn-outline:hover { border-color: var(--purple); color: var(--purple); }
+.emp-btn-sm { padding: 7px 14px; font-size: 10px; }
+
+.emp-loading, .emp-error {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-top: 20px;
+}
+.emp-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--purple);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.emp-error-icon { font-size: 48px; margin-bottom: 16px; }
 
 .emp-grid-2col {
   display: grid;
@@ -157,8 +206,8 @@
   margin-bottom: 16px;
 }
 .emp-company-logo {
-  width: 88px;
-  height: 88px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   overflow: hidden;
   background: var(--s2);
@@ -170,7 +219,7 @@
 .emp-company-logo img { width: 100%; height: 100%; object-fit: cover; }
 .emp-company-logo-init {
   font-family: var(--fh);
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 700;
   color: var(--purple);
 }
@@ -220,6 +269,17 @@
   margin-top: 4px;
 }
 
+.emp-verify-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.emp-verify-hint {
+  font-size: 10px;
+  color: var(--muted2);
+  margin-top: 8px;
+}
+
 .emp-section-head {
   display: flex;
   align-items: center;
@@ -247,8 +307,8 @@
 }
 .emp-dl-row {
   display: flex;
-  align-items: flex-start;
-  padding: 10px 0;
+  align-items: center;
+  padding: 12px 0;
   border-bottom: 1px solid var(--border);
 }
 .emp-dl-row:last-child { border-bottom: none; }
@@ -259,7 +319,6 @@
   letter-spacing: 0.8px;
   text-transform: uppercase;
   color: var(--muted2);
-  padding-top: 2px;
 }
 .emp-dl-row dd {
   flex: 1;
@@ -269,6 +328,7 @@
 .emp-link {
   color: var(--purple);
   word-break: break-all;
+  text-decoration: none;
 }
 .emp-link:hover { text-decoration: underline; }
 .emp-na { color: var(--muted2); font-style: italic; }
@@ -277,13 +337,16 @@
   font-size: 13px;
   line-height: 1.7;
   color: var(--text);
+  white-space: pre-wrap;
 }
 
 @media (max-width: 860px) {
   .emp-page-head { flex-direction: column; align-items: flex-start; }
   .emp-grid-2col { grid-template-columns: 1fr; }
   .emp-company-stats { gap: 16px; }
-  .emp-dl-row { flex-direction: column; gap: 4px; }
+  .emp-dl-row { flex-direction: column; align-items: flex-start; gap: 6px; }
   .emp-dl-row dt { flex: none; }
 }
 </style>
+
+<script src="/static/js/pages/employer/company.js"></script>

@@ -1,0 +1,181 @@
+{{/* Admin Job Detail */}}
+
+{{if .JobDetail}}
+<div class="ajd-page">
+  {{/* ── Page Header with Back Navigation ── */}}
+  <div class="ajd-header">
+    <a href="/admin/jobs" class="ajd-back-link">&larr; Back to Jobs</a>
+    <div class="ajd-header-actions">
+      {{if eq .JobDetail.Status "pending"}}
+      <button class="ajd-btn ajd-btn-accept" data-action="approve" data-job-id="{{.JobDetail.ID}}">&#x2705; Approve Listing</button>
+      <button class="ajd-btn ajd-btn-reject" data-action="reject" data-job-id="{{.JobDetail.ID}}">&#x274C; Reject Listing</button>
+      {{end}}
+      <a href="/jobs/{{.JobDetail.Slug}}" target="_blank" class="ajd-btn ajd-btn-ghost">&#x1F517; View Public</a>
+    </div>
+  </div>
+
+  {{/* ── Job Details Card ── */}}
+  <div class="ajd-card">
+    <div class="ajd-job-header">
+      <div class="ajd-job-top">
+        <div class="ajd-job-company-wrap">
+          {{if .JobDetail.CompanyLogo}}
+          <img src="{{.JobDetail.CompanyLogo}}" alt="" class="ajd-job-logo">
+          {{else}}
+          <span class="ajd-job-logo-placeholder">{{.JobDetail.CompanyInitials}}</span>
+          {{end}}
+          <div>
+            <h1 class="ajd-job-title">{{.JobDetail.Title}}</h1>
+            <a href="/admin/companies/{{.JobDetail.CompanyID}}" class="ajd-job-company">{{.JobDetail.CompanyName}}</a>
+          </div>
+        </div>
+        <div class="ajd-job-status-wrap">
+          <span class="ajd-status-badge {{.JobDetail.Status}}">{{.JobDetail.Status}}</span>
+        </div>
+      </div>
+
+      <div class="ajd-job-meta">
+        <div class="ajd-job-meta-item">
+          <span class="ajd-meta-label">Location</span>
+          <span class="ajd-meta-value">{{if .JobDetail.Location}}{{.JobDetail.Location}}{{else}}Remote{{end}}</span>
+        </div>
+        <div class="ajd-job-meta-item">
+          <span class="ajd-meta-label">Type</span>
+          <span class="ajd-meta-value">{{.JobDetail.Type}}</span>
+        </div>
+        <div class="ajd-job-meta-item">
+          <span class="ajd-meta-label">Category</span>
+          <span class="ajd-meta-value">{{.JobDetail.Category}}</span>
+        </div>
+        <div class="ajd-job-meta-item">
+          <span class="ajd-meta-label">Salary Range</span>
+          <span class="ajd-meta-value">{{if .JobDetail.SalaryRange}}{{.JobDetail.SalaryRange}}{{else}}Not specified{{end}}</span>
+        </div>
+        <div class="ajd-job-meta-item">
+          <span class="ajd-meta-label">Experience Level</span>
+          <span class="ajd-meta-value">{{if .JobDetail.ExperienceLevel}}{{.JobDetail.ExperienceLevel}}{{else}}Not specified{{end}}</span>
+        </div>
+        <div class="ajd-job-meta-item">
+          <span class="ajd-meta-label">Posted</span>
+          <span class="ajd-meta-value">{{.JobDetail.PostedDate}}</span>
+        </div>
+        <div class="ajd-job-meta-item">
+          <span class="ajd-meta-label">Expires</span>
+          <span class="ajd-meta-value">{{if .JobDetail.ExpiresAt}}{{.JobDetail.ExpiresAt}}{{else}}N/A{{end}}</span>
+        </div>
+      </div>
+    </div>
+
+    {{if .JobDetail.Description}}
+    <div class="ajd-job-section">
+      <h2 class="ajd-section-title">Description</h2>
+      <div class="ajd-job-description">{{.JobDetail.Description}}</div>
+    </div>
+    {{end}}
+
+    {{if .JobDetail.Requirements}}
+    <div class="ajd-job-section">
+      <h2 class="ajd-section-title">Requirements</h2>
+      <div class="ajd-job-description">{{.JobDetail.Requirements}}</div>
+    </div>
+    {{end}}
+
+    {{if .JobDetail.Responsibilities}}
+    <div class="ajd-job-section">
+      <h2 class="ajd-section-title">Responsibilities</h2>
+      <div class="ajd-job-description">{{.JobDetail.Responsibilities}}</div>
+    </div>
+    {{end}}
+
+    {{if .JobDetail.Skills}}
+    <div class="ajd-job-section">
+      <h2 class="ajd-section-title">Skills</h2>
+      <div class="ajd-skills-list">
+        {{range .JobDetail.Skills}}
+        <span class="ajd-skill-tag">{{.}}</span>
+        {{end}}
+      </div>
+    </div>
+    {{end}}
+  </div>
+
+  {{/* ── Stats Row ── */}}
+  <div class="ajd-stats">
+    <div class="ajd-stat-card">
+      <span class="ajd-stat-value">{{.JobDetail.ApplicationsCount}}</span>
+      <span class="ajd-stat-label">Total Applications</span>
+    </div>
+    <div class="ajd-stat-card">
+      <span class="ajd-stat-value">{{.JobDetail.ViewsCount}}</span>
+      <span class="ajd-stat-label">Total Views</span>
+    </div>
+    <div class="ajd-stat-card">
+      <span class="ajd-stat-value">{{.JobDetail.UniqueViews}}</span>
+      <span class="ajd-stat-label">Unique Views</span>
+    </div>
+    <div class="ajd-stat-card">
+      <span class="ajd-stat-value">{{.JobDetail.SavesCount}}</span>
+      <span class="ajd-stat-label">Saves</span>
+    </div>
+  </div>
+
+  {{/* ── Recent Applications ── */}}
+  <div class="ajd-card">
+    <div class="ajd-card-head">
+      <h2 class="ajd-card-title">&#x1F4DD; Recent Applications</h2>
+      <a href="/admin/jobs/{{.JobDetail.ID}}/applications" class="ajd-card-link">View All</a>
+    </div>
+    {{if .JobDetail.RecentApplications}}
+    <div class="ajd-app-list">
+      {{range .JobDetail.RecentApplications}}
+      <div class="ajd-app-item">
+        {{if .Avatar}}
+        <img src="{{.Avatar}}" alt="" class="ajd-app-avatar">
+        {{else}}
+        <span class="ajd-app-avatar ajd-app-avatar-text">{{.Initials}}</span>
+        {{end}}
+        <div class="ajd-app-info">
+          <a href="/admin/users/{{.UserID}}" class="ajd-app-name">{{.Name}}</a>
+          <span class="ajd-app-date">{{.AppliedDate}}</span>
+        </div>
+        <span class="ajd-app-status {{.Status}}">{{.Status}}</span>
+      </div>
+      {{end}}
+    </div>
+    {{else}}
+    <div class="ajd-empty">
+      <span class="ajd-empty-icon">&#x1F4DD;</span>
+      <p class="ajd-empty-text">No applications yet.</p>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{else}}
+<div class="ajd-page">
+  <div class="ajd-empty ajd-empty-page">
+    <span class="ajd-empty-icon">&#x1F4BC;</span>
+    <p class="ajd-empty-text">Job not found or you do not have permission to view this page.</p>
+    <a href="/admin/jobs" class="ajd-btn ajd-btn-primary">&larr; Back to Jobs</a>
+  </div>
+</div>
+{{end}}
+
+{{/* ── Reject Reason Modal ── */}}
+<div class="ajd-modal-overlay" id="ajd-reject-modal" style="display:none">
+  <div class="ajd-modal">
+    <div class="ajd-modal-head">
+      <h3 class="ajd-modal-title">Reject Job Listing</h3>
+      <button class="ajd-modal-close" id="ajd-modal-close">&times;</button>
+    </div>
+    <div class="ajd-modal-body">
+      <p class="ajd-modal-desc">Provide a reason for rejecting this job listing. The employer will be notified.</p>
+      <textarea class="ajd-input ajd-textarea" id="ajd-reject-reason" rows="4" placeholder="Reason for rejection..."></textarea>
+    </div>
+    <div class="ajd-modal-foot">
+      <button class="ajd-btn ajd-btn-ghost" id="ajd-modal-cancel">Cancel</button>
+      <button class="ajd-btn ajd-btn-danger" id="ajd-modal-confirm">Reject Listing</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/pages/admin/job-detail.js"></script>

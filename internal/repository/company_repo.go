@@ -15,6 +15,7 @@ type CompanyRepository interface {
 	CreateVerification(ctx context.Context, verification *models.CompanyVerification) error
 	GetVerification(ctx context.Context, companyID string) (*models.CompanyVerification, error)
 	UpdateVerificationStatus(ctx context.Context, companyID, status, rejectionReason, verifiedBy string) error
+	UpsertVerificationDetails(ctx context.Context, companyID, businessReg, taxID string) error
 	GetPendingVerifications(ctx context.Context, page, limit int) ([]*models.CompanyVerification, int64, error)
 	
 	// Trust Badges
@@ -64,6 +65,34 @@ func (r *CompanyRepositoryImpl) CreateVerification(ctx context.Context, verifica
 	verification.ID = uuid.New().String()
 	verification.SubmittedAt = time.Now()
 	return r.db.WithContext(ctx).Create(verification).Error
+}
+
+func (r *CompanyRepositoryImpl) UpsertVerificationDetails(ctx context.Context, companyID, businessReg, taxID string) error {
+	now := time.Now()
+	result := r.db.WithContext(ctx).
+		Model(&models.CompanyVerification{}).
+		Where("company_id = ?", companyID).
+		Updates(map[string]interface{}{
+			"business_registration_number": businessReg,
+			"tax_id":                       taxID,
+			"updated_at":                   now,
+		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return r.db.WithContext(ctx).Create(&models.CompanyVerification{
+			ID:                         uuid.New().String(),
+			CompanyID:                  companyID,
+			BusinessRegistrationNumber: businessReg,
+			TaxID:                      taxID,
+			SubmittedAt:                now,
+		}).Error
+	}
+
+	return nil
 }
 
 func (r *CompanyRepositoryImpl) GetVerification(ctx context.Context, companyID string) (*models.CompanyVerification, error) {

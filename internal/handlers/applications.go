@@ -398,18 +398,76 @@ func (h *ApplicationHandler) BulkShortlist(c *fiber.Ctx) error {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
 	
-	var ids []string
-	if err := c.BodyParser(&ids); err != nil {
+	var req struct {
+		ApplicationIDs []string `json:"application_ids"`
+	}
+	if err := c.BodyParser(&req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
 	
-	if len(ids) == 0 {
+	if len(req.ApplicationIDs) == 0 {
 		return utils.BadRequest(c, "No application IDs provided")
 	}
 	
-	if err := h.applicationService.BulkShortlist(c.Context(), ids, userID.(string)); err != nil {
+	if err := h.applicationService.BulkShortlist(c.Context(), req.ApplicationIDs, userID.(string)); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
 	
 	return utils.SuccessWithMessage(c, "Applications shortlisted successfully", nil)
+}
+
+// MarkAsHired marks an application as hired
+// @Summary Mark application as hired
+// @Tags Applications
+// @Security BearerAuth
+// @Param id path string true "Application ID"
+// @Success 200 {object} APIResponse
+// @Router /employer/applications/{id}/hire [post]
+func (h *ApplicationHandler) MarkAsHired(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+	
+	applicationID := c.Params("id")
+	if applicationID == "" {
+		return utils.BadRequest(c, "Application ID is required")
+	}
+	
+	if err := h.applicationService.MarkAsHired(c.Context(), applicationID, userID.(string)); err != nil {
+		return utils.InternalServerError(c, err.Error())
+	}
+	
+	return utils.SuccessWithMessage(c, "Candidate marked as hired", nil)
+}
+
+// BulkReject bulk rejects applications
+// @Summary Bulk reject applications
+// @Tags Applications
+// @Security BearerAuth
+// @Param ids body object true "Application IDs"
+// @Success 200 {object} APIResponse
+// @Router /employer/applications/bulk-reject [post]
+func (h *ApplicationHandler) BulkReject(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+	
+	var req struct {
+		ApplicationIDs []string `json:"application_ids"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return utils.BadRequest(c, err.Error())
+	}
+	
+	if len(req.ApplicationIDs) == 0 {
+		return utils.BadRequest(c, "No application IDs provided")
+	}
+	
+	if err := h.applicationService.BulkReject(c.Context(), req.ApplicationIDs, userID.(string)); err != nil {
+		return utils.InternalServerError(c, err.Error())
+	}
+	
+	return utils.SuccessWithMessage(c, "Applications rejected successfully", nil)
 }

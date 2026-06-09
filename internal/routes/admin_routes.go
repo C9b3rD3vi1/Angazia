@@ -34,6 +34,8 @@ func SetupAdminRoutes(router fiber.Router, adminHandler *handlers.AdminHandler) 
 	admin.Put("/settings/:key", adminHandler.UpdateSetting)
 	
 	// Company Verification
+	admin.Get("/companies", adminHandler.GetCompanies)
+	admin.Get("/companies/pending", adminHandler.GetPendingVerifications)
 	admin.Post("/companies/:id/verify", adminHandler.ApproveCompanyVerification)
 	admin.Post("/companies/:id/reject", adminHandler.RejectCompanyVerification)
 
@@ -46,4 +48,15 @@ func SetupAdminRoutes(router fiber.Router, adminHandler *handlers.AdminHandler) 
 	// Public report endpoint (authenticated users can report content)
 	protected := router.Group("/report", middleware.AuthMiddleware())
 	protected.Post("/", adminHandler.ReportContent)
+}
+
+func SetupAdminSubscriptionRoutes(router fiber.Router, subHandler *handlers.AdminSubscriptionHandler) {
+	admin := router.Group("/admin/subscriptions", middleware.AuthMiddleware(), middleware.RequireRole("admin"))
+
+	admin.Get("/", subHandler.ListSubscriptions)
+	admin.Get("/:id", subHandler.GetSubscription)
+	admin.Post("/:id/cancel", subHandler.CancelSubscription)
+	admin.Post("/:id/reactivate", subHandler.ReactivateSubscription)
+	admin.Post("/:id/change-plan", subHandler.ChangePlan)
+	admin.Post("/", subHandler.AssignSubscription)
 }

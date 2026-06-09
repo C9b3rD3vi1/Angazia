@@ -1,0 +1,542 @@
+<div class="notif-page">
+  <div class="notif-page-head">
+    <div>
+      <h1 class="notif-page-title">Notifications</h1>
+      <p class="notif-page-sub">Stay updated on your applications, messages, and opportunities</p>
+    </div>
+    <div class="notif-page-actions">
+      <button class="notif-btn notif-btn-outline" id="notif-mark-all-btn" style="display:none">Mark All as Read</button>
+    </div>
+  </div>
+
+  <div class="notif-tabs">
+    <button class="notif-tab active" data-filter="all">All</button>
+    <button class="notif-tab" data-filter="unread">Unread</button>
+    <button class="notif-tab" data-filter="application">Applications</button>
+    <button class="notif-tab" data-filter="interview">Interviews</button>
+    <button class="notif-tab" data-filter="message">Messages</button>
+    <button class="notif-tab" data-filter="alert">Alerts</button>
+  </div>
+
+  <div class="notif-toolbar">
+    <div class="notif-search-wrap">
+      <input type="text" class="notif-search" id="notif-search" placeholder="Search notifications...">
+    </div>
+    <div class="notif-toolbar-actions">
+      <button class="notif-btn notif-btn-ghost" id="notif-refresh-btn">&#x21BB; Refresh</button>
+      <button class="notif-btn notif-btn-ghost notif-btn-danger" id="notif-clear-btn">Clear All</button>
+    </div>
+  </div>
+
+  <div class="notif-loading" id="notif-loading">
+    <div class="notif-loading-spinner"></div>
+    <span>Loading notifications...</span>
+  </div>
+
+  <div class="notif-empty-state" id="notif-empty" style="display:none">
+    <div class="notif-empty-icon">&#x1F514;</div>
+    <h3 class="notif-empty-title">No notifications yet</h3>
+    <p class="notif-empty-desc">You're all caught up! When you get notifications, they'll show up here.</p>
+  </div>
+
+  <div class="notif-list-page" id="notif-list"></div>
+
+  <div class="notif-pagination" id="notif-pagination" style="display:none">
+    <button class="notif-btn notif-btn-outline" id="notif-prev-btn" disabled>&larr; Previous</button>
+    <span class="notif-page-info" id="notif-page-info">Page 1</span>
+    <button class="notif-btn notif-btn-outline" id="notif-next-btn">Next &rarr;</button>
+  </div>
+</div>
+
+<style>
+.notif-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.notif-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.notif-page-title {
+  font-family: var(--fh);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.notif-page-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+.notif-page-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.notif-btn {
+  padding: 8px 16px;
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: opacity 0.15s;
+  border: none;
+}
+.notif-btn:hover { opacity: 0.85; }
+.notif-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.notif-btn-primary { background: var(--accent); color: var(--bg); }
+.notif-btn-outline {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.notif-btn-ghost {
+  background: none;
+  color: var(--muted);
+  padding: 6px 12px;
+  font-size: 10px;
+}
+.notif-btn-ghost:hover { background: var(--s2); color: var(--text); }
+.notif-btn-danger { color: var(--danger); }
+.notif-btn-danger:hover { background: rgba(255,79,79,0.08); }
+
+.notif-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.notif-tab {
+  padding: 7px 16px;
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.notif-tab:hover { color: var(--text); border-color: var(--text); }
+.notif-tab.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(0,229,160,0.06);
+}
+
+.notif-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.notif-search-wrap { flex: 1; max-width: 320px; }
+.notif-search {
+  width: 100%;
+  padding: 9px 14px;
+  font-family: var(--fm);
+  font-size: 12px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.notif-search:focus { border-color: var(--accent); }
+.notif-search::placeholder { color: var(--muted2); }
+.notif-toolbar-actions { display: flex; gap: 4px; }
+
+.notif-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.notif-loading-spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.notif-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+.notif-empty-icon { font-size: 48px; margin-bottom: 16px; }
+.notif-empty-title {
+  font-family: var(--fh);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+.notif-empty-desc { font-size: 12px; color: var(--muted); line-height: 1.5; max-width: 380px; margin: 0 auto; }
+
+.notif-list-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.notif-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.notif-card:last-child { border-bottom: none; }
+.notif-card:hover { background: var(--s2); }
+.notif-card.unread {
+  background: rgba(0,229,160,0.03);
+  border-left: 3px solid var(--accent);
+}
+.notif-card-icon {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--s2); border-radius: 50%;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.notif-card-body { flex: 1; min-width: 0; }
+.notif-card-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.4;
+  margin-bottom: 2px;
+}
+.notif-card-content {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.notif-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.notif-card-time {
+  font-size: 10px;
+  color: var(--muted2);
+}
+.notif-card-badge {
+  font-size: 8px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.notif-card-badge.high { background: rgba(255,79,79,0.1); color: var(--danger); }
+.notif-card-badge.normal { background: rgba(0,229,160,0.1); color: var(--accent); }
+.notif-card-badge.low { background: rgba(245,166,35,0.1); color: var(--warn); }
+.notif-card-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.notif-card-btn {
+  padding: 4px 8px;
+  font-family: var(--fm);
+  font-size: 9px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.notif-card-btn:hover { border-color: var(--accent); color: var(--accent); }
+.notif-card-btn-danger:hover { border-color: var(--danger); color: var(--danger); }
+
+.notif-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px 0;
+}
+.notif-page-info {
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .notif-page-head { flex-direction: column; }
+  .notif-toolbar { flex-direction: column; align-items: stretch; }
+  .notif-search-wrap { max-width: none; }
+  .notif-card { padding: 12px 14px; }
+  .notif-card-actions { flex-direction: column; }
+}
+</style>
+
+<script>
+(function() {
+  var state = {
+    page: 1,
+    limit: 20,
+    filter: 'all',
+    search: '',
+    total: 0,
+    totalPages: 0,
+    loading: false,
+  };
+
+  var listEl = document.getElementById('notif-list');
+  var loadingEl = document.getElementById('notif-loading');
+  var emptyEl = document.getElementById('notif-empty');
+  var paginationEl = document.getElementById('notif-pagination');
+  var pageInfoEl = document.getElementById('notif-page-info');
+  var prevBtn = document.getElementById('notif-prev-btn');
+  var nextBtn = document.getElementById('notif-next-btn');
+  var markAllBtn = document.getElementById('notif-mark-all-btn');
+  var refreshBtn = document.getElementById('notif-refresh-btn');
+  var clearBtn = document.getElementById('notif-clear-btn');
+  var searchInput = document.getElementById('notif-search');
+  var tabBtns = document.querySelectorAll('.notif-tab');
+
+  function getFilterParams() {
+    var params = { page: state.page, limit: state.limit };
+    if (state.filter !== 'all') {
+      params.type = state.filter;
+    }
+    if (state.search) {
+      params.search = state.search;
+    }
+    return params;
+  }
+
+  function loadNotifications() {
+    if (state.loading) return;
+    state.loading = true;
+    loadingEl.style.display = 'flex';
+    emptyEl.style.display = 'none';
+    listEl.innerHTML = '';
+    paginationEl.style.display = 'none';
+
+    if (!window.AngaziaNotifications) {
+      state.loading = false;
+      loadingEl.style.display = 'none';
+      emptyEl.style.display = '';
+      return;
+    }
+
+    var params = getFilterParams();
+    var promise;
+    if (state.filter === 'unread') {
+      promise = AngaziaNotifications.fetchUnread().then(function(notifs) {
+        return { notifications: notifs, total: notifs.length, page: 1, limit: state.limit, total_pages: 1 };
+      });
+    } else {
+      promise = AngaziaNotifications.fetchNotifications(params);
+    }
+
+    promise.then(function(data) {
+      state.loading = false;
+      loadingEl.style.display = 'none';
+
+      var notifications = data.notifications || data.data || data || [];
+      state.total = data.total || notifications.length;
+      state.totalPages = data.total_pages || Math.ceil(state.total / state.limit) || 1;
+
+      if (!notifications || notifications.length === 0) {
+        emptyEl.style.display = '';
+        listEl.innerHTML = '';
+        paginationEl.style.display = 'none';
+        return;
+      }
+
+      emptyEl.style.display = 'none';
+      renderNotifications(notifications);
+
+      if (state.totalPages > 1) {
+        paginationEl.style.display = 'flex';
+        pageInfoEl.textContent = 'Page ' + state.page + ' of ' + state.totalPages;
+        prevBtn.disabled = state.page <= 1;
+        nextBtn.disabled = state.page >= state.totalPages;
+      }
+
+      if (state.total > 0 && state.filter !== 'unread') {
+        markAllBtn.style.display = '';
+      } else {
+        markAllBtn.style.display = 'none';
+      }
+    }).catch(function(err) {
+      state.loading = false;
+      loadingEl.style.display = 'none';
+      listEl.innerHTML = '<div class="notif-empty-state" style="display:block;padding:40px 20px"><div class="notif-empty-icon">&#x26A0;&#xFE0F;</div><h3 class="notif-empty-title">Failed to load notifications</h3><p class="notif-empty-desc">' + (err.message || 'Please try again later.') + '</p></div>';
+    });
+  }
+
+  function renderNotifications(notifications) {
+    listEl.innerHTML = '';
+    notifications.forEach(function(n) {
+      var card = document.createElement('div');
+      card.className = 'notif-card' + (n.is_read ? '' : ' unread');
+      card.setAttribute('data-id', n.id);
+
+      var iconMap = {
+        application: '&#x1F4BC;',
+        interview: '&#x1F4C5;',
+        message: '&#x1F4AC;',
+        alert: '&#x1F514;',
+        system: '&#x2699;&#xFE0F;',
+        marketing: '&#x1F4E3;',
+      };
+      var icon = iconMap[n.type] || '&#x1F514;';
+      if (n.icon) icon = n.icon;
+
+      var priorityBadge = '';
+      if (n.priority && n.priority !== 'normal') {
+        priorityBadge = '<span class="notif-card-badge ' + n.priority + '">' + n.priority + '</span>';
+      }
+
+      card.innerHTML = '<div class="notif-card-icon">' + icon + '</div>'
+        + '<div class="notif-card-body">'
+        + '<div class="notif-card-title">' + escapeHtml(n.title) + '</div>'
+        + (n.content ? '<div class="notif-card-content">' + escapeHtml(n.content) + '</div>' : '')
+        + '<div class="notif-card-meta">'
+        + '<span class="notif-card-time">' + timeAgo(n.created_at) + '</span>'
+        + priorityBadge
+        + '</div>'
+        + '</div>'
+        + '<div class="notif-card-actions">'
+        + (n.is_read ? '' : '<button class="notif-card-btn mark-read" data-id="' + n.id + '">Read</button>')
+        + '<button class="notif-card-btn notif-card-btn-danger delete-notif" data-id="' + n.id + '">&#x2716;</button>'
+        + '</div>';
+
+      if (n.action_url) {
+        card.addEventListener('click', function(e) {
+          if (e.target.closest('.notif-card-actions')) return;
+          if (!n.is_read && window.AngaziaNotifications) AngaziaNotifications.markAsRead(n.id);
+          window.location.href = n.action_url;
+        });
+      }
+
+      var markReadBtn = card.querySelector('.mark-read');
+      if (markReadBtn) {
+        markReadBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var id = this.getAttribute('data-id');
+          if (window.AngaziaNotifications) AngaziaNotifications.markAsRead(id);
+          card.classList.remove('unread');
+          this.remove();
+        });
+      }
+
+      var deleteBtn = card.querySelector('.delete-notif');
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var id = this.getAttribute('data-id');
+          if (window.AngaziaNotifications) AngaziaNotifications.deleteNotification(id);
+          card.remove();
+        });
+      }
+
+      listEl.appendChild(card);
+    });
+  }
+
+  tabBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      tabBtns.forEach(function(b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      state.filter = this.getAttribute('data-filter');
+      state.page = 1;
+      loadNotifications();
+    });
+  });
+
+  if (searchInput) {
+    var searchTimer;
+    searchInput.addEventListener('input', function() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function() {
+        state.search = searchInput.value.trim();
+        state.page = 1;
+        loadNotifications();
+      }, 300);
+    });
+  }
+
+  if (markAllBtn) {
+    markAllBtn.addEventListener('click', function() {
+      if (window.AngaziaNotifications) AngaziaNotifications.markAllAsRead();
+      document.querySelectorAll('.notif-card.unread').forEach(function(el) { el.classList.remove('unread'); });
+      document.querySelectorAll('.mark-read').forEach(function(el) { el.remove(); });
+      markAllBtn.style.display = 'none';
+    });
+  }
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', function() { loadNotifications(); });
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      if (!confirm('Delete all notifications?')) return;
+      if (window.AngaziaNotifications) AngaziaNotifications.deleteAllNotifications();
+      loadNotifications();
+    });
+  }
+
+  if (prevBtn) {
+    prevBtn.addEventListener('click', function() {
+      if (state.page > 1) { state.page--; loadNotifications(); }
+    });
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener('click', function() {
+      if (state.page < state.totalPages) { state.page++; loadNotifications(); }
+    });
+  }
+
+  function escapeHtml(t){if(!t)return'';var d=document.createElement('div');d.appendChild(document.createTextNode(t));return d.innerHTML;}
+  function timeAgo(t){
+    if(!t)return'';
+    var now=new Date(),d=new Date(t);
+    var s=Math.floor((now-d)/1000);
+    if(s<60)return'just now';
+    var m=Math.floor(s/60);if(m<60)return m+'m ago';
+    var h=Math.floor(m/60);if(h<24)return h+'h ago';
+    var dy=Math.floor(h/24);if(dy<7)return dy+'d ago';
+    return d.toLocaleDateString();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadNotifications);
+  } else {
+    loadNotifications();
+  }
+})();
+</script>

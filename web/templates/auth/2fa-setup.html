@@ -1,0 +1,545 @@
+{{if .Success}}<div class="alert alert-success">{{.Success}}</div>{{end}}
+{{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
+<div class="tfa-wrap">
+  <div class="tfa-card">
+    <div class="tfa-header">
+      <h1 class="tfa-title">Two-Factor Authentication</h1>
+      <p class="tfa-sub">Enhance your account security</p>
+    </div>
+    <div id="tfa-error" class="tfa-error" style="display:none"></div>
+    <div id="tfa-success" class="tfa-success" style="display:none"></div>
+
+    <div id="tfa-status-section" style="display:none">
+      <div class="tfa-status-row">
+        <span class="tfa-status-badge tfa-status-active">&#x2713; 2FA is active</span>
+      </div>
+      <div class="tfa-actions">
+        <button class="tfa-btn tfa-btn-outline" id="tfa-show-backup-btn">&#x1F4CB; View Backup Codes</button>
+        <button class="tfa-btn tfa-btn-danger" id="tfa-disable-btn">&#x1F512; Disable 2FA</button>
+      </div>
+    </div>
+
+    <div id="tfa-step-init">
+      <div class="tfa-info">
+        <p>Two-factor authentication adds an extra layer of security to your account. Once enabled, you'll need to enter a verification code from your authenticator app when signing in.</p>
+      </div>
+      <button class="tfa-btn tfa-btn-primary tfa-btn-block" id="tfa-start-btn">Setup 2FA</button>
+    </div>
+
+    <div id="tfa-step-qr" style="display:none">
+      <div class="tfa-step-indicator">
+        <span class="tfa-step-dot active"></span>
+        <span class="tfa-step-line"></span>
+        <span class="tfa-step-dot"></span>
+        <span class="tfa-step-line"></span>
+        <span class="tfa-step-dot"></span>
+      </div>
+      <div class="tfa-qr-wrap">
+        <p class="tfa-section-label">Scan this QR code with your authenticator app</p>
+        <div class="tfa-qr-container">
+          <img id="tfa-qr-img" src="" alt="QR Code" class="tfa-qr">
+        </div>
+        <div class="tfa-secret-wrap">
+          <span class="tfa-section-label">Or enter this key manually:</span>
+          <div class="tfa-secret-row">
+            <code id="tfa-secret-key" class="tfa-secret"></code>
+            <button class="tfa-btn tfa-btn-xs" id="tfa-copy-secret-btn">Copy</button>
+          </div>
+        </div>
+      </div>
+      <div class="tfa-field">
+        <label class="tfa-label" for="tfa-verify-code">Enter the 6-digit code from your authenticator app</label>
+        <input type="text" id="tfa-verify-code" class="tfa-input tfa-input-code" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" placeholder="000000">
+      </div>
+      <button class="tfa-btn tfa-btn-primary tfa-btn-block" id="tfa-verify-btn">Verify &amp; Enable</button>
+    </div>
+
+    <div id="tfa-step-backup" style="display:none">
+      <div class="tfa-step-indicator">
+        <span class="tfa-step-dot done"></span>
+        <span class="tfa-step-line"></span>
+        <span class="tfa-step-dot done"></span>
+        <span class="tfa-step-line"></span>
+        <span class="tfa-step-dot active"></span>
+      </div>
+      <div class="tfa-backup-section">
+        <p class="tfa-section-label">&#x26A0;&#xFE0F; Save these backup codes in a safe place. Each code can only be used once.</p>
+        <div id="tfa-backup-codes" class="tfa-backup-grid"></div>
+        <div class="tfa-backup-actions">
+          <button class="tfa-btn tfa-btn-primary" id="tfa-copy-codes-btn">&#x1F4CB; Copy Codes</button>
+          <button class="tfa-btn tfa-btn-outline" id="tfa-download-codes-btn">&#x2B07; Download</button>
+        </div>
+      </div>
+      <div class="tfa-backup-done">
+        <p>You have successfully enabled two-factor authentication.</p>
+        <button class="tfa-btn tfa-btn-primary tfa-btn-block" id="tfa-done-btn">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+.tfa-wrap {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  width: 100%;
+}
+.tfa-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 36px 32px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+}
+.tfa-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.tfa-title {
+  font-family: var(--fh);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text);
+  margin: 0 0 6px 0;
+}
+.tfa-sub {
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--muted2);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin: 0;
+}
+.tfa-error {
+  background: rgba(255,79,79,0.1);
+  border: 1px solid rgba(255,79,79,0.25);
+  border-radius: var(--radius);
+  color: var(--danger);
+  font-size: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.tfa-success {
+  background: rgba(0,229,160,0.1);
+  border: 1px solid rgba(0,229,160,0.25);
+  border-radius: var(--radius);
+  color: var(--accent);
+  font-size: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.tfa-info {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin-bottom: 20px;
+  text-align: center;
+}
+.tfa-status-row {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.tfa-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+}
+.tfa-status-active {
+  background: rgba(0,229,160,0.1);
+  border: 1px solid rgba(0,229,160,0.25);
+  color: var(--accent);
+}
+.tfa-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tfa-step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 24px;
+}
+.tfa-step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--s3);
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+}
+.tfa-step-dot.active { background: var(--accent); border-color: var(--accent); }
+.tfa-step-dot.done { background: var(--accent); border-color: var(--accent); opacity: 0.5; }
+.tfa-step-line {
+  width: 40px;
+  height: 2px;
+  background: var(--border);
+}
+.tfa-section-label {
+  display: block;
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted2);
+  margin-bottom: 10px;
+}
+.tfa-qr-wrap {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.tfa-qr-container {
+  display: inline-block;
+  background: #fff;
+  padding: 8px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+.tfa-qr {
+  display: block;
+  width: 180px;
+  height: 180px;
+  image-rendering: pixelated;
+}
+.tfa-secret-wrap {
+  text-align: left;
+  margin-bottom: 4px;
+}
+.tfa-secret-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tfa-secret {
+  font-family: var(--fb);
+  font-size: 12px;
+  letter-spacing: 2px;
+  background: var(--s2);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  color: var(--text);
+  flex: 1;
+  word-break: break-all;
+  user-select: all;
+}
+.tfa-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.tfa-label {
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted2);
+  text-align: center;
+}
+.tfa-input {
+  padding: 12px 14px;
+  font-family: var(--fm);
+  font-size: 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  outline: none;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+.tfa-input:focus { border-color: var(--accent); }
+.tfa-input-code {
+  font-family: var(--fb);
+  font-size: 24px;
+  letter-spacing: 8px;
+  max-width: 200px;
+  margin: 0 auto;
+}
+.tfa-backup-section {
+  margin-bottom: 20px;
+}
+.tfa-backup-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.tfa-backup-code {
+  font-family: var(--fb);
+  font-size: 12px;
+  letter-spacing: 1px;
+  background: var(--s2);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-align: center;
+  user-select: all;
+}
+.tfa-backup-actions {
+  display: flex;
+  gap: 10px;
+}
+.tfa-backup-actions .tfa-btn { flex: 1; }
+.tfa-backup-done {
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.tfa-backup-done p { margin-bottom: 16px; }
+.tfa-btn {
+  padding: 10px 20px;
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: opacity 0.15s;
+  border: none;
+}
+.tfa-btn:hover { opacity: 0.85; }
+.tfa-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.tfa-btn-primary { background: var(--accent); color: var(--bg); }
+.tfa-btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.tfa-btn-danger {
+  background: rgba(255,79,79,0.1);
+  border: 1px solid rgba(255,79,79,0.3);
+  color: var(--danger);
+}
+.tfa-btn-block { width: 100%; }
+.tfa-btn-xs {
+  font-size: 8px;
+  padding: 6px 12px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: opacity 0.12s;
+  white-space: nowrap;
+}
+.tfa-btn-xs:hover { opacity: 0.85; }
+@media (max-width: 480px) {
+  .tfa-card { padding: 24px 18px; }
+  .tfa-backup-grid { grid-template-columns: 1fr; }
+}
+</style>
+<script>
+(function(){
+  var errEl=document.getElementById('tfa-error');
+  var sucEl=document.getElementById('tfa-success');
+  var stepInit=document.getElementById('tfa-step-init');
+  var stepQr=document.getElementById('tfa-step-qr');
+  var stepBackup=document.getElementById('tfa-step-backup');
+  var statusSection=document.getElementById('tfa-status-section');
+
+  function showError(m){
+    if(errEl){errEl.textContent=m;errEl.style.display='';}
+  }
+  function hideError(){
+    if(errEl)errEl.style.display='none';
+  }
+  function showSuccess(m){
+    if(sucEl){sucEl.textContent=m;sucEl.style.display='';}
+  }
+  function hideSuccess(){
+    if(sucEl)sucEl.style.display='none';
+  }
+  function disableBtn(b){if(b){b.disabled=true;}}
+  function enableBtn(b,t){if(b){b.disabled=false;if(t)b.textContent=t;}}
+
+  function checkStatus(){
+    AngaziaAPI.auth.twoFA.status().then(function(data){
+      if(data&&data.enabled){
+        statusSection.style.display='';
+        stepInit.style.display='none';
+        stepQr.style.display='none';
+        stepBackup.style.display='none';
+      }else{
+        statusSection.style.display='none';
+        stepInit.style.display='';
+        stepQr.style.display='none';
+        stepBackup.style.display='none';
+      }
+    }).catch(function(){
+      statusSection.style.display='none';
+      stepInit.style.display='';
+      stepQr.style.display='none';
+      stepBackup.style.display='none';
+    });
+  }
+
+  document.getElementById('tfa-start-btn').addEventListener('click',function(){
+    var btn=this;
+    disableBtn(btn);
+    btn.textContent='Setting up\u2026';
+    hideError();
+    AngaziaAPI.auth.twoFA.setup().then(function(data){
+      if(data&&data.qr_code&&data.secret){
+        document.getElementById('tfa-qr-img').src=data.qr_code;
+        document.getElementById('tfa-secret-key').textContent=data.secret;
+        stepInit.style.display='none';
+        statusSection.style.display='none';
+        stepQr.style.display='';
+        stepBackup.style.display='none';
+      }else{
+        showError('Invalid response from server');
+      }
+    }).catch(function(err){
+      showError((err.body&&err.body.message)||err.message||'Failed to setup 2FA');
+    }).then(function(){
+      enableBtn(btn,'Setup 2FA');
+    });
+  });
+
+  document.getElementById('tfa-verify-btn').addEventListener('click',function(){
+    var btn=this;
+    var code=document.getElementById('tfa-verify-code').value.trim();
+    var secret=document.getElementById('tfa-secret-key').textContent.trim();
+    if(!code||code.length!==6){
+      showError('Please enter a valid 6-digit code');
+      return;
+    }
+    disableBtn(btn);
+    btn.textContent='Verifying\u2026';
+    hideError();
+    AngaziaAPI.auth.twoFA.verify({code:code,secret:secret}).then(function(data){
+      if(data&&data.backup_codes){
+        var codes=data.backup_codes;
+        var grid=document.getElementById('tfa-backup-codes');
+        grid.innerHTML='';
+        codes.forEach(function(c){
+          var el=document.createElement('div');
+          el.className='tfa-backup-code';
+          el.textContent=c;
+          grid.appendChild(el);
+        });
+        stepQr.style.display='none';
+        stepBackup.style.display='';
+        showSuccess('Two-factor authentication has been enabled');
+      }else{
+        showError('Invalid response from server');
+        enableBtn(btn,'Verify & Enable');
+      }
+    }).catch(function(err){
+      showError((err.body&&err.body.message)||err.message||'Verification failed. Please check the code and try again.');
+      enableBtn(btn,'Verify & Enable');
+    });
+  });
+
+  document.getElementById('tfa-done-btn').addEventListener('click',function(){
+    window.location.reload();
+  });
+
+  document.getElementById('tfa-copy-secret-btn').addEventListener('click',function(){
+    var secret=document.getElementById('tfa-secret-key').textContent;
+    navigator.clipboard.writeText(secret).then(function(){
+      var btn=document.getElementById('tfa-copy-secret-btn');
+      btn.textContent='Copied!';
+      setTimeout(function(){btn.textContent='Copy';},2000);
+    }).catch(function(){
+      var range=document.createRange();
+      range.selectNode(document.getElementById('tfa-secret-key'));
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+    });
+  });
+
+  document.getElementById('tfa-copy-codes-btn').addEventListener('click',function(){
+    var codes=[];
+    document.querySelectorAll('#tfa-backup-codes .tfa-backup-code').forEach(function(el){
+      codes.push(el.textContent);
+    });
+    navigator.clipboard.writeText(codes.join('\n')).then(function(){
+      var btn=document.getElementById('tfa-copy-codes-btn');
+      btn.textContent='Copied!';
+      setTimeout(function(){btn.textContent='\u{1F4CB} Copy Codes';},2000);
+    });
+  });
+
+  document.getElementById('tfa-download-codes-btn').addEventListener('click',function(){
+    var codes=[];
+    document.querySelectorAll('#tfa-backup-codes .tfa-backup-code').forEach(function(el){
+      codes.push(el.textContent);
+    });
+    var blob=new Blob(['Angazia 2FA Backup Codes\n'+'='.repeat(30)+'\n\n'+codes.join('\n')],{type:'text/plain'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='angazia-2fa-backup-codes.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  });
+
+  document.getElementById('tfa-disable-btn').addEventListener('click',function(){
+    if(!confirm('Are you sure you want to disable two-factor authentication? Your account will be less secure.'))return;
+    var btn=this;
+    disableBtn(btn);
+    btn.textContent='Disabling\u2026';
+    hideError();
+    var code=prompt('Enter your current TOTP code (or a backup code):');
+    if(!code)return;
+    var password=prompt('Confirm your password:');
+    if(!password)return;
+    AngaziaAPI.auth.twoFA.disable({code:code,password:password}).then(function(){
+      window.location.reload();
+    }).catch(function(err){
+      showError((err.body&&err.body.message)||err.message||'Failed to disable 2FA');
+      enableBtn(btn,'Disable 2FA');
+    });
+  });
+
+  document.getElementById('tfa-show-backup-btn').addEventListener('click',function(){
+    hideError();
+    if(!confirm('Generate new backup codes? Your existing codes will be invalidated.'))return;
+    AngaziaAPI.auth.twoFA.generateBackupCodes().then(function(data){
+      if(data&&data.backup_codes){
+        var grid=document.getElementById('tfa-backup-codes');
+        grid.innerHTML='';
+        data.backup_codes.forEach(function(c){
+          var el=document.createElement('div');
+          el.className='tfa-backup-code';
+          el.textContent=c;
+          grid.appendChild(el);
+        });
+        stepInit.style.display='none';
+        statusSection.style.display='none';
+        stepQr.style.display='none';
+        stepBackup.style.display='';
+      }else{
+        showError('No backup codes available');
+      }
+    }).catch(function(err){
+      showError((err.body&&err.body.message)||err.message||'Failed to retrieve backup codes');
+    });
+  });
+
+  document.getElementById('tfa-verify-code').addEventListener('input',function(){
+    this.value=this.value.replace(/\D/g,'');
+  });
+
+  checkStatus();
+})();
+</script>

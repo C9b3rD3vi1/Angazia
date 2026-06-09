@@ -337,6 +337,70 @@ func (h *AdminHandler) ReportContent(c *fiber.Ctx) error {
 	return utils.SuccessCreated(c, "Content reported successfully", nil)
 }
 
+
+// GetCompanies returns all companies (employers) for admin panel
+func (h *AdminHandler) GetCompanies(c *fiber.Ctx) error {
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "100"))
+	
+	// Get all employer users
+	filters := map[string]interface{}{
+		"role": "employer",
+	}
+	if search := c.Query("search"); search != "" {
+		filters["search"] = search
+	}
+	if status := c.Query("verification_status"); status != "" {
+		filters["verification_status"] = status
+	}
+	
+	users, total, err := h.adminService.GetAllUsers(c.Context(), filters, page, limit)
+	if err != nil {
+		return utils.InternalServerError(c, err.Error())
+	}
+	
+	// Transform to company format
+	companies := make([]map[string]interface{}, 0, len(users))
+	for _, user := range users {
+		vs := user.VerificationStatus
+		if vs == "" {
+			vs = "unverified"
+		}
+		company := map[string]interface{}{
+			"id":                  user.ID,
+			"name":                user.CompanyName,
+			"email":               user.Email,
+			"logo":                nil,
+			"verification_status": vs,
+			"jobs_count":          user.JobCount,
+			"created_at":          user.CreatedAt,
+			"document_count":      0,
+		}
+		companies = append(companies, company)
+	}
+	
+	return utils.Success(c, fiber.Map{
+		"companies":   companies,
+		"total":       total,
+		"page":        page,
+		"limit":       limit,
+		"total_pages": (int(total) + limit - 1) / limit,
+	})
+}
+
+// GetPendingVerifications - Get pending verifications for admin
+func (h *AdminHandler) GetPendingVerifications(c *fiber.Ctx) error {
+    page, _ := strconv.Atoi(c.Query("page", "1"))
+    limit, _ := strconv.Atoi(c.Query("limit", "20"))
+    
+    result, err := h.adminService.GetPendingVerifications(c.Context(), page, limit)
+    if err != nil {
+        return utils.InternalServerError(c, err.Error())
+    }
+    
+    return utils.Success(c, result)
+}
+
 // ApproveCompanyVerification approves a company verification request
 func (h *AdminHandler) ApproveCompanyVerification(c *fiber.Ctx) error {
 	adminID, _ := c.Locals("user_id").(string)

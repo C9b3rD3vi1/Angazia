@@ -1,0 +1,169 @@
+{{/* Admin - Reported Content / Moderation Reports */}}
+{{define "title"}}Reports{{end}}
+{{define "activePage"}}reports{{end}}
+
+<div class="ar-page">
+  {{/* ── Page Header ── */}}
+  <div class="ar-header">
+    <div class="ar-header-text">
+      <h1 class="ar-title">Reports</h1>
+      <p class="ar-subtitle">Review and manage reported content</p>
+    </div>
+    <div class="ar-header-actions">
+      <button class="ar-btn-ghost" data-action="refresh">&#x1F504; Refresh</button>
+    </div>
+  </div>
+
+  {{/* ── Stats Row ── */}}
+  <div class="ar-stats" id="ar-stats">
+    <div class="ar-stat-card" id="ar-stat-total">
+      <span class="ar-stat-value">0</span>
+      <span class="ar-stat-label">Total Reports</span>
+    </div>
+    <div class="ar-stat-card ar-stat-card-reported" id="ar-stat-reported">
+      <span class="ar-stat-value">0</span>
+      <span class="ar-stat-label">Reported</span>
+    </div>
+    <div class="ar-stat-card ar-stat-card-resolved" id="ar-stat-resolved">
+      <span class="ar-stat-value">0</span>
+      <span class="ar-stat-label">Resolved</span>
+    </div>
+    <div class="ar-stat-card ar-stat-card-dismissed" id="ar-stat-dismissed">
+      <span class="ar-stat-value">0</span>
+      <span class="ar-stat-label">Dismissed</span>
+    </div>
+  </div>
+
+  {{/* ── Tabs ── */}}
+  <div class="ar-tabs">
+    <button class="ar-tab active" data-tab="reported">All Reports</button>
+    <button class="ar-tab" data-tab="resolved">Resolved</button>
+  </div>
+
+  {{/* ── Toolbar ── */}}
+  <div class="ar-toolbar">
+    <select class="ar-select" id="ar-entity-filter">
+      <option value="">All Entity Types</option>
+      <option value="job">Job</option>
+      <option value="review">Review</option>
+      <option value="company">Company</option>
+      <option value="user">User</option>
+    </select>
+    <div class="ar-search-wrap">
+      <span class="ar-search-icon">&#x1F50D;</span>
+      <input type="text" class="ar-input ar-search-input" id="ar-search" placeholder="Search reports...">
+    </div>
+    <select class="ar-select" id="ar-reason-filter">
+      <option value="">All Reasons</option>
+    </select>
+  </div>
+
+  {{/* ── Loading State ── */}}
+  <div class="ar-loading" id="ar-loading">
+    <div class="ar-loading-spinner"></div>
+    <span class="ar-loading-text">Loading reports...</span>
+  </div>
+
+  {{/* ── Report List ── */}}
+  <div class="ar-list-wrap" id="ar-list-wrap">
+    <div class="ar-empty" id="ar-empty" style="display:none">
+      <span class="ar-empty-icon">&#x1F4AD;</span>
+      <p class="ar-empty-text">No reports found.</p>
+    </div>
+    <div class="ar-list" id="ar-list"></div>
+  </div>
+
+  {{/* ── Pagination ── */}}
+  <div class="ar-pagination" id="ar-pagination"></div>
+</div>
+
+{{/* ── Resolve Details Modal ── */}}
+<div class="ar-modal-overlay" id="ar-resolve-modal" style="display:none">
+  <div class="ar-modal">
+    <div class="ar-modal-head">
+      <h3 class="ar-modal-title">Resolve Report</h3>
+      <button class="ar-modal-close" id="ar-modal-close">&times;</button>
+    </div>
+    <div class="ar-modal-body">
+      <p class="ar-modal-desc">Add resolution notes (optional):</p>
+      <textarea class="ar-input ar-textarea" id="ar-resolve-notes" rows="4" placeholder="Resolution notes..."></textarea>
+    </div>
+    <div class="ar-modal-foot">
+      <button class="ar-btn ar-btn-ghost" id="ar-modal-cancel">Cancel</button>
+      <button class="ar-btn ar-btn-resolve" id="ar-modal-confirm-resolve">Resolve</button>
+    </div>
+  </div>
+</div>
+
+{{/* ── Dismiss Confirmation Modal ── */}}
+<div class="ar-modal-overlay" id="ar-dismiss-modal" style="display:none">
+  <div class="ar-modal">
+    <div class="ar-modal-head">
+      <h3 class="ar-modal-title">Dismiss Report</h3>
+      <button class="ar-modal-close" id="ar-dismiss-modal-close">&times;</button>
+    </div>
+    <div class="ar-modal-body">
+      <p class="ar-modal-desc">Are you sure you want to dismiss this report? Provide a reason:</p>
+      <textarea class="ar-input ar-textarea" id="ar-dismiss-reason" rows="4" placeholder="Reason for dismissal..."></textarea>
+    </div>
+    <div class="ar-modal-foot">
+      <button class="ar-btn ar-btn-ghost" id="ar-dismiss-modal-cancel">Cancel</button>
+      <button class="ar-btn ar-btn-dismiss" id="ar-modal-confirm-dismiss">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+{{/* ── Report Detail Modal ── */}}
+<div class="ar-modal-overlay" id="ar-detail-modal" style="display:none">
+  <div class="ar-modal ar-modal-lg">
+    <div class="ar-modal-head">
+      <h3 class="ar-modal-title">Report Details</h3>
+      <button class="ar-modal-close" id="ar-detail-modal-close">&times;</button>
+    </div>
+    <div class="ar-modal-body" id="ar-detail-body">
+      <div class="ar-detail-grid">
+        <div class="ar-detail-field">
+          <span class="ar-detail-label">Report ID</span>
+          <span class="ar-detail-value" id="ar-detail-id">-</span>
+        </div>
+        <div class="ar-detail-field">
+          <span class="ar-detail-label">Entity Type</span>
+          <span class="ar-detail-value" id="ar-detail-entity-type">-</span>
+        </div>
+        <div class="ar-detail-field">
+          <span class="ar-detail-label">Entity ID</span>
+          <span class="ar-detail-value" id="ar-detail-entity-id">-</span>
+        </div>
+        <div class="ar-detail-field">
+          <span class="ar-detail-label">Status</span>
+          <span class="ar-detail-value" id="ar-detail-status">-</span>
+        </div>
+        <div class="ar-detail-field">
+          <span class="ar-detail-label">Report Reason</span>
+          <span class="ar-detail-value" id="ar-detail-reason">-</span>
+        </div>
+        <div class="ar-detail-field">
+          <span class="ar-detail-label">Submitted By</span>
+          <span class="ar-detail-value" id="ar-detail-submitted">-</span>
+        </div>
+        <div class="ar-detail-field">
+          <span class="ar-detail-label">Reported At</span>
+          <span class="ar-detail-value" id="ar-detail-created">-</span>
+        </div>
+        <div class="ar-detail-field">
+          <span class="ar-detail-label">Reviewed By</span>
+          <span class="ar-detail-value" id="ar-detail-reviewed">-</span>
+        </div>
+        <div class="ar-detail-field ar-detail-field-full">
+          <span class="ar-detail-label">Admin Notes</span>
+          <pre class="ar-detail-notes" id="ar-detail-notes">-</pre>
+        </div>
+      </div>
+    </div>
+    <div class="ar-modal-foot">
+      <button class="ar-btn ar-btn-ghost" id="ar-detail-modal-close-btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/pages/admin/reports.js"></script>

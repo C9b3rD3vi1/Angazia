@@ -34,6 +34,9 @@ type TalentPoolService interface {
 	MarkCandidateContacted(ctx context.Context, candidateID, poolID, employerID string) error
 	MarkCandidateHired(ctx context.Context, candidateID, poolID, employerID string) error
 	
+	// Candidate pool lookup
+	GetCandidatePools(ctx context.Context, employerID, employeeID string) ([]*models.TalentPool, error)
+
 	// Statistics
 	GetPoolStats(ctx context.Context, poolID, employerID string) (*models.TalentPoolStats, error)
 	GetEmployerStats(ctx context.Context, employerID string) (map[string]int, error)
@@ -520,6 +523,10 @@ func (s *TalentPoolServiceImpl) GetPoolStats(ctx context.Context, poolID, employ
 
 func (s *TalentPoolServiceImpl) GetEmployerStats(ctx context.Context, employerID string) (map[string]int, error) {
 	return s.talentRepo.GetEmployerTalentStats(ctx, employerID)
+}
+
+func (s *TalentPoolServiceImpl) GetCandidatePools(ctx context.Context, employerID, employeeID string) ([]*models.TalentPool, error) {
+	return s.talentRepo.GetCandidatePools(ctx, employerID, employeeID)
 }
 
 func (s *TalentPoolServiceImpl) SearchCandidates(ctx context.Context, poolID, employerID, query string, page, limit int) (*models.CandidateListResponse, error) {

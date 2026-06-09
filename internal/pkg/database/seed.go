@@ -8,11 +8,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	//"gorm.io/gorm"
 	
+	"github.com/C9b3rD3vi1/Angazia/internal/config"
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
 )
 
 // SeedData seeds the database with initial test data
-func SeedData() error {
+func SeedData(cfg *config.Config) error {
 	log.Println("🌱 Seeding database with initial data...")
 	
 	// Check if already seeded
@@ -305,6 +306,29 @@ func SeedData() error {
 		log.Printf("Warning: Could not seed GitHub profiles: %v", err)
 	}
 	
+	// Create admin user from config if not exists
+	if cfg != nil && cfg.AdminEmail != "" && cfg.AdminPassword != "" {
+		var adminCount int64
+		DB.Model(&models.User{}).Where("role = ?", "admin").Count(&adminCount)
+		if adminCount == 0 {
+			adminID := uuid.New().String()
+			hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(cfg.AdminPassword), bcrypt.DefaultCost)
+			adminUser := models.User{
+				ID:           adminID,
+				Email:        cfg.AdminEmail,
+				PasswordHash: string(hashedPassword),
+				Role:         models.RoleAdmin,
+				IsVerified:   true,
+				IsActive:     true,
+			}
+			if err := DB.Create(&adminUser).Error; err != nil {
+				log.Printf("Warning: Could not seed admin user: %v", err)
+			} else {
+				log.Printf("✅ Admin user created: %s", cfg.AdminEmail)
+			}
+		}
+	}
+
 	log.Printf("✅ Seeded %d users, %d jobs, %d matches", len(users), len(jobs), len(matches))
 	return nil
 }
@@ -314,7 +338,7 @@ func timePtr(t time.Time) *time.Time {
 }
 
 // ResetDatabase truncates all tables (for testing only)
-func ResetDatabase() error {
+func ResetDatabase(cfg *config.Config) error {
 	log.Println("⚠️  Resetting database...")
 	
 	tables := []string{
@@ -331,5 +355,5 @@ func ResetDatabase() error {
 		}
 	}
 	
-	return SeedData()
+	return SeedData(cfg)
 }

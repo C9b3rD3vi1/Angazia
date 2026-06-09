@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	
@@ -70,7 +73,11 @@ func (h *TwoFAHandler) VerifySetup(c *fiber.Ctx) error {
 		return utils.BadRequest(c, err.Error())
 	}
 	
-	return utils.SuccessWithMessage(c, "2FA enabled successfully", nil)
+	backupCodes, _ := h.twoFAService.GenerateBackupCodes(c.Context(), userID.(string))
+	
+	return utils.SuccessWithMessage(c, "2FA enabled successfully", fiber.Map{
+		"backup_codes": backupCodes,
+	})
 }
 
 // Disable disables 2FA
@@ -143,7 +150,51 @@ func (h *TwoFAHandler) GetBackupCodes(c *fiber.Ctx) error {
 	return utils.Success(c, fiber.Map{
 		"message":      "Backup codes cannot be retrieved for security reasons.",
 		"action":       "Use the POST /auth/2fa/backup-codes/generate endpoint to generate new backup codes.",
+		"can_generate": true,
 	})
+}
+
+func (h *TwoFAHandler) LoginVerify(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+
+	var req struct {
+		Code string `json:"code" validate:"required,min=6,max=8"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return utils.BadRequest(c, err.Error())
+	}
+	if err := h.validator.Struct(req); err != nil {
+		return utils.BadRequest(c, err.Error())
+	}
+
+	deviceID := generateDeviceID()
+	valid, err := h.twoFAService.VerifyCode(c.Context(), userID.(string), req.Code, deviceID)
+	if err != nil || !valid {
+		return utils.Unauthorized(c, "Invalid 2FA verification code")
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "twofa_device_id",
+		Value:    deviceID,
+		HTTPOnly: true,
+		Secure:   true,
+		MaxAge:   30 * 24 * 3600,
+		SameSite: "Strict",
+		Path:     "/",
+	})
+
+	return utils.SuccessWithMessage(c, "2FA verification successful", fiber.Map{
+		"device_id": deviceID,
+	})
+}
+
+func generateDeviceID() string {
+	bytes := make([]byte, 32)
+	rand.Read(bytes)
+	return "device_" + hex.EncodeToString(bytes)
 }
 
 func (h *TwoFAHandler) InitiateRecovery(c *fiber.Ctx) error {

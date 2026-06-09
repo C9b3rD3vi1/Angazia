@@ -374,6 +374,7 @@ type AdminService interface {
 	UpdateSetting(ctx context.Context, key, value string) error
 	ApproveCompanyVerification(ctx context.Context, adminID, companyID string) error
 	RejectCompanyVerification(ctx context.Context, adminID, companyID, reason string) error
+	GetPendingVerifications(ctx context.Context, page, limit int) (*PendingVerificationsResponse, error)
 	GetReportReasons(ctx context.Context, entityType string) ([]*models.ReportReason, error)
 	GetAuditLogs(ctx context.Context, filters map[string]interface{}, page, limit int) ([]*models.AdminActionLog, int64, error)
 	ReportContent(ctx context.Context, submittedBy string, req ReportContentRequest) error
@@ -384,6 +385,22 @@ type ReportContentRequest struct {
 	EntityID    string `json:"entity_id" validate:"required"`
 	ReasonID    string `json:"reason_id" validate:"required"`
 	Description string `json:"description"`
+}
+
+type PendingVerificationsResponse struct {
+    Verifications []*models.CompanyVerification `json:"verifications"`
+    Total         int64                         `json:"total"`
+    Page          int                           `json:"page"`
+    Limit         int                           `json:"limit"`
+    TotalPages    int                           `json:"total_pages"`
+}
+
+type VerificationStats struct {
+    TotalPending   int64 `json:"total_pending"`
+    TotalApproved  int64 `json:"total_approved"`
+    TotalRejected  int64 `json:"total_rejected"`
+    TotalSubmitted int64 `json:"total_submitted"`
+    AverageWaitTimeDays float64 `json:"average_wait_time_days"`
 }
 
 type AdminServiceImpl struct {
@@ -458,27 +475,118 @@ func (s *AdminServiceImpl) UpdateSetting(ctx context.Context, key, value string)
 	return s.adminRepo.UpdateSetting(ctx, key, value)
 }
 
+// ApproveCompanyVerification approves a company verification request
 func (s *AdminServiceImpl) ApproveCompanyVerification(ctx context.Context, adminID, companyID string) error {
-	verification, err := s.adminRepo.GetVerificationByCompanyID(ctx, companyID)
-	if err != nil {
-		return fmt.Errorf("verification not found")
-	}
-	if verification.Status != "pending" {
-		return fmt.Errorf("verification is not pending")
-	}
-	return s.adminRepo.ApproveCompanyVerification(ctx, companyID, adminID)
+    // First, check if employer profile exists
+    profile, err := s.adminRepo.GetUserDetails(ctx, companyID)
+    if err != nil || profile == nil {
+        return fmt.Errorf("company not found")
+    }
+    
+    // Directly update employer profile verification status
+    if err := s.adminRepo.UpdateEmployerVerificationStatus(ctx, companyID, "verified"); err != nil {
+        return fmt.Errorf("failed to update company status: %w", err)
+    }
+    
+    // Update or create verification record
+    verification, err := s.adminRepo.GetVerificationByCompanyID(ctx, companyID)
+    if err != nil {
+        // Create new verification record if doesn't exist
+        verification = &models.CompanyVerification{
+            CompanyID:   companyID,
+            Status:      "approved",
+            VerifiedBy:  &adminID,
+            VerifiedAt:  timePtr(time.Now()),
+            SubmittedAt: time.Now(),
+        }
+        if err := s.adminRepo.CreateCompanyVerification(ctx, verification); err != nil {
+            // Log error but don't fail since employer profile is already updated
+            fmt.Printf("Warning: Failed to create verification record: %v\n", err)
+        }
+    } else {
+        // Update existing verification
+        if err := s.adminRepo.ApproveCompanyVerification(ctx, companyID, adminID); err != nil {
+            // Log error but don't fail since employer profile is already updated
+            fmt.Printf("Warning: Failed to update verification record: %v\n", err)
+        }
+    }
+    
+    // Log action
+    log := &models.AdminActionLog{
+        AdminID:    adminID,
+        Action:     "approve_company",
+        EntityType: "company",
+        EntityID:   companyID,
+        NewValue:   map[string]interface{}{"verification_status": "verified"},
+    }
+    s.adminRepo.LogAction(ctx, log)
+    
+    return nil
 }
 
+// RejectCompanyVerification rejects a company verification request
+// RejectCompanyVerification rejects a company verification request
 func (s *AdminServiceImpl) RejectCompanyVerification(ctx context.Context, adminID, companyID, reason string) error {
-	verification, err := s.adminRepo.GetVerificationByCompanyID(ctx, companyID)
-	if err != nil {
-		return fmt.Errorf("verification not found")
-	}
-	if 	verification.Status != "pending" {
-		return fmt.Errorf("verification is not pending")
-	}
-	return s.adminRepo.RejectCompanyVerification(ctx, companyID, reason, adminID)
+    // First, check if employer profile exists
+    profile, err := s.adminRepo.GetUserDetails(ctx, companyID)
+    if err != nil || profile == nil {
+        return fmt.Errorf("company not found")
+    }
+    
+    // Validate reason
+    if reason == "" {
+        return fmt.Errorf("rejection reason is required")
+    }
+    
+    // Directly update employer profile verification status
+    if err := s.adminRepo.UpdateEmployerVerificationStatus(ctx, companyID, "rejected"); err != nil {
+        return fmt.Errorf("failed to update company status: %w", err)
+    }
+    
+    // Update or create verification record
+    verification, err := s.adminRepo.GetVerificationByCompanyID(ctx, companyID)
+    if err != nil {
+        // Create new verification record if doesn't exist
+        verification = &models.CompanyVerification{
+            CompanyID:        companyID,
+            Status:           "rejected",
+            RejectionReason:  reason,
+            VerifiedBy:       &adminID,
+            VerifiedAt:       timePtr(time.Now()),
+            SubmittedAt:      time.Now(),
+        }
+        if err := s.adminRepo.CreateCompanyVerification(ctx, verification); err != nil {
+            // Log error but don't fail since employer profile is already updated
+            fmt.Printf("Warning: Failed to create verification record: %v\n", err)
+        }
+    } else {
+        // Update existing verification
+        if err := s.adminRepo.RejectCompanyVerification(ctx, companyID, reason, adminID); err != nil {
+            // Log error but don't fail since employer profile is already updated
+            fmt.Printf("Warning: Failed to update verification record: %v\n", err)
+        }
+    }
+    
+    // Log action
+    log := &models.AdminActionLog{
+        AdminID:    adminID,
+        Action:     "reject_company",
+        EntityType: "company",
+        EntityID:   companyID,
+        NewValue: map[string]interface{}{
+            "verification_status": "rejected",
+            "reason": reason,
+        },
+    }
+    s.adminRepo.LogAction(ctx, log)
+    
+    return nil
 }
+
+func timePtr(t time.Time) *time.Time {
+    return &t
+}
+
 
 func (s *AdminServiceImpl) GetReportReasons(ctx context.Context, entityType string) ([]*models.ReportReason, error) {
 	return s.adminRepo.GetReportReasons(ctx, entityType)
@@ -498,3 +606,36 @@ func (s *AdminServiceImpl) ReportContent(ctx context.Context, submittedBy string
 	}
 	return s.adminRepo.AddToModerationQueue(ctx, item)
 }
+
+
+// GetPendingVerifications - Get all pending verifications with pagination
+func (s *AdminServiceImpl) GetPendingVerifications(ctx context.Context, page, limit int) (*PendingVerificationsResponse, error) {
+    if page < 1 {
+        page = 1
+    }
+    if limit < 1 {
+        limit = 20
+    }
+    if limit > 100 {
+        limit = 100
+    }
+    
+    verifications, total, err := s.adminRepo.GetPendingVerifications(ctx, page, limit)
+    if err != nil {
+        return nil, err
+    }
+    
+    totalPages := int(total) / limit
+    if int(total)%limit > 0 {
+        totalPages++
+    }
+    
+    return &PendingVerificationsResponse{
+        Verifications: verifications,
+        Total:         total,
+        Page:          page,
+        Limit:         limit,
+        TotalPages:    totalPages,
+    }, nil
+}
+

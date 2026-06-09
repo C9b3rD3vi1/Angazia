@@ -21,6 +21,7 @@ type UserRepository interface {
 	ExistsByEmail(ctx context.Context, email string) (bool, error)
 	UpdatePassword(ctx context.Context, userID string, hashedPassword string) error
 	VerifyEmail(ctx context.Context, userID string) error
+	UpdateAvatar(ctx context.Context, userID string, avatarURL string) error
 	
 	// Employee profile operations
 	CreateEmployeeProfile(ctx context.Context, profile *models.EmployeeProfile) error
@@ -137,6 +138,16 @@ func (r *UserRepositoryImpl) VerifyEmail(ctx context.Context, userID string) err
 		Updates(map[string]interface{}{
 			"is_verified": true,
 			"updated_at":  time.Now(),
+		}).Error
+}
+
+func (r *UserRepositoryImpl) UpdateAvatar(ctx context.Context, userID string, avatarURL string) error {
+	return r.db.WithContext(ctx).
+		Model(&models.User{}).
+		Where("id = ?", userID).
+		Updates(map[string]interface{}{
+			"avatar_url": avatarURL,
+			"updated_at": time.Now(),
 		}).Error
 }
 

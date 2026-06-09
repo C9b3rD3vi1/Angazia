@@ -8,66 +8,95 @@
     <a href="/employer/job-post" class="emp-btn emp-btn-primary">+ Post a New Job</a>
   </div>
 
-  {{if .Jobs}}
-  <section class="emp-section">
-    <div class="emp-section-head">
-      <h2 class="emp-section-title">All Listings</h2>
-      <div class="emp-section-actions">
-        <select class="emp-select-sm">
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="draft">Draft</option>
-          <option value="closed">Closed</option>
-        </select>
+  {{/* Loading State */}}
+  <div id="jobs-loading" class="emp-loading">
+    <div class="emp-spinner"></div>
+    <p>Loading your jobs...</p>
+  </div>
+
+  {{/* Error State */}}
+  <div id="jobs-error" class="emp-error" style="display:none;">
+    <div class="emp-error-icon">⚠️</div>
+    <h3>Failed to load jobs</h3>
+    <p id="jobs-error-msg"></p>
+    <button class="emp-btn emp-btn-primary" onclick="location.reload()">Retry</button>
+  </div>
+
+  {{/* Jobs Content */}}
+  <div id="jobs-content" style="display:none;">
+    <section class="emp-section">
+      <div class="emp-section-head">
+        <h2 class="emp-section-title">All Listings</h2>
+        <div class="emp-section-actions">
+          <select id="job-status-filter" class="emp-select-sm">
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
       </div>
-    </div>
-    <div class="emp-table-wrap">
-      <table class="emp-table">
-        <thead>
-          <tr>
-            <th>Job Title</th>
-            <th>Status</th>
-            <th>Applications</th>
-            <th>Views</th>
-            <th>Posted</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {{range .Jobs}}
-          <tr>
-            <td>
-              <a href="/jobs/{{.ID}}" class="emp-job-title">{{.Title}}</a>
-              <span class="emp-job-type">{{.Type}}</span>
-            </td>
-            <td>
-              <span class="emp-status {{.Status}}">{{.StatusLabel}}</span>
-            </td>
-            <td class="emp-stat-cell">{{.ApplicationCount}}</td>
-            <td class="emp-stat-cell">{{.ViewCount}}</td>
-            <td class="emp-date-cell">{{.CreatedAt.Format "Jan 2, 2006"}}</td>
-            <td>
-              <a href="/employer/job-applications/{{.ID}}" class="emp-action-link">View</a>
-            </td>
-          </tr>
-          {{end}}
-        </tbody>
-      </table>
-    </div>
-  </section>
-  {{else}}
-  <section class="emp-section">
-    <div class="emp-empty">
-      <div class="emp-empty-icon">&#x1F4BC;</div>
-      <h3 class="emp-empty-title">No jobs posted yet</h3>
-      <p class="emp-empty-desc">Post your first job listing to start attracting top tech talent.</p>
-      <a href="/employer/job-post" class="emp-btn emp-btn-primary emp-btn-lg">Post Your First Job</a>
-    </div>
-  </section>
-  {{end}}
+      <div class="emp-table-wrap">
+        <table class="emp-table">
+          <thead>
+            <tr>
+              <th>Job Title</th>
+              <th>Status</th>
+              <th>Applications</th>
+              <th>Views</th>
+              <th>Posted</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="jobs-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  {{/* Empty State */}}
+  <div id="jobs-empty" class="emp-empty" style="display:none;">
+    <div class="emp-empty-icon">📄</div>
+    <h3 class="emp-empty-title">No jobs posted yet</h3>
+    <p class="emp-empty-desc">Post your first job listing to start attracting top tech talent.</p>
+    <a href="/employer/job-post" class="emp-btn emp-btn-primary emp-btn-lg">Post Your First Job</a>
+  </div>
 </div>
 
 <style>
+.emp-loading, .emp-error {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-top: 20px;
+}
+.emp-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--purple);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.emp-error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+.emp-error h3 {
+  font-family: var(--fh);
+  font-size: 18px;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+.emp-error p {
+  color: var(--muted);
+  margin-bottom: 20px;
+}
 .emp-page-head {
   display: flex;
   align-items: flex-end;
@@ -182,6 +211,7 @@
   font-weight: 500;
   color: var(--text);
   margin-bottom: 2px;
+  text-decoration: none;
 }
 .emp-job-title:hover { color: var(--accent); }
 .emp-job-type {
@@ -203,9 +233,21 @@
   letter-spacing: 0.5px;
   color: var(--purple);
   text-transform: uppercase;
+  text-decoration: none;
   transition: opacity 0.12s;
 }
 .emp-action-link:hover { opacity: 0.7; }
+.emp-action-delete {
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--danger);
+  text-transform: uppercase;
+  text-decoration: none;
+  margin-left: 12px;
+  cursor: pointer;
+}
+.emp-action-delete:hover { opacity: 0.7; text-decoration: underline; }
 
 .emp-status {
   display: inline-block;
@@ -217,16 +259,19 @@
   text-transform: capitalize;
 }
 .emp-status.active { background: rgba(0,229,160,0.12); color: var(--accent); }
-.emp-status.draft { background: var(--s2); color: var(--muted2); }
 .emp-status.closed { background: rgba(255,79,79,0.1); color: var(--danger); }
 .emp-status.pending { background: rgba(245,166,35,0.12); color: var(--warn); }
 
 .emp-empty {
   text-align: center;
   padding: 48px 24px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-top: 20px;
 }
 .emp-empty-icon {
-  font-size: 40px;
+  font-size: 48px;
   margin-bottom: 16px;
   opacity: 0.6;
 }
@@ -247,9 +292,37 @@
   line-height: 1.5;
 }
 
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.emp-action-btn {
+  background: none;
+  border: none;
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.12s;
+}
+.emp-action-btn:hover { opacity: 0.7; }
+.emp-action-close {
+  color: var(--warn);
+  margin-left: 12px;
+}
+.emp-action-delete {
+  color: var(--danger);
+  margin-left: 12px;
+}
+
 @media (max-width: 860px) {
   .emp-page-head { flex-direction: column; align-items: flex-start; }
   .emp-table thead th { font-size: 9px; padding: 8px 10px; }
   .emp-table tbody td { padding: 10px; font-size: 12px; }
 }
 </style>
+
+<script src="/static/js/pages/employer/jobs.js"></script>

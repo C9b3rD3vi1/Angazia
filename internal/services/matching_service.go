@@ -38,21 +38,28 @@ type MatchingService interface {
 }
 
 type MatchResult struct {
-	JobID           string    `json:"job_id"`
-	EmployeeID      string    `json:"employee_id"`
-	JobTitle        string    `json:"job_title"`
-	CompanyName     string    `json:"company_name"`
-	OverallScore    int       `json:"overall_score"`
-	SkillsScore     int       `json:"skills_score"`
-	ExperienceScore int       `json:"experience_score"`
-	CultureScore    int       `json:"culture_score"`
-	LocationScore   int       `json:"location_score"`
-	Summary         string    `json:"summary"`
-	Recommendation  string    `json:"recommendation"`
-	MatchingSkills  []string  `json:"matching_skills"`
-	MissingSkills   []string  `json:"missing_skills"`
-	MatchID         string    `json:"match_id"`
-	AnalyzedAt      time.Time `json:"analyzed_at"`
+	JobID             string    `json:"job_id"`
+	EmployeeID        string    `json:"employee_id"`
+	JobTitle          string    `json:"job_title"`
+	CompanyName       string    `json:"company_name"`
+	OverallScore      int       `json:"overall_score"`
+	SkillsScore       int       `json:"skills_score"`
+	ExperienceScore   int       `json:"experience_score"`
+	CultureScore      int       `json:"culture_score"`
+	LocationScore     int       `json:"location_score"`
+	Summary           string    `json:"summary"`
+	Recommendation    string    `json:"recommendation"`
+	MatchingSkills    []string  `json:"matching_skills"`
+	MissingSkills     []string  `json:"missing_skills"`
+	MatchID           string    `json:"match_id"`
+	AnalyzedAt        time.Time `json:"analyzed_at"`
+	CandidateName     string    `json:"candidate_name"`
+	CandidateHeadline string    `json:"candidate_headline"`
+	CandidateLocation string    `json:"candidate_location"`
+	CandidateAvatar   string    `json:"candidate_avatar"`
+	CandidateInitials string    `json:"candidate_initials"`
+	ExperienceYears   int       `json:"experience_years"`
+	Skills            []string  `json:"skills"`
 }
 
 type MatchingServiceImpl struct {
@@ -180,36 +187,50 @@ func (s *MatchingServiceImpl) GetCandidateMatches(ctx context.Context, jobID str
 	var mu sync.Mutex
 	semaphore := make(chan struct{}, 5)
 	
-	for _, employee := range employees {
-		wg.Add(1)
-		go func(emp *models.EmployeeProfile) {
-			defer wg.Done()
-			semaphore <- struct{}{}
-			defer func() { <-semaphore }()
-			
-			githubProfile, _ := s.githubRepo.GetProfileByEmployeeID(ctx, emp.UserID)
-			candidateProfile := s.buildCandidateProfile(emp, githubProfile)
-			
-			analysis, err := s.aiProvider.GenerateMatchAnalysis(ctx, jobDesc, candidateProfile)
-			if err != nil {
-				return
-			}
-			
-			match := &MatchResult{
-				JobID:           jobID,
-				EmployeeID:      emp.UserID,
-				OverallScore:    analysis.OverallScore,
-				SkillsScore:     analysis.SkillsScore,
-				ExperienceScore: analysis.ExperienceScore,
-				CultureScore:    analysis.CultureScore,
-				LocationScore:   analysis.LocationScore,
-				Summary:         analysis.Summary,
-				Recommendation:  analysis.Recommendation,
-				MatchingSkills:  analysis.MatchingSkills,
-				MissingSkills:   analysis.MissingSkills,
-				MatchID:         uuid.New().String(),
-				AnalyzedAt:      time.Now(),
-			}
+		for _, employee := range employees {
+			wg.Add(1)
+			go func(emp *models.EmployeeProfile) {
+				defer wg.Done()
+				semaphore <- struct{}{}
+				defer func() { <-semaphore }()
+
+				githubProfile, _ := s.githubRepo.GetProfileByEmployeeID(ctx, emp.UserID)
+				candidateProfile := s.buildCandidateProfile(emp, githubProfile)
+
+				analysis, err := s.aiProvider.GenerateMatchAnalysis(ctx, jobDesc, candidateProfile)
+				if err != nil {
+					return
+				}
+
+				initials := ""
+				parts := splitName(emp.FullName)
+				for _, p := range parts {
+					if len(p) > 0 {
+						initials += string(p[0])
+					}
+				}
+
+				match := &MatchResult{
+					JobID:             jobID,
+					EmployeeID:        emp.UserID,
+					OverallScore:      analysis.OverallScore,
+					SkillsScore:       analysis.SkillsScore,
+					ExperienceScore:   analysis.ExperienceScore,
+					CultureScore:      analysis.CultureScore,
+					LocationScore:     analysis.LocationScore,
+					Summary:           analysis.Summary,
+					Recommendation:    analysis.Recommendation,
+					MatchingSkills:    analysis.MatchingSkills,
+					MissingSkills:     analysis.MissingSkills,
+					MatchID:           uuid.New().String(),
+					AnalyzedAt:        time.Now(),
+					CandidateName:     emp.FullName,
+					CandidateHeadline: emp.Headline,
+					CandidateLocation: emp.Location,
+					CandidateInitials: initials,
+					ExperienceYears:   emp.YearsOfExperience,
+					Skills:            emp.Skills,
+				}
 			
 			mu.Lock()
 			results = append(results, match)
@@ -473,4 +494,23 @@ func (s *MatchingServiceImpl) getUserTypeFromID(ctx context.Context, userID stri
 		return "employee"
 	}
 	return "employer"
+}
+
+func splitName(name string) []string {
+	var result []string
+	current := ""
+	for _, r := range name {
+		if r == ' ' {
+			if current != "" {
+				result = append(result, current)
+				current = ""
+			}
+		} else {
+			current += string(r)
+		}
+	}
+	if current != "" {
+		result = append(result, current)
+	}
+	return result
 }

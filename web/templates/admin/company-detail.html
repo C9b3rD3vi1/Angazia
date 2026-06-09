@@ -1,0 +1,232 @@
+{{/* Admin Company Detail */}}
+
+{{if .CompanyDetail}}
+<div class="acd-page">
+  {{/* ── Page Header with Back Navigation ── */}}
+  <div class="acd-header">
+    <a href="/admin/companies" class="acd-back-link">← Back to Companies</a>
+    <div class="acd-header-actions">
+      {{if eq .CompanyDetail.verification_status "pending"}}
+      <button class="acd-btn acd-btn-accept" data-action="approve" data-company-id="{{.CompanyDetail.id}}">Approve Verification</button>
+      <button class="acd-btn acd-btn-reject" data-action="reject" data-company-id="{{.CompanyDetail.id}}">Reject Verification</button>
+      {{end}}
+    </div>
+  </div>
+
+  {{/* ── Company Info Card ── */}}
+  <div class="acd-card acd-info-card">
+    <div class="acd-info-top">
+      {{if .CompanyDetail.logo}}
+      <img src="{{.CompanyDetail.logo}}" alt="{{.CompanyDetail.name}}" class="acd-info-logo">
+      {{else}}
+      <span class="acd-info-logo-placeholder">{{.CompanyDetail.initials}}</span>
+      {{end}}
+      <div class="acd-info-body">
+        <h1 class="acd-info-name">{{.CompanyDetail.name}}</h1>
+        <span class="acd-info-email">{{.CompanyDetail.email}}</span>
+        <span class="acd-status-badge {{.CompanyDetail.verification_status}}">{{.CompanyDetail.verification_status}}</span>
+      </div>
+    </div>
+    {{if .CompanyDetail.description}}
+    <p class="acd-info-desc">{{.CompanyDetail.description}}</p>
+    {{end}}
+    <div class="acd-info-meta">
+      <div class="acd-meta-item">
+        <span class="acd-meta-label">Website</span>
+        {{if .CompanyDetail.website}}
+        <a href="{{.CompanyDetail.website}}" target="_blank" class="acd-meta-value acd-meta-link">{{.CompanyDetail.website}}</a>
+        {{else}}
+        <span class="acd-meta-value acd-meta-na">N/A</span>
+        {{end}}
+      </div>
+      <div class="acd-meta-item">
+        <span class="acd-meta-label">Location</span>
+        <span class="acd-meta-value">{{if .CompanyDetail.location}}{{.CompanyDetail.location}}{{else}}N/A{{end}}</span>
+      </div>
+      <div class="acd-meta-item">
+        <span class="acd-meta-label">Industry</span>
+        <span class="acd-meta-value">{{if .CompanyDetail.industry}}{{.CompanyDetail.industry}}{{else}}N/A{{end}}</span>
+      </div>
+      <div class="acd-meta-item">
+        <span class="acd-meta-label">Size</span>
+        <span class="acd-meta-value">{{if .CompanyDetail.size}}{{.CompanyDetail.size}}{{else}}N/A{{end}}</span>
+      </div>
+      <div class="acd-meta-item">
+        <span class="acd-meta-label">Active Jobs</span>
+        <span class="acd-meta-value">{{.CompanyDetail.active_jobs}}</span>
+      </div>
+      <div class="acd-meta-item">
+        <span class="acd-meta-label">Member Since</span>
+        <span class="acd-meta-value">{{.CompanyDetail.created_at}}</span>
+      </div>
+    </div>
+  </div>
+
+  {{/* ── Two-Column Layout ── */}}
+  <div class="acd-grid-2col">
+
+    {{/* ── Left Column ── */}}
+    <div class="acd-col-left">
+
+      {{/* ── Verification Status Timeline ── */}}
+      <div class="acd-card">
+        <div class="acd-card-head">
+          <h2 class="acd-card-title">Verification Status</h2>
+        </div>
+        <div class="acd-timeline">
+          {{if .CompanyDetail.verification_history}}
+          {{range .CompanyDetail.verification_history}}
+          <div class="acd-timeline-item {{.type}}">
+            <div class="acd-timeline-dot"></div>
+            <div class="acd-timeline-content">
+              <div class="acd-timeline-head">
+                <span class="acd-timeline-action">{{.action}}</span>
+                <span class="acd-timeline-date">{{.date}}</span>
+              </div>
+              {{if .note}}
+              <p class="acd-timeline-note">{{.note}}</p>
+              {{end}}
+              <span class="acd-timeline-author">{{.by}}</span>
+            </div>
+          </div>
+          {{end}}
+          {{else}}
+          <div class="acd-empty">
+            <p class="acd-empty-text">No verification history available.</p>
+          </div>
+          {{end}}
+        </div>
+      </div>
+
+      {{/* ── Trust Badges ── */}}
+      <div class="acd-card">
+        <div class="acd-card-head">
+          <h2 class="acd-card-title">Trust Badges</h2>
+        </div>
+        <div class="acd-badges-grid">
+          {{if .CompanyDetail.badges}}
+          {{range .CompanyDetail.badges}}
+          <div class="acd-badge-item {{if .awarded}}awarded{{else}}locked{{end}}">
+            <span class="acd-badge-icon">{{.icon}}</span>
+            <div class="acd-badge-body">
+              <span class="acd-badge-name">{{.name}}</span>
+              <span class="acd-badge-desc">{{.description}}</span>
+            </div>
+            {{if .awarded}}
+            <span class="acd-badge-check"></span>
+            {{end}}
+          </div>
+          {{end}}
+          {{else}}
+          <div class="acd-empty">
+            <p class="acd-empty-text">No trust badges configured.</p>
+          </div>
+          {{end}}
+        </div>
+      </div>
+
+    </div>
+
+    {{/* ── Right Column ── */}}
+    <div class="acd-col-right">
+
+      {{/* ── Team Members ── */}}
+      <div class="acd-card">
+        <div class="acd-card-head">
+          <h2 class="acd-card-title">Team Members</h2>
+          <span class="acd-card-badge">{{len .CompanyDetail.team_members}}</span>
+        </div>
+        {{if .CompanyDetail.team_members}}
+        <div class="acd-team-list">
+          {{range .CompanyDetail.team_members}}
+          <div class="acd-team-item">
+            {{if .avatar}}
+            <img src="{{.avatar}}" alt="" class="acd-team-avatar">
+            {{else}}
+            <span class="acd-team-avatar acd-team-avatar-text">{{.initials}}</span>
+            {{end}}
+            <div class="acd-team-info">
+              <a href="/admin/users/{{.user_id}}" class="acd-team-name">{{.name}}</a>
+              <span class="acd-team-role">{{.role}}</span>
+            </div>
+            <span class="acd-team-status {{if .active}}active{{else}}inactive{{end}}">{{if .active}}Active{{else}}Inactive{{end}}</span>
+          </div>
+          {{end}}
+        </div>
+        {{else}}
+        <div class="acd-empty">
+          <span class="acd-empty-icon"></span>
+          <p class="acd-empty-text">No team members.</p>
+        </div>
+        {{end}}
+      </div>
+
+      {{/* ── Review Stats ── */}}
+      <div class="acd-card">
+        <div class="acd-card-head">
+          <h2 class="acd-card-title">Reviews</h2>
+        </div>
+        <div class="acd-reviews-stats">
+          <div class="acd-review-stat">
+            <span class="acd-review-stat-value">{{.CompanyDetail.review_stats.total}}</span>
+            <span class="acd-review-stat-label">Total Reviews</span>
+          </div>
+          <div class="acd-review-stat">
+            <span class="acd-review-stat-value">{{.CompanyDetail.review_stats.average_rating}}</span>
+            <span class="acd-review-stat-label">Avg Rating</span>
+          </div>
+          <div class="acd-review-stat">
+            <span class="acd-review-stat-value">{{.CompanyDetail.review_stats.five_star}}</span>
+            <span class="acd-review-stat-label">5-Star</span>
+          </div>
+        </div>
+        {{if .CompanyDetail.recent_reviews}}
+        <div class="acd-review-list">
+          {{range .CompanyDetail.recent_reviews}}
+          <div class="acd-review-item">
+            <div class="acd-review-head">
+              <span class="acd-review-author">{{.author}}</span>
+              <span class="acd-review-rating">{{.rating}}/5</span>
+              <span class="acd-review-date">{{.date}}</span>
+            </div>
+            {{if .comment}}
+            <p class="acd-review-comment">{{.comment}}</p>
+            {{end}}
+          </div>
+          {{end}}
+        </div>
+        {{end}}
+      </div>
+
+    </div>
+  </div>
+</div>
+{{else}}
+<div class="acd-page">
+  <div class="acd-empty acd-empty-page">
+    <span class="acd-empty-icon"></span>
+    <p class="acd-empty-text">Company not found or you do not have permission to view this page.</p>
+    <a href="/admin/companies" class="acd-btn acd-btn-primary">← Back to Companies</a>
+  </div>
+</div>
+{{end}}
+
+{{/* ── Reject Reason Modal ── */}}
+<div class="acd-modal-overlay" id="acd-reject-modal" style="display:none">
+  <div class="acd-modal">
+    <div class="acd-modal-head">
+      <h3 class="acd-modal-title">Reject Verification</h3>
+      <button class="acd-modal-close" id="acd-modal-close">&times;</button>
+    </div>
+    <div class="acd-modal-body">
+      <p class="acd-modal-desc">Provide a reason for rejecting this company's verification request. This will be sent to the company.</p>
+      <textarea class="acd-input acd-textarea" id="acd-reject-reason" rows="4" placeholder="Reason for rejection..."></textarea>
+    </div>
+    <div class="acd-modal-foot">
+      <button class="acd-btn acd-btn-ghost" id="acd-modal-cancel">Cancel</button>
+      <button class="acd-btn acd-btn-danger" id="acd-modal-confirm">Reject Verification</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/pages/admin/company-detail.js"></script>

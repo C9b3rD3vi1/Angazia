@@ -10,6 +10,7 @@ func SetupAuthRoutes(router fiber.Router, authHandler *handlers.AuthHandler) {
 	// Public routes (no authentication required)
 	router.Post("/auth/register", authHandler.Register)
 	router.Post("/auth/login", authHandler.Login)
+	router.Post("/auth/admin/login", authHandler.AdminLogin)
 	router.Post("/auth/refresh", authHandler.RefreshToken)
 	router.Post("/auth/forgot-password", authHandler.ForgotPassword)
 	router.Post("/auth/reset-password", authHandler.ResetPassword)
@@ -25,4 +26,8 @@ func SetupAuthRoutes(router fiber.Router, authHandler *handlers.AuthHandler) {
 	profile := router.Group("/profile", middleware.AuthMiddleware())
 	profile.Get("/", authHandler.GetProfile)
 	profile.Put("/", authHandler.UpdateProfile)
+
+	// Employer candidate routes (authentication required)
+	employerCandidate := router.Group("/employer/candidates", middleware.AuthMiddleware(), middleware.RequireRole("employer"))
+	employerCandidate.Get("/:id", authHandler.GetCandidateProfile)
 }

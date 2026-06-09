@@ -1,615 +1,610 @@
-{{/* Employer/Company Dashboard */}}
+{{/* Employer Dashboard - SPA */}}
 
 <div class="emp-dash">
-  {{/* ── Welcome Header ── */}}
-  <div class="emp-welcome">
-    <div class="emp-welcome-text">
-      <h1 class="emp-greeting">
-        {{if .Company.Name}}
-        Welcome back, {{.Company.Name}}
-        {{else}}
-        Employer Dashboard
-        {{end}}
-      </h1>
-      <p class="emp-subtitle">Here's what's happening with your job listings today.</p>
-    </div>
-    <div class="emp-welcome-actions">
-      <a href="/employer/job-post" class="emp-btn-primary">+ Post a Job</a>
-    </div>
+  {{/* Loading State */}}
+  <div id="dash-loading" class="emp-dash-loading">
+    <div class="emp-loading-spinner"></div>
+    <span>Loading dashboard...</span>
   </div>
 
-  {{/* ── Stats Cards ── */}}
-  <div class="emp-stats">
-    <div class="emp-stat-card">
-      <div class="emp-stat-icon">&#x1F4BC;</div>
-      <div class="emp-stat-body">
-        <span class="emp-stat-value">{{.Stats.ActiveJobs}}</span>
-        <span class="emp-stat-label">Active Jobs</span>
-      </div>
-      {{if .Stats.ActiveJobsDelta}}
-      <span class="emp-stat-delta {{if .Stats.ActiveJobsDelta.Pos}}up{{else}}down{{end}}">{{.Stats.ActiveJobsDelta.Val}}</span>
-      {{end}}
-    </div>
-    <div class="emp-stat-card">
-      <div class="emp-stat-icon">&#x1F465;</div>
-      <div class="emp-stat-body">
-        <span class="emp-stat-value">{{.Stats.TotalApplicants}}</span>
-        <span class="emp-stat-label">Total Applicants</span>
-      </div>
-      {{if .Stats.TotalApplicantsDelta}}
-      <span class="emp-stat-delta {{if .Stats.TotalApplicantsDelta.Pos}}up{{else}}down{{end}}">{{.Stats.TotalApplicantsDelta.Val}}</span>
-      {{end}}
-    </div>
-    <div class="emp-stat-card">
-      <div class="emp-stat-icon">&#x1F4E5;</div>
-      <div class="emp-stat-body">
-        <span class="emp-stat-value">{{.Stats.NewApplications}}</span>
-        <span class="emp-stat-label">New Today</span>
-      </div>
-      {{if .Stats.NewApplicationsDelta}}
-      <span class="emp-stat-delta {{if .Stats.NewApplicationsDelta.Pos}}up{{else}}down{{end}}">{{.Stats.NewApplicationsDelta.Val}}</span>
-      {{end}}
-    </div>
-    <div class="emp-stat-card">
-      <div class="emp-stat-icon">&#x1F453;</div>
-      <div class="emp-stat-body">
-        <span class="emp-stat-value">{{.Stats.ProfileViews}}</span>
-        <span class="emp-stat-label">Profile Views</span>
-      </div>
-      {{if .Stats.ProfileViewsDelta}}
-      <span class="emp-stat-delta {{if .Stats.ProfileViewsDelta.Pos}}up{{else}}down{{end}}">{{.Stats.ProfileViewsDelta.Val}}</span>
-      {{end}}
-    </div>
+  {{/* Error State */}}
+  <div id="dash-error" class="emp-dash-error" style="display:none">
+    <div class="emp-error-icon">&#x26A0;&#xFE0F;</div>
+    <h3 class="emp-error-title">Failed to load dashboard</h3>
+    <p class="emp-error-desc" id="dash-error-msg">An unexpected error occurred. Please try again.</p>
+    <button class="emp-btn-primary" id="dash-retry-btn">Retry</button>
   </div>
 
-  {{/* ── Quick Actions ── */}}
-  <div class="emp-actions">
-    <a href="/employer/job-post" class="emp-action-card">
-      <span class="emp-action-icon">&#x2795;</span>
-      <span class="emp-action-label">Post a Job</span>
-      <span class="emp-action-desc">Create a new listing</span>
-    </a>
-    <a href="/employer/candidates" class="emp-action-card">
-      <span class="emp-action-icon">&#x1F50D;</span>
-      <span class="emp-action-label">Browse Candidates</span>
-      <span class="emp-action-desc">Find top talent</span>
-    </a>
-    <a href="/messages" class="emp-action-card">
-      <span class="emp-action-icon">&#x1F4E8;</span>
-      <span class="emp-action-label">View Messages</span>
-      <span class="emp-action-desc">{{if .UnreadMessages}}{{.UnreadMessages}} unread{{else}}No new messages{{end}}</span>
-    </a>
-  </div>
+  {{/* Content */}}
+  <div id="dash-content" style="display:none">
 
-  {{/* ── Two-Column Layout ── */}}
-  <div class="emp-grid-2col">
+    {{/* Welcome Header */}}
+    <div class="emp-welcome">
+      <div class="emp-welcome-text">
+        <h1 class="emp-greeting" id="dash-greeting">Welcome back</h1>
+        <p class="emp-subtitle">Here's what's happening with your job listings today.</p>
+      </div>
+      <div class="emp-welcome-actions">
+        <a href="/employer/job-post" class="emp-btn-primary">+ Post a Job</a>
+        <a href="/employer/company" class="emp-btn-secondary">&#x2699;&#xFE0F; Company Settings</a>
+      </div>
+    </div>
 
-    {{/* ── Left: Recent Applicants ── */}}
-    <div class="emp-col-left">
-      <section class="emp-section">
-        <div class="emp-section-head">
-          <h2 class="emp-section-title">&#x1F4CB; Recent Applicants</h2>
-          <a href="/employer/applications" class="emp-section-link">View All</a>
+    {{/* Stats Cards */}}
+    <div class="emp-stats-grid" id="dash-stats-grid">
+      <div class="emp-stat-card">
+        <div class="emp-stat-header">
+          <span class="emp-stat-icon">&#x1F4CA;</span>
+          <span class="emp-stat-change" id="stat-active-jobs-change"></span>
         </div>
-        {{if .RecentApplicants}}
-        <div class="emp-table-wrap">
-          <table class="emp-table">
+        <div class="emp-stat-value">
+          <span class="emp-stat-number" id="stat-active-jobs">--</span>
+          <span class="emp-stat-label">Active Jobs</span>
+        </div>
+        <div class="emp-stat-footer">
+          <span class="emp-stat-trend" id="stat-active-jobs-trend"></span>
+        </div>
+      </div>
+      <div class="emp-stat-card">
+        <div class="emp-stat-header">
+          <span class="emp-stat-icon">&#x1F465;</span>
+          <span class="emp-stat-change" id="stat-applicants-change"></span>
+        </div>
+        <div class="emp-stat-value">
+          <span class="emp-stat-number" id="stat-total-applicants">--</span>
+          <span class="emp-stat-label">Total Applicants</span>
+        </div>
+        <div class="emp-stat-footer">
+          <span class="emp-stat-trend" id="stat-applicants-trend"></span>
+        </div>
+      </div>
+      <div class="emp-stat-card">
+        <div class="emp-stat-header">
+          <span class="emp-stat-icon">&#x1F4DD;</span>
+          <span class="emp-stat-change" id="stat-new-applications-change"></span>
+        </div>
+        <div class="emp-stat-value">
+          <span class="emp-stat-number" id="stat-new-applications">--</span>
+          <span class="emp-stat-label">New Applications</span>
+        </div>
+        <div class="emp-stat-footer">
+          <span class="emp-stat-trend" id="stat-new-applications-trend"></span>
+        </div>
+      </div>
+      <div class="emp-stat-card">
+        <div class="emp-stat-header">
+          <span class="emp-stat-icon">&#x1F441;&#xFE0F;</span>
+          <span class="emp-stat-change" id="stat-views-change"></span>
+        </div>
+        <div class="emp-stat-value">
+          <span class="emp-stat-number" id="stat-profile-views">--</span>
+          <span class="emp-stat-label">Profile Views</span>
+        </div>
+        <div class="emp-stat-footer">
+          <span class="emp-stat-trend" id="stat-views-trend"></span>
+        </div>
+      </div>
+      <div class="emp-stat-card">
+        <div class="emp-stat-header">
+          <span class="emp-stat-icon">&#x2B50;</span>
+          <span class="emp-stat-change" id="stat-shortlisted-change"></span>
+        </div>
+        <div class="emp-stat-value">
+          <span class="emp-stat-number" id="stat-shortlisted">--</span>
+          <span class="emp-stat-label">Shortlisted</span>
+        </div>
+        <div class="emp-stat-footer">
+          <span class="emp-stat-trend" id="stat-shortlisted-trend"></span>
+        </div>
+      </div>
+      <div class="emp-stat-card">
+        <div class="emp-stat-header">
+          <span class="emp-stat-icon">&#x1F389;</span>
+          <span class="emp-stat-change" id="stat-hired-change"></span>
+        </div>
+        <div class="emp-stat-value">
+          <span class="emp-stat-number" id="stat-hired">--</span>
+          <span class="emp-stat-label">Hired</span>
+        </div>
+        <div class="emp-stat-footer">
+          <span class="emp-stat-trend" id="stat-hired-trend"></span>
+        </div>
+      </div>
+    </div>
+
+    {{/* Quick Actions */}}
+    <div class="emp-actions-grid">
+      <a href="/employer/job-post" class="emp-action-card">
+        <span class="emp-action-icon">&#x2795;</span>
+        <div>
+          <div class="emp-action-label">Post a Job</div>
+          <div class="emp-action-desc">Create a new job listing</div>
+        </div>
+        <span class="emp-action-arrow">&rarr;</span>
+      </a>
+      <a href="/employer/candidates" class="emp-action-card">
+        <span class="emp-action-icon">&#x1F50D;</span>
+        <div>
+          <div class="emp-action-label">Find Candidates</div>
+          <div class="emp-action-desc">Browse and search talent</div>
+        </div>
+        <span class="emp-action-arrow">&rarr;</span>
+      </a>
+      <a href="/employer/applications" class="emp-action-card">
+        <span class="emp-action-icon">&#x1F4CB;</span>
+        <div>
+          <div class="emp-action-label">Review Applications</div>
+          <div class="emp-action-desc">Manage incoming applicants</div>
+        </div>
+        <span class="emp-action-arrow">&rarr;</span>
+      </a>
+      <a href="/employer/talent-pool" class="emp-action-card">
+        <span class="emp-action-icon">&#x1F5C2;&#xFE0F;</span>
+        <div>
+          <div class="emp-action-label">Talent Pool</div>
+          <div class="emp-action-desc">View saved candidates</div>
+        </div>
+        <span class="emp-action-arrow">&rarr;</span>
+      </a>
+    </div>
+
+    {{/* Main Dashboard Grid */}}
+    <div class="emp-dashboard-grid">
+      {{/* Left Column */}}
+      <div class="emp-dashboard-left">
+        {{/* Application Trends Chart */}}
+        <div class="emp-card">
+          <div class="emp-card-header">
+            <div>
+              <h3 class="emp-card-title">Application Trends</h3>
+              <p class="emp-card-subtitle">Daily application volume over time</p>
+            </div>
+            <div class="emp-card-actions">
+              <select id="chart-period" class="emp-period-select">
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="365">Last year</option>
+              </select>
+            </div>
+          </div>
+          <div class="emp-card-body">
+            <canvas id="applications-chart" class="emp-chart-canvas"></canvas>
+          </div>
+        </div>
+
+        {{/* Recent Applications */}}
+        <div class="emp-card">
+          <div class="emp-card-header">
+            <div>
+              <h3 class="emp-card-title">Recent Applications</h3>
+              <p class="emp-card-subtitle">Latest candidates who applied</p>
+            </div>
+            <a href="/employer/applications" class="emp-link">View all &rarr;</a>
+          </div>
+          <div class="emp-card-body p-0">
+            <div class="emp-table-responsive">
+              <table class="emp-table emp-table-hover">
+                <thead>
+                  <tr>
+                    <th>Candidate</th>
+                    <th>Position</th>
+                    <th>Applied</th>
+                    <th>Match</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="recent-applications-tbody">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {{/* Right Column */}}
+      <div class="emp-dashboard-right">
+        {{/* Conversion Funnel */}}
+        <div class="emp-card">
+          <div class="emp-card-header">
+            <div>
+              <h3 class="emp-card-title">Conversion Funnel</h3>
+              <p class="emp-card-subtitle">Application to hire conversion</p>
+            </div>
+          </div>
+          <div class="emp-card-body">
+            <div class="emp-funnel">
+              <div class="emp-funnel-stage">
+                <div class="emp-funnel-label">
+                  <span>&#x1F4DD; Applications</span>
+                  <strong id="funnel-applications">0</strong>
+                </div>
+                <div class="emp-funnel-bar" style="width:100%;background:#6366f1;"></div>
+              </div>
+              <div class="emp-funnel-stage">
+                <div class="emp-funnel-label">
+                  <span>&#x2B50; Shortlisted</span>
+                  <strong id="funnel-shortlisted">0</strong>
+                </div>
+                <div class="emp-funnel-bar" id="funnel-shortlisted-bar" style="width:0%;background:#8b5cf6;"></div>
+              </div>
+              <div class="emp-funnel-stage">
+                <div class="emp-funnel-label">
+                  <span>&#x1F4C5; Interviewed</span>
+                  <strong id="funnel-interviewed">0</strong>
+                </div>
+                <div class="emp-funnel-bar" id="funnel-interviewed-bar" style="width:0%;background:#a78bfa;"></div>
+              </div>
+              <div class="emp-funnel-stage">
+                <div class="emp-funnel-label">
+                  <span>&#x1F389; Hired</span>
+                  <strong id="funnel-hired">0</strong>
+                </div>
+                <div class="emp-funnel-bar" id="funnel-hired-bar" style="width:0%;background:#c4b5fd;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {{/* Top Performing Jobs */}}
+        <div class="emp-card">
+          <div class="emp-card-header">
+            <div>
+              <h3 class="emp-card-title">Top Performing Jobs</h3>
+              <p class="emp-card-subtitle">Jobs with most applications</p>
+            </div>
+            <a href="/employer/jobs" class="emp-link">View all &rarr;</a>
+          </div>
+          <div class="emp-card-body p-0">
+            <div class="emp-list" id="top-jobs-list"></div>
+          </div>
+        </div>
+
+        {{/* Subscription Plan */}}
+        <div class="emp-card emp-subscription-card">
+          <div class="emp-card-header">
+            <div>
+              <h3 class="emp-card-title">Subscription Plan</h3>
+              <p class="emp-card-subtitle">Your current plan and usage</p>
+            </div>
+            <a href="/employer/billing" class="emp-link">Manage &rarr;</a>
+          </div>
+          <div class="emp-card-body">
+            <div class="emp-plan-info">
+              <div class="emp-plan-name" id="subscription-plan">Loading...</div>
+              <div class="emp-plan-price" id="subscription-price"></div>
+            </div>
+            <div class="emp-usage-bar">
+              <div class="emp-usage-info">
+                <span>Job posts used</span>
+                <span id="subscription-usage">-- / --</span>
+              </div>
+              <div class="emp-usage-progress">
+                <div class="emp-usage-fill" id="subscription-usage-fill" style="width:0%;"></div>
+              </div>
+            </div>
+            <div class="emp-features-list" id="subscription-features"></div>
+            <button class="emp-btn-upgrade" id="upgrade-plan-btn">Upgrade Plan &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {{/* Job Performance Section */}}
+    <div class="emp-card emp-full-width">
+      <div class="emp-card-header">
+        <div>
+          <h3 class="emp-card-title">Job Performance</h3>
+          <p class="emp-card-subtitle">Views and applications by job</p>
+        </div>
+        <div class="emp-card-actions">
+          <select id="job-performance-sort" class="emp-period-select">
+            <option value="views">Sort by Views</option>
+            <option value="applications" selected>Sort by Applications</option>
+          </select>
+        </div>
+      </div>
+      <div class="emp-card-body p-0">
+        <div class="emp-table-responsive">
+          <table class="emp-table emp-table-hover">
             <thead>
               <tr>
-                <th>Candidate</th>
-                <th>Job</th>
-                <th>Date</th>
+                <th>Job Title</th>
+                <th>Posted Date</th>
+                <th>Views</th>
+                <th>Applications</th>
+                <th>Conversion</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
-            <tbody>
-              {{range .RecentApplicants}}
-              <tr>
-                <td>
-                  <a href="/employer/applications/{{.ID}}" class="emp-table-link">
-                    {{if .Avatar}}
-                    <img src="{{.Avatar}}" alt="" class="emp-table-avatar">
-                    {{else}}
-                    <span class="emp-table-avatar emp-table-avatar-text">{{.Initials}}</span>
-                    {{end}}
-                    <span>{{.Name}}</span>
-                  </a>
-                </td>
-                <td><span class="emp-table-muted">{{.JobTitle}}</span></td>
-                <td><span class="emp-table-muted">{{.AppliedDate}}</span></td>
-                <td>
-                  <span class="emp-status-badge {{.Status}}">{{.Status}}</span>
-                </td>
-              </tr>
-              {{end}}
+            <tbody id="job-performance-tbody">
             </tbody>
           </table>
         </div>
-        {{else}}
-        <div class="emp-empty">
-          <span class="emp-empty-icon">&#x1F4ED;</span>
-          <p class="emp-empty-text">No applications yet. Your jobs will appear here once candidates apply.</p>
-        </div>
-        {{end}}
-      </section>
+      </div>
     </div>
 
-    {{/* ── Right: Job Performance + Subscription ── */}}
-    <div class="emp-col-right">
-      {{/* ── Job Performance Chart ── */}}
-      <section class="emp-section">
-        <div class="emp-section-head">
-          <h2 class="emp-section-title">&#x1F4C8; Job Performance</h2>
-          <select class="emp-chart-period" onchange="alert('Period filter: '+this.value)">
-            <option value="7d">7 Days</option>
-            <option value="30d" selected>30 Days</option>
-            <option value="90d">90 Days</option>
-          </select>
-        </div>
-        <div class="emp-chart-placeholder">
-          <svg viewBox="0 0 400 160" class="emp-chart-svg" aria-label="Job performance chart">
-            <defs>
-              <linearGradient id="chart-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#00e5a0" stop-opacity="0.2"/>
-                <stop offset="100%" stop-color="#00e5a0" stop-opacity="0"/>
-              </linearGradient>
-            </defs>
-            <path d="M0,140 L20,120 L40,130 L60,100 L80,110 L100,70 L120,80 L140,50 L160,60 L180,40 L200,30 L220,45 L240,35 L260,50 L280,25 L300,35 L320,20 L340,30 L360,15 L380,22 L400,10" fill="none" stroke="#00e5a0" stroke-width="2"/>
-            <path d="M0,140 L20,120 L40,130 L60,100 L80,110 L100,70 L120,80 L140,50 L160,60 L180,40 L200,30 L220,45 L240,35 L260,50 L280,25 L300,35 L320,20 L340,30 L360,15 L380,22 L400,10 L400,160 L0,160 Z" fill="url(#chart-grad)"/>
-            <circle cx="400" cy="10" r="3" fill="#00e5a0"/>
-          </svg>
-          <div class="emp-chart-legend">
-            <span class="emp-chart-legend-item">
-              <span class="emp-chart-legend-dot" style="background:var(--accent)"></span>
-              Applications
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {{/* ── Subscription Usage ── */}}
-      <section class="emp-section emp-sub-section">
-        <div class="emp-sub-header">
-          <div class="emp-sub-plan">
-            <span class="emp-sub-plan-name">{{.Subscription.Plan}}</span>
-            <span class="emp-sub-plan-badge">{{if .Subscription.IsActive}}Active{{else}}Inactive{{end}}</span>
-          </div>
-          <a href="/employer/billing" class="emp-section-link">Manage</a>
-        </div>
-        <div class="emp-sub-bar-wrap">
-          <div class="emp-sub-bar-info">
-            <span class="emp-sub-bar-label">{{.Subscription.JobsUsed}} / {{.Subscription.JobsLimit}} Jobs Used</span>
-            <span class="emp-sub-bar-pct">{{.Subscription.Percentage}}%</span>
-          </div>
-          <div class="emp-sub-bar">
-            <div class="emp-sub-bar-fill" style="width:{{.Subscription.Percentage}}%"></div>
-          </div>
-        </div>
-        {{if .Subscription.RenewsDate}}
-        <p class="emp-sub-renewal">Renews {{.Subscription.RenewsDate}}</p>
-        {{end}}
-        <div class="emp-sub-features">
-          {{range .Subscription.Features}}
-          <div class="emp-sub-feature">
-            <span class="emp-sub-feature-icon">&#x2705;</span>
-            <span>{{.}}</span>
-          </div>
-          {{end}}
-        </div>
-      </section>
-    </div>
-  </div>
+  </div>{{/* end dash-content */}}
 </div>
 
 <style>
-/* ── Employer Dashboard Styles ── */
 .emp-dash {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.emp-dash-loading {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 80px 0;
+  color: var(--muted);
+  font-size: 14px;
 }
-
-/* Welcome */
+.emp-loading-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--purple);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.emp-dash-error {
+  text-align: center;
+  padding: 80px 20px;
+}
+.emp-error-icon { font-size: 48px; margin-bottom: 16px; }
+.emp-error-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+.emp-error-desc { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
 .emp-welcome {
   display: flex;
-  align-items: flex-end;
   justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
   gap: 16px;
 }
 .emp-greeting {
-  font-family: var(--fh);
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
-  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
 }
-.emp-subtitle {
-  font-family: var(--fm);
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 4px;
-  letter-spacing: 0.3px;
-}
-.emp-welcome-actions {
-  display: flex;
-  gap: 10px;
-  flex-shrink: 0;
+.emp-subtitle { color: var(--muted); font-size: 14px; }
+.emp-welcome-actions { display: flex; gap: 12px; }
+.emp-btn-primary, .emp-btn-secondary {
+  padding: 10px 20px; border-radius: 8px; font-weight: 500; font-size: 13px; transition: all 0.2s;
 }
 .emp-btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 20px;
-  font-family: var(--fm);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  color: #fff;
-  background: linear-gradient(135deg, var(--purple) 0%, #ec4899 100%);
-  border-radius: var(--radius);
-  white-space: nowrap;
-  transition: opacity 0.15s;
+  background: linear-gradient(135deg, var(--purple), #ec4899);
+  color: white;
+  border: none;
+  cursor: pointer;
 }
-.emp-btn-primary:hover { opacity: 0.85; }
+.emp-btn-secondary {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.emp-btn-primary:hover, .emp-btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.emp-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.emp-stat-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s;
+}
+.emp-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--purple);
+}
+.emp-stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.emp-stat-icon { font-size: 24px; }
+.emp-stat-change {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+.emp-stat-change.up { background: rgba(16,185,129,0.12); color: #10b981; }
+.emp-stat-change.down { background: rgba(239,68,68,0.12); color: #ef4444; }
+.emp-stat-value {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.emp-stat-number { font-size: 32px; font-weight: 700; }
+.emp-stat-label { font-size: 13px; color: var(--muted); }
+.emp-stat-footer {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 8px;
+}
+.emp-stat-trend { font-size: 11px; }
+.emp-stat-trend.up { color: #10b981; }
+.emp-stat-trend.down { color: #ef4444; }
 
-/* Stats */
-.emp-stats {
+.emp-actions-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-}
-.emp-stat-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 16px;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  position: relative;
-}
-.emp-stat-icon {
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  flex-shrink: 0;
-}
-.emp-stat-body {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.emp-stat-value {
-  font-family: var(--fh);
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.1;
-}
-.emp-stat-label {
-  font-family: var(--fm);
-  font-size: 9px;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-top: 4px;
-}
-.emp-stat-delta {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  font-family: var(--fm);
-  font-size: 9px;
-  padding: 2px 6px;
-  border-radius: var(--radius);
-  letter-spacing: 0.3px;
-}
-.emp-stat-delta.up { background: rgba(0,229,160,0.12); color: var(--accent); }
-.emp-stat-delta.down { background: rgba(255,79,79,0.12); color: var(--danger); }
-
-/* Quick Actions */
-.emp-actions {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  margin-bottom: 32px;
 }
 .emp-action-card {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 24px 16px;
+  gap: 16px;
+  padding: 20px;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  text-align: center;
-  transition: border-color 0.15s, background 0.15s;
+  border-radius: 12px;
+  transition: all 0.2s;
+  text-decoration: none;
 }
 .emp-action-card:hover {
   border-color: var(--purple);
-  background: var(--s2);
+  transform: translateY(-2px);
 }
-.emp-action-icon {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-.emp-action-label {
-  font-family: var(--fm);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  color: var(--text);
-}
-.emp-action-desc {
-  font-size: 11px;
-  color: var(--muted);
-}
+.emp-action-icon { font-size: 28px; }
+.emp-action-label { font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.emp-action-desc { font-size: 12px; color: var(--muted); }
+.emp-action-arrow { margin-left: auto; font-size: 20px; color: var(--muted); }
 
-/* Grid 2-col */
-.emp-grid-2col {
+.emp-dashboard-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 360px;
   gap: 24px;
-  align-items: flex-start;
+  margin-bottom: 32px;
 }
-.emp-col-left,
-.emp-col-right {
+.emp-dashboard-left, .emp-dashboard-right {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
-
-/* Sections */
-.emp-section {
+.emp-card {
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-}
-.emp-section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-.emp-section-title {
-  font-family: var(--fm);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: var(--text);
-}
-.emp-section-link {
-  font-family: var(--fm);
-  font-size: 10px;
-  color: var(--purple);
-  letter-spacing: 0.3px;
-  transition: opacity 0.15s;
-}
-.emp-section-link:hover { opacity: 0.75; }
-
-/* Table */
-.emp-table-wrap {
-  overflow-x: auto;
-}
-.emp-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-.emp-table thead th {
-  font-family: var(--fm);
-  font-size: 9px;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: var(--muted2);
-  text-align: left;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border);
-  font-weight: 500;
-}
-.emp-table tbody tr {
-  border-bottom: 1px solid var(--border);
-  transition: background 0.1s;
-}
-.emp-table tbody tr:last-child { border-bottom: none; }
-.emp-table tbody tr:hover { background: var(--s2); }
-.emp-table tbody td {
-  padding: 10px;
-  vertical-align: middle;
-}
-.emp-table-link {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text);
-}
-.emp-table-link:hover { color: var(--accent); }
-.emp-table-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
-}
-.emp-table-avatar-text {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--fh);
-  font-size: 10px;
-  font-weight: 700;
-  background: var(--s3);
-  border: 1px solid var(--border);
-  color: var(--purple);
-}
-.emp-table-muted { color: var(--muted); }
-
-.emp-status-badge {
-  font-family: var(--fm);
-  font-size: 9px;
-  padding: 3px 8px;
-  border-radius: var(--radius);
-  letter-spacing: 0.3px;
-  text-transform: capitalize;
-}
-.emp-status-badge.pending { background: rgba(245,166,35,0.12); color: var(--warn); }
-.emp-status-badge.reviewed { background: rgba(61,155,233,0.12); color: var(--info); }
-.emp-status-badge.shortlisted { background: rgba(0,229,160,0.12); color: var(--accent); }
-.emp-status-badge.rejected { background: rgba(255,79,79,0.12); color: var(--danger); }
-.emp-status-badge.hired { background: rgba(0,229,160,0.18); color: var(--accent); }
-.emp-status-badge.new { background: rgba(124,58,237,0.12); color: var(--purple-lt); }
-
-/* Chart */
-.emp-chart-placeholder {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.emp-chart-svg {
-  width: 100%;
-  height: auto;
-}
-.emp-chart-period {
-  font-family: var(--fm);
-  font-size: 10px;
-  padding: 4px 8px;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  cursor: pointer;
-  outline: none;
-}
-.emp-chart-period:focus { border-color: var(--purple); }
-.emp-chart-legend {
-  display: flex;
-  gap: 16px;
-}
-.emp-chart-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--fm);
-  font-size: 10px;
-  color: var(--muted);
-}
-.emp-chart-legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-/* Subscription */
-.emp-sub-section {}
-.emp-sub-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-.emp-sub-plan {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.emp-sub-plan-name {
-  font-family: var(--fh);
-  font-size: 16px;
-  font-weight: 600;
-}
-.emp-sub-plan-badge {
-  font-family: var(--fm);
-  font-size: 9px;
-  padding: 2px 8px;
-  background: rgba(0,229,160,0.12);
-  color: var(--accent);
-  border-radius: var(--radius);
-  letter-spacing: 0.3px;
-}
-.emp-sub-bar-wrap {
-  margin-bottom: 12px;
-}
-.emp-sub-bar-info {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--fm);
-  font-size: 10px;
-  color: var(--muted);
-  margin-bottom: 6px;
-}
-.emp-sub-bar-pct { color: var(--text); }
-.emp-sub-bar {
-  height: 6px;
-  background: var(--s2);
-  border-radius: 3px;
+  border-radius: 16px;
   overflow: hidden;
 }
-.emp-sub-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--purple), #ec4899);
-  border-radius: 3px;
-  transition: width 0.3s;
-}
-.emp-sub-renewal {
-  font-family: var(--fm);
-  font-size: 10px;
-  color: var(--muted2);
-  margin-bottom: 14px;
-  letter-spacing: 0.2px;
-}
-.emp-sub-features {
+.emp-card-header {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
 }
-.emp-sub-feature {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
+.emp-card-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.emp-card-subtitle { font-size: 12px; color: var(--muted); }
+.emp-card-body { padding: 20px 24px; }
+.emp-card-body.p-0 { padding: 0; }
+.emp-full-width { grid-column: span 2; }
+
+.emp-chart-canvas { width: 100%; height: 300px; }
+.emp-period-select {
+  padding: 6px 12px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   color: var(--text);
-}
-.emp-sub-feature-icon { font-size: 11px; }
-
-/* Empty */
-.emp-empty {
-  text-align: center;
-  padding: 32px 16px;
-}
-.emp-empty-icon {
-  display: block;
-  font-size: 28px;
-  margin-bottom: 10px;
-  opacity: 0.5;
-}
-.emp-empty-text {
-  font-size: 13px;
-  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
 }
 
-/* Responsive */
-@media (max-width: 960px) {
-  .emp-stats { grid-template-columns: repeat(2, 1fr); }
-  .emp-actions { grid-template-columns: 1fr; }
-  .emp-grid-2col { grid-template-columns: 1fr; }
+.emp-funnel { display: flex; flex-direction: column; gap: 16px; }
+.emp-funnel-stage { position: relative; }
+.emp-funnel-label {
+  display: flex; justify-content: space-between;
+  margin-bottom: 8px; font-size: 13px;
+}
+.emp-funnel-label span { color: var(--muted); }
+.emp-funnel-label strong { color: var(--text); }
+.emp-funnel-bar {
+  height: 32px; border-radius: 8px; transition: width 0.5s ease;
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 12px; color: white; font-size: 12px; font-weight: 500;
+}
+
+.emp-list { display: flex; flex-direction: column; }
+.emp-list-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+}
+.emp-list-item:last-child { border-bottom: none; }
+.emp-list-item-info { flex: 1; }
+.emp-list-item-title { font-weight: 500; margin-bottom: 4px; }
+.emp-list-item-meta { font-size: 12px; color: var(--muted); }
+.emp-list-item-value { font-weight: 600; font-size: 18px; color: var(--accent); }
+
+.emp-subscription-card {
+  background: linear-gradient(135deg, var(--s1) 0%, var(--s2) 100%);
+  border: 1px solid var(--purple);
+}
+.emp-plan-info { text-align: center; margin-bottom: 20px; }
+.emp-plan-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.emp-plan-price { font-size: 14px; color: var(--accent); }
+.emp-usage-bar { margin-bottom: 20px; }
+.emp-usage-info { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; }
+.emp-usage-progress { height: 8px; background: var(--s2); border-radius: 4px; overflow: hidden; }
+.emp-usage-fill { height: 100%; background: linear-gradient(90deg, var(--purple), #ec4899); border-radius: 4px; transition: width 0.3s; }
+.emp-features-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.emp-feature-item { font-size: 12px; color: var(--muted); }
+.emp-btn-upgrade {
+  width: 100%; padding: 12px;
+  background: linear-gradient(135deg, var(--purple), #ec4899);
+  color: white; border: none; border-radius: 8px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
+}
+.emp-btn-upgrade:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(124,58,237,0.3); }
+
+.emp-table-responsive { overflow-x: auto; }
+.emp-table { width: 100%; border-collapse: collapse; }
+.emp-table th {
+  text-align: left; padding: 12px 16px; background: var(--s2);
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--muted);
+}
+.emp-table td { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.emp-table-hover tbody tr:hover { background: var(--s2); cursor: pointer; }
+.emp-link { color: var(--purple); text-decoration: none; font-size: 12px; }
+.emp-link:hover { text-decoration: underline; }
+
+.emp-status-badge {
+  display: inline-block; padding: 4px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 500;
+}
+.emp-status-badge.pending { background: rgba(245,166,35,0.12); color: var(--warn); }
+.emp-status-badge.shortlisted { background: rgba(16,185,129,0.12); color: #10b981; }
+.emp-status-badge.rejected { background: rgba(239,68,68,0.12); color: #ef4444; }
+.emp-status-badge.hired { background: rgba(16,185,129,0.2); color: #10b981; }
+.emp-status-badge.interview { background: rgba(139,92,246,0.12); color: var(--purple); }
+.emp-status-badge.active { background: rgba(16,185,129,0.12); color: #10b981; }
+.emp-status-badge.closed { background: rgba(239,68,68,0.12); color: #ef4444; }
+
+.emp-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), #ec4899);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 600; font-size: 14px; flex-shrink: 0;
+}
+.emp-match-score { font-weight: 600; color: var(--accent); }
+
+@media (max-width: 1200px) {
+  .emp-stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .emp-actions-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 900px) {
+  .emp-dashboard-grid { grid-template-columns: 1fr; }
+  .emp-full-width { grid-column: span 1; }
 }
 @media (max-width: 640px) {
-  .emp-stats { grid-template-columns: 1fr; }
+  .emp-stats-grid { grid-template-columns: 1fr; }
+  .emp-actions-grid { grid-template-columns: 1fr; }
   .emp-welcome { flex-direction: column; align-items: flex-start; }
 }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/js/pages/employer/dashboard.js"></script>

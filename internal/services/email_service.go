@@ -70,6 +70,9 @@ type EmailService interface {
 	SendTwoFAEnabled(to string) error
 	SendTwoFADisabled(to string) error
 	SendTwoFARecoveryEmail(to, recoveryLink string) error
+
+	// Notification emails
+	SendNotificationEmail(to, subject, htmlBody, textBody, email string) error
 }
 
 type EmailServiceImpl struct {
@@ -1111,5 +1114,10 @@ func (s *EmailServiceImpl) SendTwoFARecoveryEmail(to, recoveryLink string) error
 	}
 	textBody := fmt.Sprintf("Click this link to recover your account: %s\n\nThis link expires in 15 minutes.", recoveryLink)
 	s.sendEmail(to, data.Subject, htmlBody, textBody, to)
+	return nil
+}
+
+func (s *EmailServiceImpl) SendNotificationEmail(to, subject, htmlBody, textBody, email string) error {
+	s.sendEmail(to, subject, htmlBody, textBody, email)
 	return nil
 }

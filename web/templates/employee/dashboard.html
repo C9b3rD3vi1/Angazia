@@ -1,205 +1,309 @@
 {{/* Employee/Candidate Dashboard */}}
+{{define "title"}}Dashboard{{end}}
+{{define "contentClass"}}main-content-wide{{end}}
 
 <div class="emp-dash">
-  {{/* ── Welcome Header ── */}}
+  {{/* ── Welcome Header with AI Assistant ── */}}
   <div class="emp-page-head">
     <div>
       <h1 class="emp-page-title">
         {{if .User.Name}}
-        {{.Greeting}}, {{.User.Name}}
+        👋 {{.Greeting}}, {{.User.Name}}
         {{else}}
-        Welcome back
+        👋 Welcome back
         {{end}}
       </h1>
-      <p class="emp-page-sub">{{.CurrentDate}}</p>
+      <p class="emp-page-sub">{{.CurrentDate}} • {{.CurrentTime}}</p>
+      <div class="emp-badge-group">
+        <span class="emp-badge emp-badge-profile">Profile: {{.ProfileCompletion}}% Complete</span>
+        {{if .User.GithubConnected}}
+        <span class="emp-badge emp-badge-github">✓ GitHub Connected</span>
+        {{else}}
+        <span class="emp-badge emp-badge-warning">⚠️ Connect GitHub</span>
+        {{end}}
+      </div>
     </div>
-    <a href="/employee/jobs" class="emp-btn emp-btn-primary">&#x1F50D; Browse Jobs</a>
+    <div class="emp-actions">
+      <button class="emp-btn emp-btn-outline" id="ai-assistant-btn">
+        🤖 AI Career Assistant
+      </button>
+      <a href="/employee/jobs" class="emp-btn emp-btn-primary">🔍 Browse Jobs</a>
+    </div>
   </div>
 
-  {{/* ── Stats Cards ── */}}
-  <div class="emp-stats">
+  {{/* ── Stats Cards with Trends ── */}}
+  <div class="emp-stats-grid">
     <div class="emp-stat-card">
-      <div class="emp-stat-icon">&#x1F453;</div>
+      <div class="emp-stat-icon">👁️</div>
       <div class="emp-stat-body">
         <span class="emp-stat-value">{{.Stats.ProfileViews}}</span>
         <span class="emp-stat-label">Profile Views</span>
       </div>
-      {{if .Stats.ProfileViewsDelta}}
-      <span class="emp-stat-delta {{if .Stats.ProfileViewsDelta.Pos}}up{{else}}down{{end}}">
-        {{.Stats.ProfileViewsDelta.Val}}
-      </span>
+      {{if .Stats.ProfileViewsTrend}}
+      <div class="emp-stat-trend {{if .Stats.ProfileViewsPositive}}up{{else}}down{{end}}">
+        {{.Stats.ProfileViewsTrend}}%
+      </div>
       {{end}}
     </div>
     <div class="emp-stat-card">
-      <div class="emp-stat-icon">&#x1F4CB;</div>
+      <div class="emp-stat-icon">📄</div>
       <div class="emp-stat-body">
         <span class="emp-stat-value">{{.Stats.ApplicationsSent}}</span>
-        <span class="emp-stat-label">Applications Sent</span>
+        <span class="emp-stat-label">Applications</span>
       </div>
-      {{if .Stats.ApplicationsSentDelta}}
-      <span class="emp-stat-delta {{if .Stats.ApplicationsSentDelta.Pos}}up{{else}}down{{end}}">
-        {{.Stats.ApplicationsSentDelta.Val}}
-      </span>
-      {{end}}
+      <div class="emp-stat-trend {{if .Stats.ApplicationsPositive}}up{{else}}down{{end}}">
+        {{.Stats.ApplicationsTrend}}%
+      </div>
     </div>
     <div class="emp-stat-card">
-      <div class="emp-stat-icon">&#x1F516;</div>
+      <div class="emp-stat-icon">⭐</div>
       <div class="emp-stat-body">
         <span class="emp-stat-value">{{.Stats.SavedJobs}}</span>
         <span class="emp-stat-label">Saved Jobs</span>
       </div>
-      {{if .Stats.SavedJobsDelta}}
-      <span class="emp-stat-delta {{if .Stats.SavedJobsDelta.Pos}}up{{else}}down{{end}}">
-        {{.Stats.SavedJobsDelta.Val}}
-      </span>
-      {{end}}
     </div>
     <div class="emp-stat-card">
-      <div class="emp-stat-icon">&#x1F4E8;</div>
+      <div class="emp-stat-icon">🎯</div>
       <div class="emp-stat-body">
         <span class="emp-stat-value">{{.Stats.InterviewInvites}}</span>
-        <span class="emp-stat-label">Interview Invites</span>
+        <span class="emp-stat-label">Interviews</span>
       </div>
-      {{if .Stats.InterviewInvitesDelta}}
-      <span class="emp-stat-delta {{if .Stats.InterviewInvitesDelta.Pos}}up{{else}}down{{end}}">
-        {{.Stats.InterviewInvitesDelta.Val}}
-      </span>
-      {{end}}
+      <div class="emp-stat-trend up">{{.Stats.InterviewRate}}%</div>
     </div>
+  </div>
+
+  {{/* ── Quick Actions Bar ── */}}
+  <div class="emp-quick-actions">
+    <button class="emp-quick-btn" data-action="complete-profile">
+      <span>📝</span> Complete Profile
+    </button>
+    <button class="emp-quick-btn" data-action="upload-resume">
+      <span>📎</span> Upload Resume
+    </button>
+    <button class="emp-quick-btn" data-action="github-connect">
+      <span>🐙</span> Connect GitHub
+    </button>
+    <button class="emp-quick-btn" data-action="skill-assessment">
+      <span>📊</span> Skill Assessment
+    </button>
   </div>
 
   {{/* ── Two-Column Layout ── */}}
   <div class="emp-grid-2col">
 
-    {{/* ── Left Column ── */}}
+    {{/* ── LEFT COLUMN ── */}}
     <div class="emp-col-left">
 
-      {{/* ── Recent Activity ── */}}
-      <section class="emp-section">
-        <div class="emp-section-head">
-          <h2 class="emp-section-title">&#x1F4AA; Recent Activity</h2>
+      {{/* ── Recent Activity Timeline ── */}}
+      <section class="emp-card">
+        <div class="emp-card-header">
+          <h2 class="emp-card-title">📋 Recent Activity</h2>
+          <button class="emp-card-action" data-action="view-all-activity">View All →</button>
         </div>
-        <div class="emp-activity-list">
+        <div class="emp-timeline">
           {{if .RecentActivity}}
           {{range .RecentActivity}}
-          <div class="emp-activity-item">
-            <span class="emp-activity-icon">{{unescape .Icon}}</span>
-            <div class="emp-activity-body">
-              <p class="emp-activity-text">{{unescape .Text}}</p>
-              <span class="emp-activity-time">{{.Timestamp}}</span>
+          <div class="emp-timeline-item">
+            <div class="emp-timeline-dot {{.Type}}"></div>
+            <div class="emp-timeline-content">
+              <p class="emp-timeline-text">{{.Text}}</p>
+              <span class="emp-timeline-time">{{.Timestamp}}</span>
             </div>
           </div>
           {{end}}
           {{else}}
-          <div class="emp-empty">
-            <span class="emp-empty-icon">&#x1F4AD;</span>
-            <p class="emp-empty-text">No recent activity. Start applying to jobs!</p>
-            <a href="/employee/jobs" class="emp-empty-link">Browse Jobs &rarr;</a>
+          <div class="emp-empty-state">
+            <span class="emp-empty-icon">📭</span>
+            <p>No recent activity</p>
           </div>
           {{end}}
         </div>
       </section>
 
       {{/* ── Upcoming Interviews ── */}}
-      <section class="emp-section">
-        <div class="emp-section-head">
-          <h2 class="emp-section-title">&#x1F4C5; Upcoming Interviews</h2>
+      <section class="emp-card">
+        <div class="emp-card-header">
+          <h2 class="emp-card-title">📅 Upcoming Interviews</h2>
+          <a href="/employee/applications?filter=interview" class="emp-card-action">View All →</a>
         </div>
-        <div class="emp-interview-list">
+        <div class="emp-interviews-list">
           {{if .UpcomingInterviews}}
           {{range .UpcomingInterviews}}
-          <div class="emp-interview-card">
-            <div class="emp-interview-header">
-              <span class="emp-interview-company">{{.Company}}</span>
-              <span class="emp-interview-badge {{.Status}}">{{.Status}}</span>
+          <div class="emp-interview-item">
+            <div class="emp-interview-date">
+              <span class="emp-interview-day">{{.Day}}</span>
+              <span class="emp-interview-month">{{.Month}}</span>
             </div>
-            <p class="emp-interview-role">{{.Role}}</p>
-            <div class="emp-interview-meta">
-              <span>&#x1F4C5; {{.Date}}</span>
-              <span>&#x1F552; {{.Time}}</span>
-              {{if .Type}}
-              <span>&#x1F4F1; {{.Type}}</span>
-              {{end}}
+            <div class="emp-interview-details">
+              <h4 class="emp-interview-role">{{.Role}}</h4>
+              <p class="emp-interview-company">{{.Company}}</p>
+              <div class="emp-interview-meta">
+                <span>🕐 {{.Time}}</span>
+                <span>📞 {{.Type}}</span>
+              </div>
             </div>
-            {{if .Notes}}
-            <p class="emp-interview-notes">{{.Notes}}</p>
-            {{end}}
+            <div class="emp-interview-actions">
+              <button class="emp-btn-icon" data-action="confirm-interview" data-id="{{.ID}}" title="Confirm">✅</button>
+              <button class="emp-btn-icon" data-action="reschedule-interview" data-id="{{.ID}}" title="Reschedule">📅</button>
+              <button class="emp-btn-icon" data-action="add-calendar" data-id="{{.ID}}" title="Add to Calendar">📆</button>
+            </div>
           </div>
           {{end}}
           {{else}}
-          <div class="emp-empty">
-            <span class="emp-empty-icon">&#x1F3AF;</span>
-            <p class="emp-empty-text">No upcoming interviews. Keep applying!</p>
+          <div class="emp-empty-state">
+            <span class="emp-empty-icon">🎯</span>
+            <p>No upcoming interviews</p>
+            <a href="/employee/jobs" class="emp-link">Browse jobs →</a>
           </div>
           {{end}}
+        </div>
+      </section>
+
+      {{/* ── Application Status Tracker ── */}}
+      <section class="emp-card">
+        <div class="emp-card-header">
+          <h2 class="emp-card-title">📊 Application Status</h2>
+          <a href="/employee/applications" class="emp-card-action">View All →</a>
+        </div>
+        <div class="emp-status-chart">
+          <div class="emp-status-bar">
+            <div class="emp-status-segment emp-status-pending" style="width: {{.AppStatus.PendingPercent}}%"></div>
+            <div class="emp-status-segment emp-status-viewed" style="width: {{.AppStatus.ViewedPercent}}%"></div>
+            <div class="emp-status-segment emp-status-shortlisted" style="width: {{.AppStatus.ShortlistedPercent}}%"></div>
+            <div class="emp-status-segment emp-status-interview" style="width: {{.AppStatus.InterviewPercent}}%"></div>
+            <div class="emp-status-segment emp-status-rejected" style="width: {{.AppStatus.RejectedPercent}}%"></div>
+          </div>
+          <div class="emp-status-legend">
+            <span><span class="emp-legend-dot pending"></span> Pending ({{.AppStatus.Pending}})</span>
+            <span><span class="emp-legend-dot viewed"></span> Viewed ({{.AppStatus.Viewed}})</span>
+            <span><span class="emp-legend-dot shortlisted"></span> Shortlisted ({{.AppStatus.Shortlisted}})</span>
+            <span><span class="emp-legend-dot interview"></span> Interview ({{.AppStatus.Interview}})</span>
+            <span><span class="emp-legend-dot rejected"></span> Rejected ({{.AppStatus.Rejected}})</span>
+          </div>
         </div>
       </section>
 
     </div>
 
-    {{/* ── Right Column ── */}}
+    {{/* ── RIGHT COLUMN ── */}}
     <div class="emp-col-right">
 
-      {{/* ── Recommended Jobs ── */}}
-      <section class="emp-section">
-        <div class="emp-section-head">
-          <h2 class="emp-section-title">&#x2B50; Recommended Jobs</h2>
-          <a href="/employee/jobs" class="emp-section-link">View All</a>
+      {{/* ── AI Job Recommendations ── */}}
+      <section class="emp-card">
+        <div class="emp-card-header">
+          <h2 class="emp-card-title">🤖 AI-Powered Recommendations</h2>
+          <button class="emp-card-action" data-action="refresh-recommendations">
+            🔄 Refresh
+          </button>
         </div>
-        <div class="emp-recommended-grid">
+        <div class="emp-recommendations-list" id="recommendations-list">
           {{if .RecommendedJobs}}
           {{range .RecommendedJobs}}
-          <a href="/jobs/{{.ID}}" class="emp-rec-card">
+          <div class="emp-rec-item" data-job-id="{{.ID}}">
             <div class="emp-rec-header">
               {{if .CompanyLogo}}
               <img src="{{.CompanyLogo}}" alt="{{.Company}}" class="emp-rec-logo">
               {{else}}
-              <span class="emp-rec-logo-placeholder">{{.CompanyInitials}}</span>
+              <div class="emp-rec-logo-placeholder">{{.CompanyInitials}}</div>
               {{end}}
               <div class="emp-rec-info">
-                <h3 class="emp-rec-title">{{.Title}}</h3>
+                <h4 class="emp-rec-title">{{.Title}}</h4>
                 <p class="emp-rec-company">{{.Company}}</p>
+              </div>
+              <div class="emp-rec-match-score">
+                <svg class="emp-score-ring" viewBox="0 0 36 36">
+                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#2a3a3a" stroke-width="3"/>
+                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#00e5a0" stroke-width="3" stroke-dasharray="{{.MatchScore}}, 100"/>
+                </svg>
+                <span class="emp-score-text">{{.MatchScore}}%</span>
               </div>
             </div>
             <div class="emp-rec-tags">
-              <span class="emp-rec-tag">{{.Location}}</span>
-              <span class="emp-rec-tag">{{.Type}}</span>
+              <span class="emp-tag">{{.Location}}</span>
+              <span class="emp-tag">{{.EmploymentType}}</span>
               {{if .Salary}}
-              <span class="emp-rec-tag emp-rec-tag-salary">{{.Salary}}</span>
+              <span class="emp-tag emp-tag-salary">💰 {{.Salary}}</span>
+              {{end}}
+            </div>
+            <div class="emp-rec-skills">
+              {{range .MatchingSkills}}
+              <span class="emp-skill-match">✓ {{.}}</span>
+              {{end}}
+              {{range .MissingSkills}}
+              <span class="emp-skill-missing">+ {{.}}</span>
               {{end}}
             </div>
             <div class="emp-rec-footer">
-              <span class="emp-rec-match">&#x1F3AF; {{.Match}}% Match</span>
-              <span class="emp-rec-date">{{.PostedDate}}</span>
+              <span class="emp-rec-posted">📅 {{.PostedDate}}</span>
+              <button class="emp-btn-sm emp-btn-primary" data-action="apply-job" data-id="{{.ID}}">Apply Now →</button>
             </div>
-          </a>
+          </div>
           {{end}}
           {{else}}
-          <div class="emp-empty">
-            <span class="emp-empty-icon">&#x1F50D;</span>
-            <p class="emp-empty-text">No recommendations yet. Complete your profile to get matched.</p>
+          <div class="emp-empty-state">
+            <span class="emp-empty-icon">🔍</span>
+            <p>No recommendations yet</p>
+            <button class="emp-btn-sm emp-btn-outline" data-action="refresh-recommendations">Refresh</button>
           </div>
           {{end}}
         </div>
       </section>
 
+      {{/* ── Skill Gap Analysis ── */}}
+      <section class="emp-card">
+        <div class="emp-card-header">
+          <h2 class="emp-card-title">📈 Skill Gap Analysis</h2>
+          <button class="emp-card-action" data-action="analyze-skills">Analyze →</button>
+        </div>
+        <div class="emp-skill-gap">
+          <div class="emp-skill-strength">
+            <h4>💪 Your Strengths</h4>
+            <div class="emp-skill-tags">
+              {{range .TopSkills}}
+              <span class="emp-skill-strength-tag">{{.}}</span>
+              {{end}}
+            </div>
+          </div>
+          <div class="emp-skill-missing">
+            <h4>⚠️ In-Demand Skills to Learn</h4>
+            <div class="emp-skill-tags">
+              {{range .MissingSkills}}
+              <span class="emp-skill-missing-tag" data-skill="{{.}}">
+                {{.}} 
+                <button class="emp-skill-learn" data-skill="{{.}}">📚 Learn</button>
+              </span>
+              {{end}}
+            </div>
+          </div>
+          <div class="emp-skill-action">
+            <a href="/employee/skill-assessment" class="emp-link">Take Skill Assessment →</a>
+          </div>
+        </div>
+      </section>
+
       {{/* ── Profile Completion Tips ── */}}
       {{if .ProfileTips}}
-      <section class="emp-section emp-tips-section">
-        <div class="emp-section-head">
-          <h2 class="emp-section-title">&#x1F4A1; Profile Tips</h2>
+      <section class="emp-card emp-tips-card">
+        <div class="emp-card-header">
+          <h2 class="emp-card-title">💡 Profile Improvement Tips</h2>
         </div>
         <div class="emp-tips-list">
           {{range .ProfileTips}}
           <div class="emp-tip-item">
-            <span class="emp-tip-icon">{{unescape .Icon}}</span>
-            <div class="emp-tip-body">
-              <p class="emp-tip-text">{{unescape .Text}}</p>
+            <span class="emp-tip-icon">{{.Icon}}</span>
+            <div class="emp-tip-content">
+              <p class="emp-tip-text">{{.Text}}</p>
+              <a href="{{.Link}}" class="emp-tip-action">Fix →</a>
             </div>
           </div>
           {{end}}
         </div>
-        <a href="/employee/profile-edit" class="emp-tips-cta">Complete Your Profile &rarr;</a>
+        <div class="emp-profile-progress">
+          <div class="emp-progress-bar">
+            <div class="emp-progress-fill" style="width: {{.ProfileCompletion}}%"></div>
+          </div>
+          <p class="emp-progress-text">{{.ProfileCompletion}}% Complete</p>
+        </div>
       </section>
       {{end}}
 
@@ -208,119 +312,244 @@
 </div>
 
 <style>
-/* ── Employee Dashboard Styles ── */
+/* ═══════════════════════════════════════════════
+   EMPLOYEE DASHBOARD STYLES
+═══════════════════════════════════════════════ */
+
 .emp-dash {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 24px;
 }
 
-/* Welcome */
-.emp-welcome {
+/* ── Page Header ── */
+.emp-page-head {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 16px;
+  margin-bottom: 8px;
 }
-.emp-welcome-text {}
-.emp-greeting {
-  font-family: var(--fh);
-  font-size: 26px;
+
+.emp-page-title {
+  font-family: var(--fh, 'Syne', sans-serif);
+  font-size: 28px;
   font-weight: 700;
-  color: var(--text);
   letter-spacing: -0.5px;
+  color: var(--text, #1f2937);
+  margin: 0 0 4px 0;
 }
-.emp-date {
-  font-family: var(--fm);
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 4px;
+
+.emp-page-sub {
+  font-size: 14px;
+  color: var(--muted, #6b7280);
+  margin: 0;
+}
+
+/* ── Badges ── */
+.emp-badge-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.emp-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-family: var(--fm, 'DM Mono', monospace);
+  font-size: 10px;
+  font-weight: 500;
   letter-spacing: 0.3px;
 }
-.emp-browse-btn {
+
+.emp-badge-profile {
+  background: rgba(99, 102, 241, 0.12);
+  color: #818cf8;
+}
+
+.emp-badge-github {
+  background: rgba(0, 229, 160, 0.12);
+  color: #00e5a0;
+}
+
+.emp-badge-warning {
+  background: rgba(245, 166, 35, 0.12);
+  color: #f5a623;
+}
+
+/* ── Buttons ── */
+.emp-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.emp-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 20px;
-  font-family: var(--fm);
-  font-size: 11px;
+  gap: 8px;
+  padding: 10px 22px;
+  font-family: var(--fm, 'DM Mono', monospace);
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.5px;
-  color: var(--bg);
-  background: var(--accent);
-  border-radius: var(--radius);
-  white-space: nowrap;
-  transition: opacity 0.15s;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  border: none;
 }
-.emp-browse-btn:hover { opacity: 0.85; }
 
-/* Stats */
-.emp-stats {
+.emp-btn-primary {
+  color: #050a0a;
+  background: #00e5a0;
+}
+
+.emp-btn-primary:hover {
+  background: #00b87a;
+  transform: translateY(-1px);
+}
+
+.emp-btn-outline {
+  color: #00e5a0;
+  background: transparent;
+  border: 1px solid rgba(0, 229, 160, 0.3);
+}
+
+.emp-btn-outline:hover {
+  background: rgba(0, 229, 160, 0.08);
+  border-color: #00e5a0;
+}
+
+.emp-btn-sm {
+  padding: 6px 14px;
+  font-size: 11px;
+}
+
+/* ── Stats Grid ── */
+.emp-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
+
 .emp-stat-card {
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 18px 16px;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: var(--s1, #0c1414);
+  border: 1px solid var(--border, #1a2e2e);
+  border-radius: 12px;
   position: relative;
+  transition: all 0.2s;
 }
+
+.emp-stat-card:hover {
+  border-color: #00e5a0;
+  transform: translateY(-2px);
+}
+
 .emp-stat-icon {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  font-size: 22px;
+  background: var(--s2, #111e1e);
+  border: 1px solid var(--border, #1a2e2e);
+  border-radius: 10px;
   flex-shrink: 0;
 }
+
 .emp-stat-body {
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  flex: 1;
 }
+
 .emp-stat-value {
-  font-family: var(--fh);
-  font-size: 20px;
+  font-family: var(--fh, 'Syne', sans-serif);
+  font-size: 24px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.2;
+  color: var(--text, #ddeee8);
 }
+
 .emp-stat-label {
-  font-family: var(--fm);
-  font-size: 9px;
+  font-family: var(--fm, 'DM Mono', monospace);
+  font-size: 10px;
   letter-spacing: 0.8px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--muted, #5a7a72);
   margin-top: 4px;
 }
-.emp-stat-delta {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  font-family: var(--fm);
-  font-size: 9px;
-  padding: 2px 6px;
-  border-radius: var(--radius);
-  letter-spacing: 0.3px;
-}
-.emp-stat-delta.up { background: rgba(0,229,160,0.12); color: var(--accent); }
-.emp-stat-delta.down { background: rgba(255,79,79,0.12); color: var(--danger); }
 
-/* Grid 2-col */
+.emp-stat-trend {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-family: var(--fm, 'DM Mono', monospace);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.emp-stat-trend.up {
+  background: rgba(0, 229, 160, 0.12);
+  color: #00e5a0;
+}
+
+.emp-stat-trend.down {
+  background: rgba(255, 79, 79, 0.12);
+  color: #ff4f4f;
+}
+
+/* ── Quick Actions ── */
+.emp-quick-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 8px 0 4px;
+}
+
+.emp-quick-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--s2, #111e1e);
+  border: 1px solid var(--border, #1a2e2e);
+  border-radius: 10px;
+  font-family: var(--fm, 'DM Mono', monospace);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text, #ddeee8);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.emp-quick-btn:hover {
+  border-color: #00e5a0;
+  background: var(--s3, #162020);
+  transform: translateY(-1px);
+}
+
+.emp-quick-btn span {
+  font-size: 16px;
+}
+
+/* ── Two-Column Grid ── */
 .emp-grid-2col {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
-  align-items: flex-start;
+  align-items: start;
 }
+
 .emp-col-left,
 .emp-col-right {
   display: flex;
@@ -328,332 +557,639 @@
   gap: 24px;
 }
 
-/* Sections */
-.emp-section {
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
+/* ── Cards ── */
+.emp-card {
+  background: var(--s1, #0c1414);
+  border: 1px solid var(--border, #1a2e2e);
+  border-radius: 12px;
+  overflow: hidden;
 }
-.emp-section-head {
+
+.emp-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, #1a2e2e);
 }
-.emp-section-title {
-  font-family: var(--fm);
-  font-size: 11px;
-  font-weight: 500;
+
+.emp-card-title {
+  font-family: var(--fm, 'DM Mono', monospace);
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.8px;
   text-transform: uppercase;
-  color: var(--text);
+  color: var(--text, #ddeee8);
+  margin: 0;
 }
-.emp-section-link {
-  font-family: var(--fm);
-  font-size: 10px;
-  color: var(--accent);
-  letter-spacing: 0.3px;
-  transition: opacity 0.15s;
-}
-.emp-section-link:hover { opacity: 0.75; }
 
-/* Activity List */
-.emp-activity-list {
+.emp-card-action {
+  font-family: var(--fm, 'DM Mono', monospace);
+  font-size: 11px;
+  color: #00e5a0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.emp-card-action:hover {
+  opacity: 0.8;
+}
+
+/* ── Timeline ── */
+.emp-timeline {
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
   gap: 0;
 }
-.emp-activity-item {
+
+.emp-timeline-item {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  gap: 14px;
   padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-}
-.emp-activity-item:last-child { border-bottom: none; }
-.emp-activity-icon {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  background: var(--s2);
-  border-radius: var(--radius);
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-.emp-activity-body { flex: 1; min-width: 0; }
-.emp-activity-text {
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--text);
-}
-.emp-activity-time {
-  font-family: var(--fm);
-  font-size: 10px;
-  color: var(--muted2);
-  letter-spacing: 0.2px;
+  border-bottom: 1px solid var(--border, #1a2e2e);
 }
 
-/* Interviews */
-.emp-interview-list {
+.emp-timeline-item:last-child {
+  border-bottom: none;
+}
+
+.emp-timeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.emp-timeline-dot.application { background: #3b82f6; }
+.emp-timeline-dot.interview { background: #8b5cf6; }
+.emp-timeline-dot.offer { background: #10b981; }
+.emp-timeline-dot.rejected { background: #ef4444; }
+
+.emp-timeline-content {
+  flex: 1;
+}
+
+.emp-timeline-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text, #ddeee8);
+  margin: 0 0 4px 0;
+}
+
+.emp-timeline-time {
+  font-family: var(--fm, 'DM Mono', monospace);
+  font-size: 10px;
+  color: var(--muted2, #3d5a54);
+}
+
+/* ── Interviews List ── */
+.emp-interviews-list {
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
-.emp-interview-card {
-  padding: 14px;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-.emp-interview-header {
+
+.emp-interview-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
+  gap: 16px;
+  padding: 16px;
+  background: var(--s2, #111e1e);
+  border: 1px solid var(--border, #1a2e2e);
+  border-radius: 10px;
+  transition: all 0.2s;
 }
-.emp-interview-company {
-  font-family: var(--fh);
-  font-size: 13px;
-  font-weight: 600;
+
+.emp-interview-item:hover {
+  border-color: #00e5a0;
 }
-.emp-interview-badge {
-  font-family: var(--fm);
-  font-size: 9px;
-  padding: 2px 8px;
-  border-radius: var(--radius);
-  letter-spacing: 0.3px;
-  text-transform: capitalize;
+
+.emp-interview-date {
+  text-align: center;
+  min-width: 60px;
+  padding: 8px;
+  background: var(--s3, #162020);
+  border-radius: 8px;
 }
-.emp-interview-badge.confirmed { background: rgba(0,229,160,0.12); color: var(--accent); }
-.emp-interview-badge.pending { background: rgba(245,166,35,0.12); color: var(--warn); }
-.emp-interview-badge.cancelled { background: rgba(255,79,79,0.12); color: var(--danger); }
+
+.emp-interview-day {
+  display: block;
+  font-family: var(--fh, 'Syne', sans-serif);
+  font-size: 24px;
+  font-weight: 700;
+  color: #00e5a0;
+  line-height: 1;
+}
+
+.emp-interview-month {
+  display: block;
+  font-family: var(--fm, 'DM Mono', monospace);
+  font-size: 10px;
+  color: var(--muted, #5a7a72);
+  margin-top: 4px;
+}
+
+.emp-interview-details {
+  flex: 1;
+}
+
 .emp-interview-role {
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 8px;
+  font-family: var(--fh, 'Syne', sans-serif);
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 2px 0;
 }
+
+.emp-interview-company {
+  font-size: 12px;
+  color: var(--muted, #5a7a72);
+  margin: 0 0 8px 0;
+}
+
 .emp-interview-meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-family: var(--fm);
+  gap: 16px;
+  font-family: var(--fm, 'DM Mono', monospace);
   font-size: 10px;
-  color: var(--muted2);
-  letter-spacing: 0.2px;
-}
-.emp-interview-notes {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.5;
+  color: var(--muted2, #3d5a54);
 }
 
-/* Recommended Grid */
-.emp-recommended-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-.emp-rec-card {
+.emp-interview-actions {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  transition: border-color 0.15s;
+  gap: 8px;
+  align-items: flex-start;
 }
-.emp-rec-card:hover { border-color: var(--accent); }
-.emp-rec-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.emp-rec-logo {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius);
-  object-fit: cover;
-}
-.emp-rec-logo-placeholder {
-  width: 36px;
-  height: 36px;
+
+.emp-btn-icon {
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--fh);
-  font-size: 12px;
+  background: var(--s3, #162020);
+  border: 1px solid var(--border, #1a2e2e);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.emp-btn-icon:hover {
+  border-color: #00e5a0;
+  transform: scale(1.05);
+}
+
+/* ── Status Chart ── */
+.emp-status-chart {
+  padding: 16px 20px;
+}
+
+.emp-status-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.emp-status-segment {
+  height: 100%;
+}
+
+.emp-status-pending { background: #f59e0b; }
+.emp-status-viewed { background: #3b82f6; }
+.emp-status-shortlisted { background: #10b981; }
+.emp-status-interview { background: #8b5cf6; }
+.emp-status-rejected { background: #ef4444; }
+
+.emp-status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-family: var(--fm, 'DM Mono', monospace);
+  font-size: 10px;
+  color: var(--muted, #5a7a72);
+}
+
+.emp-legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.emp-legend-dot.pending { background: #f59e0b; }
+.emp-legend-dot.viewed { background: #3b82f6; }
+.emp-legend-dot.shortlisted { background: #10b981; }
+.emp-legend-dot.interview { background: #8b5cf6; }
+.emp-legend-dot.rejected { background: #ef4444; }
+
+/* ── Recommendations List ── */
+.emp-recommendations-list {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.emp-rec-item {
+  padding: 16px;
+  background: var(--s2, #111e1e);
+  border: 1px solid var(--border, #1a2e2e);
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+
+.emp-rec-item:hover {
+  border-color: #00e5a0;
+  transform: translateX(4px);
+}
+
+.emp-rec-header {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.emp-rec-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.emp-rec-logo-placeholder {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+  font-family: var(--fh, 'Syne', sans-serif);
+  font-size: 16px;
   font-weight: 700;
-  background: var(--s3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--accent);
+  color: white;
+}
+
+.emp-rec-info {
+  flex: 1;
+}
+
+.emp-rec-title {
+  font-family: var(--fh, 'Syne', sans-serif);
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 2px 0;
+}
+
+.emp-rec-company {
+  font-size: 12px;
+  color: var(--muted, #5a7a72);
+  margin: 0;
+}
+
+.emp-rec-match-score {
+  position: relative;
+  width: 50px;
+  height: 50px;
   flex-shrink: 0;
 }
-.emp-rec-info { min-width: 0; flex: 1; }
-.emp-rec-title {
-  font-family: var(--fh);
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+
+.emp-score-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
 }
-.emp-rec-company {
+
+.emp-score-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--fm, 'DM Mono', monospace);
   font-size: 11px;
-  color: var(--muted);
-  margin-top: 1px;
+  font-weight: 600;
+  color: #00e5a0;
 }
+
+/* ── Tags ── */
 .emp-rec-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
-.emp-rec-tag {
-  font-family: var(--fm);
-  font-size: 9px;
-  padding: 2px 8px;
-  background: var(--s3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--muted);
-  letter-spacing: 0.2px;
+
+.emp-tag {
+  padding: 4px 10px;
+  background: var(--s3, #162020);
+  border: 1px solid var(--border, #1a2e2e);
+  border-radius: 6px;
+  font-family: var(--fm, 'DM Mono', monospace);
+  font-size: 10px;
+  color: var(--muted, #5a7a72);
 }
-.emp-rec-tag-salary { color: var(--accent); border-color: rgba(0,229,160,0.2); }
+
+.emp-tag-salary {
+  color: #00e5a0;
+  border-color: rgba(0, 229, 160, 0.2);
+}
+
+.emp-rec-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.emp-skill-match {
+  padding: 4px 10px;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 6px;
+  font-size: 11px;
+  color: #10b981;
+}
+
+.emp-skill-missing {
+  padding: 4px 10px;
+  background: rgba(245, 166, 35, 0.1);
+  border-radius: 6px;
+  font-size: 11px;
+  color: #f5a623;
+}
+
 .emp-rec-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--border, #1a2e2e);
 }
-.emp-rec-match {
-  font-family: var(--fm);
+
+.emp-rec-posted {
+  font-family: var(--fm, 'DM Mono', monospace);
   font-size: 10px;
-  color: var(--accent);
-}
-.emp-rec-date {
-  font-family: var(--fm);
-  font-size: 9px;
-  color: var(--muted2);
+  color: var(--muted2, #3d5a54);
 }
 
-/* Profile Tips */
-.emp-tips-section {}
-.emp-tips-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 16px;
+/* ── Skill Gap Analysis ── */
+.emp-skill-gap {
+  padding: 16px 20px;
 }
-.emp-tip-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 12px;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+
+.emp-skill-strength,
+.emp-skill-missing {
+  margin-bottom: 20px;
 }
-.emp-tip-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
-.emp-tip-body { flex: 1; min-width: 0; }
-.emp-tip-text {
+
+.emp-skill-strength h4,
+.emp-skill-missing h4 {
+  font-family: var(--fm, 'DM Mono', monospace);
+  font-size: 11px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.emp-skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.emp-skill-strength-tag {
+  padding: 6px 14px;
+  background: rgba(0, 229, 160, 0.1);
+  border-radius: 20px;
   font-size: 12px;
-  line-height: 1.5;
-  color: var(--muted);
-}
-.emp-tips-cta {
-  display: block;
-  text-align: center;
-  padding: 10px;
-  font-family: var(--fm);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.4px;
-  color: var(--accent);
-  border: 1px solid rgba(0,229,160,0.25);
-  border-radius: var(--radius);
-  transition: all 0.15s;
-}
-.emp-tips-cta:hover { background: rgba(0,229,160,0.06); border-color: var(--accent); }
-
-/* Empty State */
-.emp-empty {
-  text-align: center;
-  padding: 32px 16px;
-}
-.emp-empty-icon {
-  display: block;
-  font-size: 28px;
-  margin-bottom: 10px;
-  opacity: 0.5;
-}
-.emp-empty-text {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 12px;
-}
-.emp-empty-link {
-  font-family: var(--fm);
-  font-size: 11px;
-  color: var(--accent);
-  letter-spacing: 0.3px;
+  color: #00e5a0;
 }
 
-/* Unified design system */
-.emp-page-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-}
-.emp-page-title {
-  font-family: var(--fh);
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  color: var(--text);
-}
-.emp-page-sub {
-  font-size: 13px;
-  color: var(--muted);
-  margin-top: 4px;
-}
-.emp-btn {
+.emp-skill-missing-tag {
+  padding: 6px 14px;
+  background: rgba(245, 166, 35, 0.1);
+  border-radius: 20px;
+  font-size: 12px;
+  color: #f5a623;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 22px;
-  font-family: var(--fm);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
+  gap: 8px;
 }
-.emp-btn-primary {
-  color: var(--bg);
-  background: var(--accent);
-  border: none;
-}
-.emp-btn-primary:hover { opacity: 0.88; }
 
-/* Responsive */
-@media (max-width: 960px) {
-  .emp-stats { grid-template-columns: repeat(2, 1fr); }
-  .emp-grid-2col { grid-template-columns: 1fr; }
-  .emp-recommended-grid { grid-template-columns: 1fr; }
+.emp-skill-learn {
+  background: none;
+  border: none;
+  color: #00e5a0;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0;
 }
-@media (max-width: 640px) {
-  .emp-stats { grid-template-columns: 1fr; }
-  .emp-page-head { flex-direction: column; align-items: flex-start; }
+
+.emp-skill-learn:hover {
+  text-decoration: underline;
+}
+
+.emp-skill-action {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border, #1a2e2e);
+}
+
+.emp-link {
+  color: #00e5a0;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.emp-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Tips Card ── */
+.emp-tips-list {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.emp-tip-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--s2, #111e1e);
+  border-radius: 8px;
+}
+
+.emp-tip-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.emp-tip-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.emp-tip-text {
+  font-size: 12px;
+  color: var(--muted, #5a7a72);
+  margin: 0;
+}
+
+.emp-tip-action {
+  color: #00e5a0;
+  text-decoration: none;
+  font-size: 11px;
+  font-family: var(--fm, 'DM Mono', monospace);
+}
+
+.emp-tip-action:hover {
+  text-decoration: underline;
+}
+
+.emp-profile-progress {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border, #1a2e2e);
+}
+
+.emp-progress-bar {
+  height: 6px;
+  background: var(--s2, #111e1e);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.emp-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00e5a0, #00b87a);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.emp-progress-text {
+  font-family: var(--fm, 'DM Mono', monospace);
+  font-size: 10px;
+  color: var(--muted, #5a7a72);
+  text-align: center;
+  margin: 0;
+}
+
+/* ── Empty State ── */
+.emp-empty-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.emp-empty-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.emp-empty-state p {
+  font-size: 13px;
+  color: var(--muted, #5a7a72);
+  margin: 0 0 12px 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .emp-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .emp-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  
+  .emp-page-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .emp-stat-card {
+    padding: 14px 12px;
+  }
+  
+  .emp-stat-value {
+    font-size: 20px;
+  }
+  
+  .emp-stat-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 18px;
+  }
+  
+  .emp-interview-item {
+    flex-direction: column;
+  }
+  
+  .emp-interview-date {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  
+  .emp-interview-day,
+  .emp-interview-month {
+    display: inline;
+  }
+  
+  .emp-interview-actions {
+    justify-content: flex-end;
+  }
+  
+  .emp-rec-header {
+    flex-wrap: wrap;
+  }
+  
+  .emp-rec-match-score {
+    position: absolute;
+    right: 16px;
+    top: 16px;
+  }
+  
+  .emp-rec-item {
+    position: relative;
+  }
+}
+
+@media (max-width: 480px) {
+  .emp-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .emp-quick-actions {
+    justify-content: center;
+  }
+  
+  .emp-quick-btn {
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .emp-tip-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>
+
+<script src="/static/js/pages/employee/dashboard.js"></script>

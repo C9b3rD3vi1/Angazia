@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"time"
+	"errors"
 
 	"gorm.io/gorm"
 	"github.com/google/uuid"
@@ -43,6 +44,10 @@ type AdminRepository interface {
 	// Company verification
 	ApproveCompanyVerification(ctx context.Context, companyID, adminID string) error
 	RejectCompanyVerification(ctx context.Context, companyID, reason, adminID string) error
+	UpdateVerification(ctx context.Context, companyID string, updates map[string]interface{}) error
+	UpdateEmployerVerificationStatus(ctx context.Context, companyID, status string) error
+	GetOrCreateVerification(ctx context.Context, companyID string) (*models.CompanyVerification, error)
+	CreateCompanyVerification(ctx context.Context, verification *models.CompanyVerification) error
 	GetPendingVerifications(ctx context.Context, page, limit int) ([]*models.CompanyVerification, int64, error)
 	GetVerificationByCompanyID(ctx context.Context, companyID string) (*models.CompanyVerification, error)
 
@@ -249,6 +254,7 @@ func (r *AdminRepositoryImpl) GetAllUsers(ctx context.Context, filters map[strin
 			users.last_login_at,
 			ep.full_name,
 			emp.company_name,
+			emp.verification_status,
 			(SELECT COUNT(*) FROM jobs WHERE employer_id = users.id) as job_count,
 			(SELECT COUNT(*) FROM applications WHERE employee_id = users.id) as application_count,
 			(SELECT COUNT(*) FROM moderation_queue WHERE entity_id = users.id) as reports_count
@@ -264,6 +270,9 @@ func (r *AdminRepositoryImpl) GetAllUsers(ctx context.Context, filters map[strin
 	}
 	if isVerified, ok := filters["is_verified"].(bool); ok {
 		query = query.Where("users.is_verified = ?", isVerified)
+	}
+	if verificationStatus, ok := filters["verification_status"].(string); ok && verificationStatus != "" {
+		query = query.Where("emp.verification_status = ?", verificationStatus)
 	}
 	if search, ok := filters["search"].(string); ok && search != "" {
 		query = query.Where("users.email ILIKE ? OR ep.full_name ILIKE ? OR emp.company_name ILIKE ?", 
@@ -314,7 +323,8 @@ func (r *AdminRepositoryImpl) GetUserDetails(ctx context.Context, userID string)
 			users.created_at,
 			users.last_login_at,
 			ep.full_name,
-			emp.company_name
+			emp.company_name,
+			emp.verification_status
 		`).
 		Joins("LEFT JOIN employee_profiles ep ON ep.user_id = users.id").
 		Joins("LEFT JOIN employer_profiles emp ON emp.user_id = users.id").
@@ -429,27 +439,75 @@ func (r *AdminRepositoryImpl) UpdateSetting(ctx context.Context, key, value stri
 		Update("value", value).Error
 }
 
+
+// RejectCompanyVerification rejects a company verification request (updates regardless of current status)
 func (r *AdminRepositoryImpl) RejectCompanyVerification(ctx context.Context, companyID, reason, adminID string) error {
-	return r.db.WithContext(ctx).
-		Model(&models.CompanyVerification{}).
-		Where("company_id = ? AND status = ?", companyID, "pending").
-		Updates(map[string]interface{}{
-			"status":           "rejected",
-			"rejection_reason": reason,
-			"updated_at":       time.Now(),
-		}).Error
+    now := time.Now()
+    return r.db.WithContext(ctx).
+        Model(&models.CompanyVerification{}).
+        Where("company_id = ?", companyID).
+        Updates(map[string]interface{}{
+            "status":           "rejected",
+            "rejection_reason": reason,
+            "verified_by":      adminID,
+            "verified_at":      now,
+            "updated_at":       now,
+        }).Error
 }
 
+// ApproveCompanyVerification approves a company verification request (updates regardless of current status)
 func (r *AdminRepositoryImpl) ApproveCompanyVerification(ctx context.Context, companyID, adminID string) error {
-	return r.db.WithContext(ctx).
-		Model(&models.CompanyVerification{}).
-		Where("company_id = ? AND status = ?", companyID, "pending").
-		Updates(map[string]interface{}{
-			"status":      "approved",
-			"verified_by": adminID,
-			"verified_at": time.Now(),
-			"updated_at":  time.Now(),
-		}).Error
+    now := time.Now()
+    return r.db.WithContext(ctx).
+        Model(&models.CompanyVerification{}).
+        Where("company_id = ?", companyID).
+        Updates(map[string]interface{}{
+            "status":      "approved",
+            "verified_by": adminID,
+            "verified_at": now,
+            "updated_at":  now,
+        }).Error
+}
+
+// UpdateEmployerVerificationStatus updates the verification status on employer profile
+func (r *AdminRepositoryImpl) UpdateEmployerVerificationStatus(ctx context.Context, companyID, status string) error {
+    return r.db.WithContext(ctx).
+        Model(&models.EmployerProfile{}).
+        Where("user_id = ?", companyID).
+        Update("verification_status", status).Error
+}
+
+// GetOrCreateVerification gets existing verification or creates a new one
+func (r *AdminRepositoryImpl) GetOrCreateVerification(ctx context.Context, companyID string) (*models.CompanyVerification, error) {
+    var verification models.CompanyVerification
+    err := r.db.WithContext(ctx).Where("company_id = ?", companyID).First(&verification).Error
+    
+    if err == nil {
+        return &verification, nil
+    }
+    
+    if errors.Is(err, gorm.ErrRecordNotFound) {
+        // Create new verification record
+        verification = models.CompanyVerification{
+            CompanyID:   companyID,
+            Status:      "pending",
+            SubmittedAt: time.Now(),
+        }
+        if err := r.db.WithContext(ctx).Create(&verification).Error; err != nil {
+            return nil, err
+        }
+        return &verification, nil
+    }
+    
+    return nil, err
+}
+
+
+// CreateCompanyVerification creates a new company verification record
+func (r *AdminRepositoryImpl) CreateCompanyVerification(ctx context.Context, verification *models.CompanyVerification) error {
+    verification.ID = uuid.New().String()
+    verification.SubmittedAt = time.Now()
+    return r.db.WithContext(ctx).Create(verification).Error
 }
 
 func (r *AdminRepositoryImpl) GetPendingVerifications(ctx context.Context, page, limit int) ([]*models.CompanyVerification, int64, error) {
@@ -463,6 +521,13 @@ func (r *AdminRepositoryImpl) GetPendingVerifications(ctx context.Context, page,
 	offset := (page - 1) * limit
 	err := query.Offset(offset).Limit(limit).Order("submitted_at DESC").Find(&verifications).Error
 	return verifications, total, err
+}
+// UpdateVerification updates a company verification record
+func (r *AdminRepositoryImpl) UpdateVerification(ctx context.Context, companyID string, updates map[string]interface{}) error {
+    return r.db.WithContext(ctx).
+        Model(&models.CompanyVerification{}).
+        Where("company_id = ?", companyID).
+        Updates(updates).Error
 }
 
 func (r *AdminRepositoryImpl) GetVerificationByCompanyID(ctx context.Context, companyID string) (*models.CompanyVerification, error) {

@@ -20,5 +20,8 @@ func SetupMatchingRoutes(router fiber.Router, matchingHandler *handlers.Matching
 	// Employer matching endpoints
 	employer := protected.Group("/employer", middleware.RequireRole("employer"))
 	employer.Get("/matches/candidates/:jobId", matchingHandler.GetCandidateMatches)
+	employer.Get("/matches/analysis/:jobId/:employeeId", matchingHandler.GetEmployerMatchAnalysis)
+	employer.Get("/matches/skills-gap/:jobId/:employeeId", matchingHandler.GetEmployerSkillsGap)
+	employer.Post("/matches/feedback", matchingHandler.SubmitMatchFeedback)
 	employer.Get("/matches/interview-questions/:jobId", matchingHandler.GenerateInterviewQuestions)
 }

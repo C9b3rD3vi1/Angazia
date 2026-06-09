@@ -2,6 +2,7 @@ package models
 
 import (
 	"time"
+	"github.com/lib/pq"
 )
 
 // Job represents a job posting
@@ -14,8 +15,8 @@ type Job struct {
 	Responsibilities string     `json:"responsibilities" gorm:"type:text"`
 	
 	// Skills
-	RequiredSkills   []string   `json:"required_skills" gorm:"type:text[];not null"`
-	NiceToHaveSkills []string   `json:"nice_to_have_skills" gorm:"type:text[]"`
+	RequiredSkills    pq.StringArray `json:"required_skills" gorm:"type:text[]"`
+    NiceToHaveSkills  pq.StringArray `json:"nice_to_have_skills" gorm:"type:text[]"`
 	
 	// Experience & Education
 	ExperienceLevel  string     `json:"experience_level" gorm:"size:50"` // entry, junior, mid, senior, lead
@@ -45,6 +46,7 @@ type Job struct {
 	IsFeatured       bool       `json:"is_featured" gorm:"default:false"`
 	IsUrgent         bool       `json:"is_urgent" gorm:"default:false"`
 	PostedAt         time.Time  `json:"posted_at" gorm:"autoCreateTime;index"`
+	UpdatedAt        time.Time  `json:"updated_at" gorm:"autoUpdateTime;index"`
 	ExpiresAt        *time.Time `json:"expires_at,omitempty" gorm:"index"`
 	ClosedAt         *time.Time `json:"closed_at,omitempty"`
 	

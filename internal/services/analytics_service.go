@@ -13,6 +13,12 @@ import (
 )
 
 type AnalyticsService interface {
+	// Dashboard stats
+	GetDashboardStats(ctx context.Context, employerID string) (*models.DashboardStats, error)
+	
+	// Combined dashboard data
+	GetDashboard(ctx context.Context, employerID string, days int) (*models.DashboardResponse, error)
+	
 	// Application trends
 	GetApplicationTrends(ctx context.Context, employerID string, period string, duration int) (*models.ApplicationTrendsResponse, error)
 	
@@ -49,6 +55,53 @@ func NewAnalyticsService(
 		cfg:           cfg,
 		analyticsRepo: analyticsRepo,
 	}
+}
+
+func (s *AnalyticsServiceImpl) GetDashboardStats(ctx context.Context, employerID string) (*models.DashboardStats, error) {
+	return s.analyticsRepo.GetDashboardStats(ctx, employerID)
+}
+
+func (s *AnalyticsServiceImpl) GetDashboard(ctx context.Context, employerID string, days int) (*models.DashboardResponse, error) {
+	stats, err := s.analyticsRepo.GetDashboardStats(ctx, employerID)
+	if err != nil {
+		return nil, err
+	}
+
+	trends, err := s.GetApplicationTrends(ctx, employerID, "daily", days)
+	if err != nil {
+		trends = &models.ApplicationTrendsResponse{
+			Daily:   []models.ApplicationTrend{},
+			Weekly:  []models.ApplicationTrend{},
+			Monthly: []models.ApplicationTrend{},
+		}
+	}
+
+	funnel, err := s.analyticsRepo.GetConversionFunnel(ctx, employerID)
+	if err != nil {
+		funnel = []models.ConversionFunnel{}
+	}
+	funnelResp := &models.FunnelResponse{Stages: funnel}
+	if len(funnel) > 0 {
+		funnelResp.OverallRate = funnel[len(funnel)-1].ConversionRate
+	}
+
+	jobs, err := s.analyticsRepo.GetJobPerformance(ctx, employerID, 10)
+	if err != nil {
+		jobs = []models.JobPerformance{}
+	}
+
+	recentApps, err := s.analyticsRepo.GetRecentApplications(ctx, employerID, 5)
+	if err != nil {
+		recentApps = []models.RecentApplication{}
+	}
+
+	return &models.DashboardResponse{
+		Stats:      stats,
+		Trends:     trends,
+		Funnel:     funnelResp,
+		Jobs:       jobs,
+		RecentApps: recentApps,
+	}, nil
 }
 
 func (s *AnalyticsServiceImpl) GetApplicationTrends(ctx context.Context, employerID string, period string, duration int) (*models.ApplicationTrendsResponse, error) {

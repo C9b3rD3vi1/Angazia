@@ -1,60 +1,39 @@
 <div class="emp-dash">
   <div class="emp-page-head">
     <div>
-      <h1 class="emp-page-title">Upgrade to {{title .Plan}}</h1>
+      <h1 class="emp-page-title">Upgrade to {{.Plan}}</h1>
       <p class="emp-page-sub">Confirm your subscription upgrade</p>
     </div>
   </div>
 
-  <div class="emp-upgrade-layout">
-    <div class="emp-upgrade-plan emp-card">
-      <div class="emp-upgrade-plan-icon">
-        {{if eq .Plan "pro"}}&#x1F525;
-        {{else if eq .Plan "basic"}}&#x1F4A0;
-        {{else}}&#x1F3F0;{{end}}
+  <div id="upgrade-loading" class="emp-loading">
+    <div class="emp-loading-spinner"></div>
+    <span>Loading plan details...</span>
+  </div>
+
+  <div id="upgrade-content" style="display:none">
+    <div class="emp-upgrade-layout">
+      <div class="emp-upgrade-plan emp-card">
+        <div class="emp-upgrade-plan-icon">{{if eq .Plan "pro"}}&#x1F525;{{else if eq .Plan "pro_monthly"}}&#x1F525;{{else if eq .Plan "pro_annual"}}&#x1F525;{{else if eq .Plan "basic"}}&#x1F4A0;{{else}}&#x1F3F0;{{end}}</div>
+        <h2 class="emp-upgrade-plan-name" id="upgrade-plan-name">{{.Plan}}</h2>
+        <p class="emp-upgrade-price" id="upgrade-plan-price"></p>
+        <ul class="emp-upgrade-features" id="upgrade-plan-features"></ul>
       </div>
-      <h2 class="emp-upgrade-plan-name">{{title .Plan}}</h2>
-      <p class="emp-upgrade-price">
-        {{if eq .Plan "basic"}}KSh 2,500{{else if eq .Plan "pro"}}KSh 6,500{{else}}Custom{{end}}
-        {{if ne .Plan "enterprise"}}<span>/month</span>{{end}}
-      </p>
-      <ul class="emp-upgrade-features">
-        {{if eq .Plan "basic"}}
-        <li>&#x2705; 10 active jobs</li>
-        <li>&#x2705; Advanced filters</li>
-        <li>&#x2705; Basic analytics</li>
-        <li>&#x2705; Email support</li>
-        {{else if eq .Plan "pro"}}
-        <li>&#x2705; 50 active jobs</li>
-        <li>&#x2705; AI-powered matching</li>
-        <li>&#x2705; Advanced analytics</li>
-        <li>&#x2705; Priority support</li>
-        <li>&#x2705; Custom branding</li>
-        {{else}}
-        <li>&#x2705; Unlimited jobs</li>
-        <li>&#x2705; Full analytics suite</li>
-        <li>&#x2705; API access</li>
-        <li>&#x2705; Dedicated manager</li>
-        <li>&#x2705; Custom integrations</li>
-        <li>&#x2705; SLA guarantee</li>
-        {{end}}
-      </ul>
-    </div>
 
-    <div class="emp-upgrade-confirm emp-card">
-      <h3 class="emp-upgrade-confirm-title">Confirm Upgrade</h3>
-      <p class="emp-upgrade-confirm-desc">
-        You are about to upgrade to the <strong>{{title .Plan}}</strong> plan.
-        {{if ne .Plan "enterprise"}}You will be charged <strong>{{if eq .Plan "basic"}}KSh 2,500{{else}}KSh 6,500{{end}}</strong> per month.{{end}}
-      </p>
+      <div class="emp-upgrade-confirm emp-card">
+        <h3 class="emp-upgrade-confirm-title">Confirm Upgrade</h3>
+        <p class="emp-upgrade-confirm-desc" id="upgrade-confirm-desc">
+          Loading plan details...
+        </p>
 
-      <div id="upgrade-error" class="emp-alert emp-alert-error" style="display:none"></div>
-      <div id="upgrade-success" class="emp-alert emp-alert-success" style="display:none"></div>
+        <div id="upgrade-error" class="emp-alert emp-alert-error" style="display:none"></div>
+        <div id="upgrade-success" class="emp-alert emp-alert-success" style="display:none"></div>
 
-      <button id="btn-confirm-upgrade" class="emp-btn emp-btn-primary emp-btn-full" data-plan="{{.Plan}}">
-        Confirm Upgrade
-      </button>
-      <a href="/employer/billing" class="emp-btn emp-btn-outline emp-btn-full">Cancel</a>
+        <button id="btn-confirm-upgrade" class="emp-btn emp-btn-primary emp-btn-full" data-plan="{{.Plan}}" disabled>
+          Confirm Upgrade
+        </button>
+        <a href="/employer/billing" class="emp-btn emp-btn-outline emp-btn-full">Cancel</a>
+      </div>
     </div>
   </div>
 </div>
@@ -80,6 +59,26 @@
   color: var(--muted);
   margin-top: 4px;
 }
+
+.emp-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: var(--muted2);
+  font-size: 13px;
+}
+.emp-loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top: 3px solid var(--purple);
+  border-radius: 50%;
+  animation: emp-spin 0.8s linear infinite;
+}
+@keyframes emp-spin { to { transform: rotate(360deg); } }
+
 .emp-upgrade-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -172,6 +171,7 @@
   margin-bottom: 8px;
 }
 .emp-btn:active { transform: scale(0.97); }
+.emp-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .emp-btn-primary {
   color: #fff;
   background: linear-gradient(135deg, var(--purple) 0%, #ec4899 100%);

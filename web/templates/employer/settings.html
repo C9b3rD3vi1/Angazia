@@ -1,0 +1,527 @@
+{{/* Employer Settings Page */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">Settings</h1>
+      <p class="emp-page-sub">Manage your account, company preferences, and security</p>
+    </div>
+  </div>
+
+  <div class="emp-settings-sections">
+
+    <section class="emp-section">
+      <div class="emp-section-head">
+        <h2 class="emp-section-title">&#x1F5BC; Profile Picture</h2>
+      </div>
+      <div class="emp-avatar-section">
+        <div class="emp-avatar-preview">
+          <div class="emp-avatar-img-wrap">
+            {{if .User.Avatar}}<img src="{{.User.Avatar}}" alt="Profile" id="avatar-preview-img" class="emp-avatar-img">{{else}}<span class="emp-avatar-placeholder" id="avatar-preview-init">{{.User.Initials}}</span>{{end}}
+          </div>
+        </div>
+        <div class="emp-avatar-actions">
+          <label class="emp-btn emp-btn-secondary emp-btn-sm" for="avatar-upload-input">Choose Photo</label>
+          <input type="file" id="avatar-upload-input" accept="image/jpeg,image/png,image/webp" hidden>
+          <button type="button" id="avatar-upload-btn" class="emp-btn emp-btn-primary emp-btn-sm" disabled>Upload</button>
+          <span class="emp-hint" id="avatar-file-name"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="emp-section">
+      <div class="emp-section-head">
+        <h2 class="emp-section-title">&#x1F464; Account Information</h2>
+      </div>
+      <form id="form-profile" class="emp-form">
+        <div class="emp-form-row">
+          <div class="emp-form-group">
+            <label class="emp-form-label">Full Name</label>
+            <input type="text" name="full_name" class="emp-input" value="{{.Profile.FullName}}">
+          </div>
+          <div class="emp-form-group">
+            <label class="emp-form-label">Email</label>
+            <input type="email" class="emp-input" value="{{.Profile.Email}}" disabled>
+          </div>
+        </div>
+        <div class="emp-form-group">
+          <label class="emp-form-label">Headline</label>
+          <input type="text" name="headline" class="emp-input" value="{{.Profile.Headline}}" placeholder="e.g. Talent Acquisition Manager">
+        </div>
+        <div class="emp-form-group">
+          <label class="emp-form-label">Bio</label>
+          <textarea name="bio" class="emp-textarea" rows="3" placeholder="Tell us about your professional background...">{{.Profile.Bio}}</textarea>
+        </div>
+        <button type="submit" class="emp-btn emp-btn-primary">Save Changes</button>
+      </form>
+    </section>
+
+    <section class="emp-section">
+      <div class="emp-section-head">
+        <h2 class="emp-section-title">&#x1F512; Change Password</h2>
+      </div>
+      <form id="form-password" class="emp-form">
+        <div class="emp-form-group">
+          <label class="emp-form-label">Current Password</label>
+          <input type="password" name="current_password" class="emp-input" required>
+        </div>
+        <div class="emp-form-row">
+          <div class="emp-form-group">
+            <label class="emp-form-label">New Password</label>
+            <input type="password" name="new_password" class="emp-input" required minlength="8">
+          </div>
+          <div class="emp-form-group">
+            <label class="emp-form-label">Confirm New Password</label>
+            <input type="password" name="confirm_password" class="emp-input" required minlength="8">
+          </div>
+        </div>
+        <button type="submit" class="emp-btn emp-btn-outline">Update Password</button>
+      </form>
+    </section>
+
+    <section class="emp-section">
+      <div class="emp-section-head">
+        <h2 class="emp-section-title">&#x1F510; Two-Factor Authentication</h2>
+      </div>
+      <div id="tfa-section" class="emp-form">
+        <div id="tfa-status-loading" class="emp-form-group">
+          <p class="emp-form-label" style="text-transform:none;letter-spacing:0">Checking 2FA status...</p>
+        </div>
+        <div id="tfa-not-enabled" style="display:none">
+          <p style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5">Add an extra layer of security to your employer account by enabling two-factor authentication.</p>
+          <button class="emp-btn emp-btn-primary" id="tfa-enable-btn">Enable Two-Factor Authentication</button>
+        </div>
+        <div id="tfa-enabled" style="display:none">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+            <span class="emp-toast emp-toast-success" style="display:inline-block;padding:6px 14px">&#x2713; 2FA is active</span>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="emp-btn emp-btn-outline" id="tfa-view-backup-btn">Generate New Backup Codes</button>
+            <button class="emp-btn emp-btn-outline" id="tfa-disable-btn" style="border-color:rgba(255,79,79,0.3);color:var(--danger)">Disable 2FA</button>
+          </div>
+        </div>
+        <div id="tfa-error" class="emp-toast emp-toast-error" style="display:none;margin-top:8px"></div>
+      </div>
+    </section>
+
+    <section class="emp-section">
+      <div class="emp-section-head">
+        <h2 class="emp-section-title">&#x1F4E8; Notification Preferences</h2>
+      </div>
+      <div id="notif-prefs-loading" class="emp-form">
+        <p class="emp-form-label" style="text-transform:none;letter-spacing:0">Loading preferences...</p>
+      </div>
+      <form id="form-notifications" class="emp-form" style="display:none">
+        <div class="emp-form-checkboxes">
+          <label class="emp-checkbox"><input type="checkbox" name="application_updates" value="1"><span>Application status updates</span></label>
+          <label class="emp-checkbox"><input type="checkbox" name="job_alerts" value="1"><span>Job alerts and recommendations</span></label>
+          <label class="emp-checkbox"><input type="checkbox" name="interview_reminders" value="1"><span>Interview reminders</span></label>
+          <label class="emp-checkbox"><input type="checkbox" name="messages" value="1"><span>Messages from candidates</span></label>
+          <label class="emp-checkbox"><input type="checkbox" name="system_alerts" value="1"><span>System alerts and updates</span></label>
+          <label class="emp-checkbox"><input type="checkbox" name="marketing" value="1"><span>Marketing and newsletter emails</span></label>
+        </div>
+        <div class="emp-form-separator"></div>
+        <div class="emp-form-checkboxes">
+          <label class="emp-checkbox"><input type="checkbox" name="push_enabled" value="1"><span>Push notifications</span></label>
+          <label class="emp-checkbox"><input type="checkbox" name="email_enabled" value="1"><span>Email notifications</span></label>
+          <label class="emp-checkbox"><input type="checkbox" name="in_app_enabled" value="1"><span>In-app notifications</span></label>
+        </div>
+        <button type="submit" class="emp-btn emp-btn-primary">Save Preferences</button>
+        <div id="notif-prefs-error" class="emp-toast emp-toast-error" style="display:none;margin-top:8px"></div>
+      </form>
+    </section>
+
+  </div>
+</div>
+
+<style>
+.emp-settings-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.emp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.emp-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.emp-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.emp-form-label {
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted2);
+}
+.emp-input, .emp-textarea {
+  padding: 10px 14px;
+  font-family: var(--fm);
+  font-size: 13px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.emp-input:focus, .emp-textarea:focus { border-color: var(--accent); }
+.emp-textarea {
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.5;
+}
+.emp-input[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+.emp-form-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.emp-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+.emp-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--purple);
+  cursor: pointer;
+}
+.emp-form-separator {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+.emp-avatar-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 0;
+}
+.emp-avatar-preview .emp-avatar-img-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,229,160,.12);
+}
+.emp-avatar-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.emp-avatar-placeholder {
+  font-family: var(--fm);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.emp-avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.emp-avatar-actions .emp-hint {
+  font-size: 11px;
+  color: var(--muted2);
+}
+.emp-btn-sm {
+  padding: 8px 16px;
+  font-size: 11px;
+}
+
+.emp-toast {
+  padding: 12px 18px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+}
+.emp-toast-success {
+  background: rgba(0,229,160,0.08);
+  border: 1px solid rgba(0,229,160,0.2);
+  color: var(--accent);
+}
+.emp-toast-error {
+  background: rgba(255,79,79,0.08);
+  border: 1px solid rgba(255,79,79,0.2);
+  color: var(--danger);
+}
+
+@media (max-width: 640px) {
+  .emp-form-row { grid-template-columns: 1fr; }
+}
+</style>
+
+<script>
+(function () {
+  function toast(msg, type) {
+    if (window.AngaziaApp && AngaziaApp.showToast) {
+      AngaziaApp.showToast(msg, type);
+    } else {
+      alert((type === 'error' ? 'Error: ' : '') + msg);
+    }
+  }
+
+  // Avatar upload
+  var avatarInput = document.getElementById('avatar-upload-input');
+  var avatarBtn = document.getElementById('avatar-upload-btn');
+  var avatarFileName = document.getElementById('avatar-file-name');
+  var avatarPreviewImg = document.getElementById('avatar-preview-img');
+  var avatarPreviewInit = document.getElementById('avatar-preview-init');
+  var selectedAvatarFile = null;
+  if (avatarInput && avatarBtn) {
+    avatarInput.addEventListener('change', function () {
+      selectedAvatarFile = avatarInput.files[0];
+      if (selectedAvatarFile) {
+        avatarBtn.disabled = false;
+        avatarFileName.textContent = selectedAvatarFile.name;
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          if (avatarPreviewImg) {
+            avatarPreviewImg.src = e.target.result;
+            avatarPreviewImg.style.display = '';
+          }
+          if (avatarPreviewInit) avatarPreviewInit.style.display = 'none';
+        };
+        reader.readAsDataURL(selectedAvatarFile);
+      } else {
+        avatarBtn.disabled = true;
+        avatarFileName.textContent = '';
+      }
+    });
+    avatarBtn.addEventListener('click', function () {
+      if (!selectedAvatarFile) return;
+      avatarBtn.disabled = true;
+      avatarBtn.textContent = 'Uploading...';
+      var fd = new FormData();
+      fd.append('avatar', selectedAvatarFile);
+      AngaziaAPI.profile.uploadAvatar(fd).then(function (resp) {
+        toast('Profile picture updated!', 'success');
+        selectedAvatarFile = null;
+        avatarBtn.textContent = 'Upload';
+        avatarFileName.textContent = '';
+        avatarInput.value = '';
+      }).catch(function (err) {
+        toast(err.message || 'Failed to upload avatar', 'error');
+        avatarBtn.disabled = false;
+        avatarBtn.textContent = 'Upload';
+      });
+    });
+  }
+
+  var pf = document.getElementById('form-profile');
+  if (pf) {
+    pf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var fd = new FormData(pf);
+      var data = {};
+      fd.forEach(function (v, k) { data[k] = v; });
+      var btn = pf.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+      AngaziaAPI.profile.update(data).then(function () {
+        toast('Profile saved successfully', 'success');
+      }).catch(function (err) {
+        toast(err.message || 'Failed to save profile', 'error');
+      }).then(function () {
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+      });
+    });
+  }
+
+  var pwf = document.getElementById('form-password');
+  if (pwf) {
+    pwf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var fd = new FormData(pwf);
+      var current = fd.get('current_password');
+      var newPw = fd.get('new_password');
+      var confirm = fd.get('confirm_password');
+      if (newPw !== confirm) {
+        toast('Passwords do not match', 'error');
+        return;
+      }
+      var btn = pwf.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = 'Updating...';
+      AngaziaAPI.auth.changePassword({ old_password: current, new_password: newPw }).then(function () {
+        toast('Password changed successfully', 'success');
+        pwf.reset();
+      }).catch(function (err) {
+        toast(err.message || 'Failed to change password', 'error');
+      }).then(function () {
+        btn.disabled = false;
+        btn.textContent = 'Update Password';
+      });
+    });
+  }
+
+  (function(){
+    var loadingEl=document.getElementById('tfa-status-loading');
+    var notEnabled=document.getElementById('tfa-not-enabled');
+    var enabledDiv=document.getElementById('tfa-enabled');
+    var tfaError=document.getElementById('tfa-error');
+    function showTfaError(m){
+      if(tfaError){tfaError.textContent=m;tfaError.style.display='';}
+    }
+    function hideTfaError(){
+      if(tfaError)tfaError.style.display='none';
+    }
+    AngaziaAPI.auth.twoFA.status().then(function(data){
+      if(loadingEl)loadingEl.style.display='none';
+      if(data&&data.enabled){
+        if(notEnabled)notEnabled.style.display='none';
+        if(enabledDiv)enabledDiv.style.display='';
+      }else{
+        if(notEnabled)notEnabled.style.display='';
+        if(enabledDiv)enabledDiv.style.display='none';
+      }
+    }).catch(function(){
+      if(loadingEl)loadingEl.style.display='none';
+      if(notEnabled)notEnabled.style.display='';
+      if(enabledDiv)enabledDiv.style.display='none';
+    });
+    var enableBtn=document.getElementById('tfa-enable-btn');
+    if(enableBtn){
+      enableBtn.addEventListener('click',function(){
+        window.open('/auth/2fa/setup','_blank');
+      });
+    }
+    var disableBtn=document.getElementById('tfa-disable-btn');
+    if(disableBtn){
+      disableBtn.addEventListener('click',function(){
+        if(!confirm('Are you sure you want to disable two-factor authentication?'))return;
+        var code=prompt('Enter your current TOTP code (or a backup code):');
+        if(!code)return;
+        var password=prompt('Confirm your password:');
+        if(!password)return;
+        hideTfaError();
+        disableBtn.disabled=true;
+        disableBtn.textContent='Disabling\u2026';
+        AngaziaAPI.auth.twoFA.disable({code:code,password:password}).then(function(){
+          window.location.reload();
+        }).catch(function(err){
+          disableBtn.disabled=false;
+          disableBtn.textContent='Disable 2FA';
+          showTfaError((err.body&&err.body.message)||err.message||'Failed to disable 2FA');
+        });
+      });
+    }
+    var viewBackupBtn=document.getElementById('tfa-view-backup-btn');
+    if(viewBackupBtn){
+      viewBackupBtn.addEventListener('click',function(){
+        hideTfaError();
+        if(!confirm('Generate new backup codes? Your existing codes will be invalidated.'))return;
+        viewBackupBtn.disabled=true;
+        viewBackupBtn.textContent='Generating\u2026';
+        AngaziaAPI.auth.twoFA.generateBackupCodes().then(function(data){
+          viewBackupBtn.disabled=false;
+          viewBackupBtn.textContent='Generate New Backup Codes';
+          if(data&&data.backup_codes&&data.backup_codes.length){
+            var msg='Your New Backup Codes:\n\n'+data.backup_codes.join('\n')+'\n\nStore these securely! You will not be able to view them again.';
+            alert(msg);
+          }else{
+            showTfaError('Failed to generate backup codes');
+          }
+        }).catch(function(err){
+          viewBackupBtn.disabled=false;
+          viewBackupBtn.textContent='Generate New Backup Codes';
+          showTfaError((err.body&&err.body.message)||err.message||'Failed to generate backup codes');
+        });
+      });
+    }
+  })();
+
+  // Notification preferences
+  var notifLoading = document.getElementById('notif-prefs-loading');
+  var notifForm = document.getElementById('form-notifications');
+  var notifError = document.getElementById('notif-prefs-error');
+
+  function showNotifError(msg) {
+    if (notifError) { notifError.textContent = msg; notifError.style.display = ''; }
+  }
+
+  function hideNotifError() {
+    if (notifError) notifError.style.display = 'none';
+  }
+
+  function setCheckboxes(prefs) {
+    if (!prefs || !notifForm) return;
+    var fields = [
+      'application_updates', 'job_alerts', 'interview_reminders',
+      'messages', 'system_alerts', 'marketing',
+      'push_enabled', 'email_enabled', 'in_app_enabled'
+    ];
+    for (var i = 0; i < fields.length; i++) {
+      var key = fields[i];
+      var val = prefs[key];
+      if (typeof val === 'boolean') {
+        var cb = notifForm.querySelector('input[name="' + key + '"]');
+        if (cb) cb.checked = val;
+      }
+    }
+  }
+
+  if (notifForm) {
+    AngaziaAPI.notifications.getPreferences()
+      .then(function (prefs) {
+        if (notifLoading) notifLoading.style.display = 'none';
+        notifForm.style.display = '';
+        setCheckboxes(prefs);
+      })
+      .catch(function () {
+        if (notifLoading) notifLoading.style.display = 'none';
+        notifForm.style.display = '';
+      });
+  }
+
+  var nf = document.getElementById('form-notifications');
+  if (nf) {
+    nf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      hideNotifError();
+      var fd = new FormData(nf);
+      var fields = [
+        'application_updates', 'job_alerts', 'interview_reminders',
+        'messages', 'system_alerts', 'marketing',
+        'push_enabled', 'email_enabled', 'in_app_enabled'
+      ];
+      var data = {};
+      for (var i = 0; i < fields.length; i++) {
+        data[fields[i]] = !!fd.get(fields[i]);
+      }
+      var btn = nf.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+      AngaziaAPI.notifications.updatePreferences(data).then(function () {
+        toast('Preferences saved successfully', 'success');
+      }).catch(function (err) {
+        showNotifError(err.message || 'Failed to save preferences');
+      }).then(function () {
+        btn.disabled = false;
+        btn.textContent = 'Save Preferences';
+      });
+    });
+  }
+})();
+</script>

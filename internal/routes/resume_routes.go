@@ -9,6 +9,9 @@ import (
 func SetupResumeRoutes(router fiber.Router, resumeHandler *handlers.ResumeHandler) {
 	// Protected routes (authentication required)
 	protected := router.Group("/", middleware.AuthMiddleware())
+
+	// Avatar upload (any authenticated user)
+	protected.Post("/user/avatar", resumeHandler.UploadAvatar)
 	
 	// Employee profile routes
 	employee := protected.Group("/employee", middleware.RequireRole("employee"))

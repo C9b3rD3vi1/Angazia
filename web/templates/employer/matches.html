@@ -15,34 +15,57 @@
     </div>
   </div>
 
-  <section class="emp-section" id="matches-section">
-    <div class="emp-section-head">
-      <h2 class="emp-section-title">Matched Candidates</h2>
-      <span class="emp-result-hint" id="match-count"></span>
-    </div>
-    <div id="matches-container">
-      <div class="emp-empty" id="matches-empty">
-        <div class="emp-empty-icon">&#x1F50D;</div>
-        <h3 class="emp-empty-title">Select a job to see matches</h3>
-        <p class="emp-empty-desc">Choose a job from the dropdown above to view AI-recommended candidates.</p>
-      </div>
-    </div>
-  </section>
+  <div id="mm-loading" class="mm-loading">
+    <div class="mm-loading-spinner"></div>
+    <span>Loading matches...</span>
+  </div>
 
-  <section class="emp-section" id="skill-gap-section" style="display:none;">
-    <div class="emp-section-head">
-      <h2 class="emp-section-title">Skills Gap Analysis</h2>
-      <button class="emp-btn emp-btn-sm emp-btn-primary emp-gen-questions" id="gen-questions-btn" data-job-id="" style="display:none;">
-        &#x1F4AD; Generate Questions
-      </button>
+  <div id="mm-error" class="mm-alert mm-alert-error" style="display:none"></div>
+
+  <div id="mm-content" style="display:none">
+    <section class="emp-section" id="matches-section">
+      <div class="emp-section-head">
+        <h2 class="emp-section-title">Matched Candidates</h2>
+        <span class="emp-result-hint" id="match-count"></span>
+      </div>
+      <div id="matches-container">
+        <div class="emp-empty" id="matches-empty">
+          <div class="emp-empty-icon">&#x1F50D;</div>
+          <h3 class="emp-empty-title">Select a job to see matches</h3>
+          <p class="emp-empty-desc">Choose a job from the dropdown above to view AI-recommended candidates.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="emp-section" id="skill-gap-section" style="display:none;">
+      <div class="emp-section-head">
+        <h2 class="emp-section-title">Skills Gap Analysis</h2>
+        <button class="emp-btn emp-btn-sm emp-btn-primary" id="gen-questions-btn" data-job-id="" style="display:none;">
+          &#x1F4AD; Generate Questions
+        </button>
+      </div>
+      <div id="skill-gap-chart" class="emp-skill-chart"></div>
+      <div class="emp-empty" id="skill-empty">
+        <div class="emp-empty-icon">&#x1F4CA;</div>
+        <h3 class="emp-empty-title">No data yet</h3>
+        <p class="emp-empty-desc">Skills gap data will appear once candidates are loaded for a job.</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="mm-modal-overlay" class="mm-modal-overlay" style="display:none">
+  <div class="mm-modal" id="mm-modal">
+    <div class="mm-modal-head">
+      <h3 class="mm-modal-title" id="mm-modal-title">Analysis</h3>
+      <button class="mm-modal-close" id="mm-modal-close">&times;</button>
     </div>
-    <div id="skill-gap-chart" class="emp-skill-chart"></div>
-    <div class="emp-empty" id="skill-empty">
-      <div class="emp-empty-icon">&#x1F4CA;</div>
-      <h3 class="emp-empty-title">No data yet</h3>
-      <p class="emp-empty-desc">Skills gap data will appear once candidates are loaded for a job.</p>
+    <div class="mm-modal-body" id="mm-modal-body"></div>
+    <div class="mm-modal-loading" id="mm-modal-loading" style="display:none">
+      <div class="mm-loading-spinner"></div>
+      <span>Loading...</span>
     </div>
-  </section>
+  </div>
 </div>
 
 <style>
@@ -182,11 +205,26 @@
   font-family: var(--fm);
   font-size: 10px;
   padding: 2px 8px;
-  background: rgba(0,229,160,0.12);
-  color: var(--accent);
   border-radius: 6px;
   letter-spacing: 0.3px;
   flex-shrink: 0;
+  font-weight: 600;
+}
+.emp-candidate-score.score-high {
+  background: rgba(0,229,160,0.12);
+  color: var(--accent);
+}
+.emp-candidate-score.score-good {
+  background: rgba(59,130,246,0.12);
+  color: #3b82f6;
+}
+.emp-candidate-score.score-medium {
+  background: rgba(245,166,35,0.12);
+  color: var(--warn);
+}
+.emp-candidate-score.score-low {
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
 }
 .emp-candidate-headline {
   display: block;
@@ -208,6 +246,16 @@
   color: var(--muted);
   border-radius: 4px;
 }
+.emp-tag-matched {
+  border-color: rgba(0,229,160,0.3);
+  color: var(--accent);
+  background: rgba(0,229,160,0.05);
+}
+.emp-tag-missing {
+  border-color: rgba(239,68,68,0.2);
+  color: #ef4444;
+  background: rgba(239,68,68,0.04);
+}
 .emp-candidate-meta {
   display: flex;
   gap: 16px;
@@ -223,6 +271,38 @@
 .emp-match-actions {
   gap: 4px;
 }
+.emp-match-summary {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.emp-match-recommendation {
+  font-size: 11px;
+  color: var(--accent);
+  margin-top: 2px;
+}
+.emp-match-feedback {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.emp-feedback-btn {
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.12s;
+  background: none;
+  border: none;
+  padding: 2px;
+}
+.emp-feedback-btn:hover,
+.emp-feedback-btn.active { opacity: 1; }
 /* Buttons */
 .emp-btn {
   display: inline-flex;
@@ -302,25 +382,36 @@
   flex-shrink: 0;
 }
 /* Loading */
-.emp-loading {
-  text-align: center;
-  padding: 40px 24px;
+.mm-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 20px;
   color: var(--muted2);
   font-size: 13px;
 }
-.emp-loading::after {
-  content: '';
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  margin-left: 8px;
-  border: 2px solid var(--border);
-  border-top-color: var(--purple);
+.mm-loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top: 3px solid var(--purple);
   border-radius: 50%;
-  animation: emp-spin 0.6s linear infinite;
-  vertical-align: middle;
+  animation: mm-spin 0.8s linear infinite;
 }
-@keyframes emp-spin { to { transform: rotate(360deg); } }
+@keyframes mm-spin { to { transform: rotate(360deg); } }
+/* Alert */
+.mm-alert {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+.mm-alert-error {
+  background: rgba(239,68,68,0.08);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.15);
+}
 /* Empty State */
 .emp-empty {
   text-align: center;
@@ -345,6 +436,171 @@
   margin: 0 auto;
   line-height: 1.5;
 }
+/* Modal */
+.mm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.mm-modal {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  max-width: 640px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+}
+.mm-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.mm-modal-title {
+  font-family: var(--fh);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+.mm-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+.mm-modal-close:hover { color: var(--text); }
+.mm-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.mm-modal-loading {
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted2);
+  font-size: 13px;
+}
+/* Score indicator */
+.emp-score-ring {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: var(--fh);
+  font-size: 14px;
+  font-weight: 700;
+  position: relative;
+}
+.emp-score-ring-inner {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--s2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Analysis detail */
+.mm-analysis-section {
+  margin-bottom: 20px;
+}
+.mm-analysis-label {
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted2);
+  margin-bottom: 8px;
+}
+.mm-analysis-scores {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.mm-score-item {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+.mm-score-value {
+  font-family: var(--fh);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.mm-score-label {
+  font-size: 10px;
+  color: var(--muted2);
+  letter-spacing: 0.3px;
+}
+.mm-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.mm-question-list {
+  padding-left: 20px;
+  margin: 0;
+}
+.mm-question-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+/* Skills gap modal */
+.mm-gap-item {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.mm-gap-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.mm-gap-skill {
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.mm-gap-importance {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+.mm-gap-importance.critical { background: rgba(239,68,68,0.1); color: #ef4444; }
+.mm-gap-importance.important { background: rgba(245,166,35,0.1); color: var(--warn); }
+.mm-gap-importance.nice-to-have { background: rgba(0,229,160,0.1); color: var(--accent); }
+.mm-gap-desc { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.mm-gap-resources { font-size: 11px; color: var(--muted2); }
+.mm-gap-resources a { color: var(--purple); }
 /* Responsive */
 @media (max-width: 860px) {
   .emp-page-head { flex-direction: column; align-items: stretch; }
@@ -359,214 +615,4 @@
 }
 </style>
 
-<script>
-(function() {
-  'use strict';
-
-  var currentJobId = '';
-
-  function loadJobs() {
-    if (typeof AngaziaAPI === 'undefined') return;
-    AngaziaAPI.jobs.myJobs({ limit: 100 })
-      .then(function(resp) {
-        var jobs = resp.data || resp.jobs || resp || [];
-        var sel = document.getElementById('job-selector');
-        if (!sel) return;
-        sel.innerHTML = '<option value="">— Choose a job —</option>';
-        if (jobs.length) {
-          jobs.forEach(function(j) {
-            var opt = document.createElement('option');
-            opt.value = j.id || j.ID || '';
-            opt.textContent = j.title || j.Title || j.name || j.Name || 'Untitled';
-            sel.appendChild(opt);
-          });
-          sel.value = '';
-        }
-      })
-      .catch(function() {});
-  }
-
-  function loadMatches(jobId) {
-    if (!jobId || typeof AngaziaAPI === 'undefined') return;
-    currentJobId = jobId;
-    var container = document.getElementById('matches-container');
-    var countEl = document.getElementById('match-count');
-    var emptyEl = document.getElementById('matches-empty');
-    var genBtn = document.getElementById('gen-questions-btn');
-    var skillSection = document.getElementById('skill-gap-section');
-
-    if (!container) return;
-    container.innerHTML = '<div class="emp-loading">Loading matches...</div>';
-    if (countEl) countEl.textContent = '';
-    if (genBtn) { genBtn.style.display = 'none'; genBtn.dataset.jobId = jobId; }
-    if (skillSection) skillSection.style.display = 'none';
-
-    AngaziaAPI.matches.candidateMatches(jobId)
-      .then(function(resp) {
-        var candidates = resp.data || resp.candidates || resp.matches || resp || [];
-        if (!Array.isArray(candidates)) candidates = [];
-        container.innerHTML = '';
-
-        if (!candidates.length) {
-          if (emptyEl) {
-            container.appendChild(emptyEl.cloneNode(true));
-          } else {
-            container.innerHTML = '<div class="emp-empty"><div class="emp-empty-icon">&#x1F50D;</div><h3 class="emp-empty-title">No matches found</h3><p class="emp-empty-desc">No candidates matched this job. Try adjusting the job description.</p></div>';
-          }
-          if (countEl) countEl.textContent = '0 candidates';
-          return;
-        }
-
-        if (countEl) countEl.textContent = candidates.length + ' candidates found';
-        if (genBtn) genBtn.style.display = 'inline-flex';
-
-        var list = document.createElement('div');
-        list.className = 'emp-candidate-list';
-
-        candidates.forEach(function(c) {
-          var cid = c.id || c.ID || '';
-          var name = c.name || c.Name || c.full_name || c.FullName || 'Unknown';
-          var headline = c.headline || c.Headline || c.title || c.Title || '';
-          var score = c.match_score || c.MatchScore || c.matchPercentage || c.score || 0;
-          var location = c.location || c.Location || '';
-          var experience = c.experience_years || c.ExperienceYears || c.experience || c.Experience || 0;
-          var skills = c.skills || c.Skills || [];
-          var initials = c.initials || c.Initials || '';
-          if (!initials && name) {
-            initials = name.split(' ').map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
-          }
-
-          var card = document.createElement('div');
-          card.className = 'emp-candidate-card';
-
-          card.innerHTML =
-            '<div class="emp-candidate-avatar"><span class="emp-candidate-initials">' + escapeHtml(initials) + '</span></div>' +
-            '<div class="emp-candidate-info">' +
-              '<div class="emp-candidate-top">' +
-                '<h3 class="emp-candidate-name">' + escapeHtml(name) + '</h3>' +
-                '<span class="emp-candidate-score">' + score + '% match</span>' +
-              '</div>' +
-              (headline ? '<span class="emp-candidate-headline">' + escapeHtml(headline) + '</span>' : '') +
-              '<div class="emp-candidate-tags">' +
-                (Array.isArray(skills) ? skills.map(function(s) { return '<span class="emp-tag">' + escapeHtml(typeof s === 'string' ? s : s.name || s.Name || '') + '</span>'; }).join('') : '') +
-              '</div>' +
-              '<div class="emp-candidate-meta">' +
-                (location ? '<span>&#x1F4CD; ' + escapeHtml(location) + '</span>' : '') +
-                (experience ? '<span>&#x1F4C5; ' + experience + ' yrs exp</span>' : '') +
-              '</div>' +
-            '</div>' +
-            '<div class="emp-candidate-actions emp-match-actions">' +
-              '<button class="emp-btn emp-btn-sm emp-btn-outline emp-match-action" data-candidate-id="' + escapeHtml(cid) + '" data-job-id="' + escapeHtml(jobId) + '" data-action="view-profile">View Profile</button>' +
-              '<button class="emp-btn emp-btn-sm emp-btn-ghost emp-match-action" data-candidate-id="' + escapeHtml(cid) + '" data-job-id="' + escapeHtml(jobId) + '" data-action="add-to-pool">+ Pool</button>' +
-              '<button class="emp-btn emp-btn-sm emp-btn-ghost emp-match-action" data-candidate-id="' + escapeHtml(cid) + '" data-job-id="' + escapeHtml(jobId) + '" data-action="schedule-interview">&#x1F4C5; Interview</button>' +
-              '<button class="emp-btn emp-btn-sm emp-btn-ghost emp-match-action" data-candidate-id="' + escapeHtml(cid) + '" data-job-id="' + escapeHtml(jobId) + '" data-action="view-analysis">&#x1F4CA; Analysis</button>' +
-            '</div>';
-
-          list.appendChild(card);
-        });
-
-        container.appendChild(list);
-
-        if (typeof window.__initMatchActions === 'function') {
-          window.__initMatchActions();
-        }
-
-        loadSkillGap(jobId);
-      })
-      .catch(function() {
-        container.innerHTML = '<div class="emp-empty"><div class="emp-empty-icon">&#x26A0;</div><h3 class="emp-empty-title">Failed to load matches</h3><p class="emp-empty-desc">An error occurred. Please try again.</p></div>';
-        if (countEl) countEl.textContent = '';
-      });
-  }
-
-  function loadSkillGap(jobId) {
-    var chart = document.getElementById('skill-gap-chart');
-    var section = document.getElementById('skill-gap-section');
-    var empty = document.getElementById('skill-empty');
-    if (!chart || !section) return;
-    if (typeof AngaziaAPI === 'undefined') return;
-
-    section.style.display = 'block';
-    chart.innerHTML = '<div class="emp-loading">Analyzing skills gap...</div>';
-    if (empty) empty.style.display = 'none';
-
-    AngaziaAPI.matches.skillsGap(jobId)
-      .then(function(resp) {
-        var analysis = resp.data || resp.analysis || resp || {};
-        var skills = analysis.skills || analysis.skills_gap || analysis.missing_skills || [];
-        if (typeof skills === 'object' && !Array.isArray(skills)) {
-          var tmp = [];
-          for (var k in skills) {
-            if (skills.hasOwnProperty(k)) {
-              tmp.push({ label: k, score: skills[k] });
-            }
-          }
-          skills = tmp;
-        }
-        if (!Array.isArray(skills)) skills = [];
-        chart.innerHTML = '';
-
-        if (!skills.length) {
-          chart.innerHTML = '<div class="emp-empty"><p class="emp-empty-desc">No skills gap data available for this job.</p></div>';
-          return;
-        }
-
-        skills.forEach(function(s) {
-          var row = document.createElement('div');
-          row.className = 'emp-skill-bar-row';
-          var label = document.createElement('span');
-          label.className = 'emp-skill-bar-label';
-          label.textContent = s.label || s.skill || s.name || '';
-          var track = document.createElement('div');
-          track.className = 'emp-skill-bar-track';
-          var fill = document.createElement('div');
-          fill.className = 'emp-skill-bar-fill';
-          var pct = parseInt(s.score || s.value || s.percentage || 0);
-          fill.style.width = Math.min(pct, 100) + '%';
-          track.appendChild(fill);
-          var pctEl = document.createElement('span');
-          pctEl.className = 'emp-skill-bar-pct';
-          pctEl.textContent = pct + '%';
-          row.appendChild(label);
-          row.appendChild(track);
-          row.appendChild(pctEl);
-          chart.appendChild(row);
-        });
-      })
-      .catch(function() {
-        chart.innerHTML = '<div class="emp-empty"><p class="emp-empty-desc">Failed to load skills gap analysis.</p></div>';
-      });
-  }
-
-  function escapeHtml(t) {
-    if (!t) return '';
-    var d = document.createElement('div');
-    d.appendChild(document.createTextNode(String(t)));
-    return d.innerHTML;
-  }
-
-  document.addEventListener('DOMContentLoaded', function() {
-    loadJobs();
-    var sel = document.getElementById('job-selector');
-    if (sel) {
-      sel.addEventListener('change', function() {
-        var jid = this.value;
-        if (jid) {
-          loadMatches(jid);
-        } else {
-          var container = document.getElementById('matches-container');
-          if (container) {
-            container.innerHTML = '<div class="emp-empty"><div class="emp-empty-icon">&#x1F50D;</div><h3 class="emp-empty-title">Select a job to see matches</h3><p class="emp-empty-desc">Choose a job from the dropdown above to view AI-recommended candidates.</p></div>';
-          }
-          var countEl = document.getElementById('match-count');
-          if (countEl) countEl.textContent = '';
-          var genBtn = document.getElementById('gen-questions-btn');
-          if (genBtn) genBtn.style.display = 'none';
-          document.getElementById('skill-gap-section').style.display = 'none';
-        }
-      });
-    }
-  });
-})();
-</script>
 <script src="/static/js/pages/employer/matches.js"></script>

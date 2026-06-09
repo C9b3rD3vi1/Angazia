@@ -3,6 +3,7 @@ package middleware
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -14,6 +15,11 @@ func TwoFAMiddleware(twoFAService services.TwoFAService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userID := c.Locals("user_id")
 		if userID == nil {
+			return c.Next()
+		}
+
+		path := c.Path()
+		if path == "/auth/2fa/verify" || path == "/auth/2fa/login-verify" || strings.HasPrefix(path, "/auth/2fa/recover") {
 			return c.Next()
 		}
 
@@ -29,6 +35,9 @@ func TwoFAMiddleware(twoFAService services.TwoFAService) fiber.Handler {
 
 		twoFACode := c.Get("X-2FA-Code")
 		if twoFACode == "" {
+			if strings.Contains(c.Get("Accept"), "text/html") || strings.HasPrefix(path, "/admin") || strings.HasPrefix(path, "/employee") || strings.HasPrefix(path, "/employer") {
+				return c.Redirect("/auth/2fa/verify", fiber.StatusTemporaryRedirect)
+			}
 			return utils.Unauthorized(c, "2FA verification required")
 		}
 

@@ -3,8 +3,12 @@ package services
 import (
 	"context"
 	"fmt"
+	"io"
 	"mime/multipart"
+	"os"
+	"path/filepath"
 	"strings"
+	"time"
 	
 	"github.com/C9b3rD3vi1/Angazia/internal/config"
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
@@ -18,6 +22,7 @@ type ProfileService interface {
 	GetSuggestedSkills(ctx context.Context, userID string) ([]string, error)
 	GetProfileWizard(ctx context.Context, userID string) (*ProfileWizard, error)
 	CompleteWizardStep(ctx context.Context, userID string, step int, data map[string]interface{}) error
+	UploadAvatar(ctx context.Context, userID string, file multipart.File, filename string) (string, error)
 }
 
 type ProfileCompletion struct {
@@ -409,7 +414,39 @@ func (s *ProfileServiceImpl) GetProfileWizard(ctx context.Context, userID string
 }
 
 func (s *ProfileServiceImpl) CompleteWizardStep(ctx context.Context, userID string, step int, data map[string]interface{}) error {
-	// This method would handle step completion
-	// For now, just return nil
 	return nil
+}
+
+func (s *ProfileServiceImpl) UploadAvatar(ctx context.Context, userID string, file multipart.File, filename string) (string, error) {
+	ext := strings.ToLower(filepath.Ext(filename))
+	allowedExts := map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".webp": true}
+	if !allowedExts[ext] {
+		return "", fmt.Errorf("invalid file type. Allowed: JPG, PNG, WEBP")
+	}
+
+	newFilename := fmt.Sprintf("avatar_%s_%d%s", userID, time.Now().Unix(), ext)
+	uploadDir := filepath.Join(s.cfg.UploadDir, "avatars")
+	filePath := filepath.Join(uploadDir, newFilename)
+
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create upload directory: %w", err)
+	}
+
+	dst, err := os.Create(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create file: %w", err)
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, file); err != nil {
+		return "", fmt.Errorf("failed to write file: %w", err)
+	}
+
+	avatarURL := fmt.Sprintf("%s/uploads/avatars/%s", s.cfg.AppURL, newFilename)
+
+	if err := s.userRepo.UpdateAvatar(ctx, userID, avatarURL); err != nil {
+		return "", fmt.Errorf("failed to update avatar: %w", err)
+	}
+
+	return avatarURL, nil
 }

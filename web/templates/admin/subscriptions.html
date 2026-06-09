@@ -1,0 +1,235 @@
+{{/* Admin - Subscriptions */}}
+{{define "title"}}Subscriptions{{end}}
+{{define "activePage"}}subscriptions{{end}}
+
+<div class="asub-wrap">
+  <div class="asub-header">
+    <div>
+      <h1 class="asub-title">Subscription Plans</h1>
+      <p class="asub-sub">Manage pricing tiers and plan features</p>
+    </div>
+    <div class="asub-header-actions">
+      <button class="asub-btn asub-btn-primary" data-action="asubOpenCreate">+ New Plan</button>
+    </div>
+  </div>
+
+  <div class="asub-grid" id="asub-grid">
+    {{if .Plans}}
+    {{range .Plans}}
+    <div class="asub-card" data-plan-id="{{.ID}}">
+      <div class="asub-card-head">
+        <div class="asub-card-title-row">
+          <h3 class="asub-card-name">{{.Name}}</h3>
+          <label class="asub-toggle">
+            <input type="checkbox" {{if .IsActive}}checked{{end}} data-action="asubToggleActive" data-id="{{.ID}}">
+            <span class="asub-toggle-slider"></span>
+          </label>
+        </div>
+        <div class="asub-card-price">
+          {{if eq .Price 0.0}}
+            <span class="asub-price-amount">Free</span>
+          {{else}}
+            <span class="asub-price-amount">{{.Currency}} {{printf "%.0f" .Price}}</span>
+            <span class="asub-price-interval">/{{.Interval}}</span>
+          {{end}}
+        </div>
+        <div class="asub-card-code">
+          <span class="asub-code-badge">{{.PlanID}}</span>
+          {{if .TrialDays}}<span class="asub-trial-badge">{{.TrialDays}}-day trial</span>{{end}}
+        </div>
+        {{if .Description}}
+        <p class="asub-card-desc">{{.Description}}</p>
+        {{end}}
+      </div>
+      <div class="asub-card-body">
+        <div class="asub-meta-row">
+          <span class="asub-meta-item">{{.JobPostLimit}} jobs</span>
+          <span class="asub-meta-item">{{if .IsPopular}}Popular{{else}}Standard{{end}}</span>
+        </div>
+        {{if .Features}}
+        <div class="asub-features">
+          <span class="asub-features-label">Features</span>
+          <ul class="asub-features-list">
+            {{range .Features}}
+            <li class="asub-feature-item">
+              <span class="asub-feature-check">v</span>
+              <span class="asub-feature-name">{{.}}</span>
+            </li>
+            {{end}}
+          </ul>
+        </div>
+        {{end}}
+      </div>
+      <div class="asub-card-foot">
+        <button class="asub-btn asub-btn-ghost" data-action="asubOpenEdit" data-id="{{.ID}}">Edit</button>
+        <button class="asub-btn asub-btn-danger" data-action="asubDelete" data-id="{{.ID}}">Delete</button>
+      </div>
+    </div>
+    {{end}}
+    {{else}}
+    <div class="asub-empty">No subscription plans found. Click "New Plan" to create one.</div>
+    {{end}}
+  </div>
+
+  {{/* ── User Subscriptions Section ── */}}
+  <div class="asub-section">
+    <div class="asub-section-header">
+      <div>
+        <h2 class="asub-section-title">User Subscriptions</h2>
+        <p class="asub-section-sub">View and manage all user subscriptions</p>
+      </div>
+      <div class="asub-header-actions">
+        <button class="asub-btn asub-btn-primary" data-action="assubOpenAssign">+ Assign Subscription</button>
+      </div>
+    </div>
+
+    <div class="asub-filters" id="assub-filters">
+      <input class="asub-input asub-filter-input" id="assub-filter-user" placeholder="User ID">
+      <select class="asub-input asub-select asub-filter-select" id="assub-filter-plan">
+        <option value="">All Plans</option>
+        {{range .Plans}}
+        <option value="{{.PlanID}}">{{.Name}}</option>
+        {{end}}
+      </select>
+      <select class="asub-input asub-select asub-filter-select" id="assub-filter-status">
+        <option value="">All Statuses</option>
+        <option value="active">Active</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="expired">Expired</option>
+        <option value="trial">Trial</option>
+      </select>
+      <button class="asub-btn asub-btn-primary" data-action="assubApplyFilters">Filter</button>
+    </div>
+
+    <div class="asub-table-wrap" id="assub-table-wrap">
+      <table class="asub-table" id="assub-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Plan</th>
+            <th>Status</th>
+            <th>Amount</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Auto-Renew</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="assub-tbody">
+          {{if .Subscriptions}}
+          {{range .Subscriptions}}
+          <tr data-sub-id="{{.ID}}">
+            <td class="assub-cell-user">
+              <span class="assub-user-email">{{.User.Email}}</span>
+              <span class="assub-user-id">{{.UserID}}</span>
+            </td>
+            <td><span class="assub-plan-name">{{.PlanName}}</span></td>
+            <td><span class="assub-status-badge assub-status-{{.Status}}">{{.Status}}</span></td>
+            <td>{{.Currency}} {{printf "%.2f" .Amount}}</td>
+            <td>{{.StartDate.Format "Jan 02, 2006"}}</td>
+            <td>{{.EndDate.Format "Jan 02, 2006"}}</td>
+            <td>{{if .AutoRenew}}Yes{{else}}No{{end}}</td>
+            <td class="assub-cell-actions">
+              <button class="asub-btn asub-btn-ghost" data-action="assubChangePlan" data-id="{{.ID}}">Change Plan</button>
+              {{if eq .Status "active"}}
+              <button class="asub-btn asub-btn-danger" data-action="assubCancelSub" data-id="{{.ID}}">Cancel</button>
+              {{end}}
+              {{if or (eq .Status "cancelled") (eq .Status "expired")}}
+              <button class="asub-btn asub-btn-primary" data-action="assubReactivateSub" data-id="{{.ID}}">Reactivate</button>
+              {{end}}
+            </td>
+          </tr>
+          {{end}}
+          {{else}}
+          <tr><td colspan="8" class="asub-table-empty">No subscriptions found.</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="asub-pagination" id="assub-pagination">
+      <span class="asub-pagination-info" id="assub-page-info">Total: {{.TotalSubscriptions}}</span>
+      <div class="asub-pagination-controls">
+        <button class="asub-btn asub-btn-ghost" data-action="assubPrevPage" id="assub-prev-btn">Previous</button>
+        <span class="asub-pagination-current" id="assub-current-page">Page 1</span>
+        <button class="asub-btn asub-btn-ghost" data-action="assubNextPage" id="assub-next-btn">Next</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{/* ── Assign Subscription Modal ── */}}
+<div class="asub-modal-overlay" id="assub-assign-modal" style="display:none" data-action="assubCloseAssign">
+  <div class="asub-modal">
+    <div class="asub-modal-head">
+      <h2 class="asub-modal-title">Assign Subscription</h2>
+      <button class="asub-modal-close" data-action="assubCloseAssign">&times;</button>
+    </div>
+    <div class="asub-modal-body">
+      <div class="asub-field">
+        <label class="asub-label">User ID</label>
+        <input class="asub-input" id="assub-assign-user" placeholder="Enter user UUID">
+      </div>
+      <div class="asub-field">
+        <label class="asub-label">Plan</label>
+        <select class="asub-input asub-select" id="assub-assign-plan">
+          {{range .Plans}}
+          <option value="{{.PlanID}}">{{.Name}} ({{.Currency}} {{printf "%.0f" .Price}}/{{.Interval}})</option>
+          {{end}}
+        </select>
+      </div>
+    </div>
+    <div class="asub-modal-foot">
+      <button class="asub-btn asub-btn-ghost" data-action="assubCloseAssign">Cancel</button>
+      <button class="asub-btn asub-btn-primary" id="assub-assign-btn" data-action="assubConfirmAssign">Assign</button>
+    </div>
+  </div>
+</div>
+
+{{/* ── Change Plan Modal ── */}}
+<div class="asub-modal-overlay" id="assub-change-modal" style="display:none" data-action="assubCloseChange">
+  <div class="asub-modal">
+    <div class="asub-modal-head">
+      <h2 class="asub-modal-title">Change Plan</h2>
+      <button class="asub-modal-close" data-action="assubCloseChange">&times;</button>
+    </div>
+    <div class="asub-modal-body">
+      <input type="hidden" id="assub-change-id">
+      <div class="asub-field">
+        <label class="asub-label">New Plan</label>
+        <select class="asub-input asub-select" id="assub-change-plan">
+          {{range .Plans}}
+          <option value="{{.PlanID}}">{{.Name}} ({{.Currency}} {{printf "%.0f" .Price}}/{{.Interval}})</option>
+          {{end}}
+        </select>
+      </div>
+    </div>
+    <div class="asub-modal-foot">
+      <button class="asub-btn asub-btn-ghost" data-action="assubCloseChange">Cancel</button>
+      <button class="asub-btn asub-btn-primary" id="assub-change-btn" data-action="assubConfirmChange">Change Plan</button>
+    </div>
+  </div>
+</div>
+
+{{/* ── Cancel Subscription Modal ── */}}
+<div class="asub-modal-overlay" id="assub-cancel-modal" style="display:none" data-action="assubCloseCancel">
+  <div class="asub-modal asub-modal-sm">
+    <div class="asub-modal-head">
+      <h2 class="asub-modal-title">Cancel Subscription</h2>
+      <button class="asub-modal-close" data-action="assubCloseCancel">&times;</button>
+    </div>
+    <div class="asub-modal-body">
+      <input type="hidden" id="assub-cancel-id">
+      <div class="asub-field">
+        <label class="asub-label">Reason</label>
+        <textarea class="asub-input asub-textarea" id="assub-cancel-reason" rows="3" placeholder="Reason for cancellation"></textarea>
+      </div>
+    </div>
+    <div class="asub-modal-foot">
+      <button class="asub-btn asub-btn-ghost" data-action="assubCloseCancel">Cancel</button>
+      <button class="asub-btn asub-btn-danger" id="assub-cancel-btn" data-action="assubConfirmCancel">Confirm Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/pages/admin/subscriptions.js"></script>

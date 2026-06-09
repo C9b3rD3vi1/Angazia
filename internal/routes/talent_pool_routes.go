@@ -27,4 +27,7 @@ func SetupTalentPoolRoutes(router fiber.Router, talentPoolHandler *handlers.Tale
 	protected.Delete("/talent-pools/:poolId/candidates/:candidateId", talentPoolHandler.RemoveCandidate)
 	protected.Post("/talent-pools/:poolId/candidates/:candidateId/contact", talentPoolHandler.MarkContacted)
 	protected.Post("/talent-pools/:poolId/candidates/:candidateId/hire", talentPoolHandler.MarkHired)
+
+	// Candidate pool lookup
+	protected.Get("/candidates/:id/pools", talentPoolHandler.GetCandidatePools)
 }

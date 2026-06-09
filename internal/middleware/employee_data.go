@@ -9,7 +9,7 @@ import (
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
 
-func EmployeePageData(authService services.AuthService) fiber.Handler {
+func EmployeePageData(authService services.AuthService, notificationService services.NotificationService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userID, _ := c.Locals("user_id").(string)
 		if userID == "" {
@@ -37,12 +37,34 @@ func EmployeePageData(authService services.AuthService) fiber.Handler {
 		userMap := fiber.Map{
 			"Name":     userName,
 			"Email":    profile.User.Email,
+			"Avatar":   profile.User.AvatarURL,
 			"Initials": initials,
 			"Headline": "",
 		}
 
+		profileMap := fiber.Map{
+			"FullName":          "",
+			"Email":             profile.User.Email,
+			"Headline":          "",
+			"Bio":               "",
+			"Location":          "",
+			"ExperienceLevel":   "",
+			"YearsOfExperience": 0,
+			"PortfolioURL":      "",
+			"LinkedInURL":       "",
+			"IsAvailable":       false,
+			"IsVisible":         false,
+			"IsRemoteOnly":      false,
+		}
+
+		unreadCount := 0
+		if counts, err := notificationService.GetUnreadCount(c.Context(), userID); err == nil {
+			unreadCount = counts.TotalUnread
+		}
+
 		data := fiber.Map{
 			"User":              userMap,
+			"Profile":           profileMap,
 			"ProfileStrength":   0,
 			"SkillsScore":       0,
 			"SkillsOffset":      264,
@@ -50,12 +72,24 @@ func EmployeePageData(authService services.AuthService) fiber.Handler {
 			"MatchCount":        0,
 			"ApplicationCount":  0,
 			"AlertCount":        0,
-			"UnreadCount":       0,
+			"UnreadCount":       unreadCount,
 		}
 
 		if profile.EmployeeProfile != nil {
 			ep := profile.EmployeeProfile
 			userMap["Headline"] = ep.Headline
+
+			profileMap["FullName"] = ep.FullName
+			profileMap["Headline"] = ep.Headline
+			profileMap["Bio"] = ep.Bio
+			profileMap["Location"] = ep.Location
+			profileMap["ExperienceLevel"] = ep.ExperienceLevel
+			profileMap["YearsOfExperience"] = ep.YearsOfExperience
+			profileMap["PortfolioURL"] = ep.PortfolioURL
+			profileMap["LinkedInURL"] = ep.LinkedInURL
+			profileMap["IsAvailable"] = ep.IsAvailable
+			profileMap["IsVisible"] = ep.IsVisible
+			profileMap["IsRemoteOnly"] = ep.IsRemoteOnly
 
 			data["ProfileStrength"] = calcProfileStrength(ep)
 			skillsScore := min(len(ep.Skills)*10, 100)

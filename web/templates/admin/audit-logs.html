@@ -1,0 +1,128 @@
+{{/* Admin Audit Logs */}}
+
+<div class="aal-page" data-page="{{.Page}}" data-total="{{.TotalPages}}" data-limit="{{.Limit}}">
+  {{/* ── Page Header ── */}}
+  <div class="aal-header">
+    <div class="aal-header-text">
+      <h1 class="aal-title">Audit Logs</h1>
+      <p class="aal-subtitle">Track all administrative actions</p>
+    </div>
+    <div class="aal-header-actions">
+      <label class="aal-toggle-label">
+        <input type="checkbox" class="aal-toggle-input" id="aal-auto-refresh">
+        <span class="aal-toggle-track"></span>
+        <span class="aal-toggle-text">Auto-refresh</span>
+      </label>
+      <button class="aal-btn-ghost" data-action="refresh">&#x1F504; Refresh</button>
+    </div>
+  </div>
+
+  {{/* ── Filters ── */}}
+  <div class="aal-filters">
+    <div class="aal-filter-group">
+      <select class="aal-select" id="aal-filter-action">
+        <option value="">All Actions</option>
+        <option value="create" {{if eq .ActionFilter "create"}}selected{{end}}>Create</option>
+        <option value="update" {{if eq .ActionFilter "update"}}selected{{end}}>Update</option>
+        <option value="delete" {{if eq .ActionFilter "delete"}}selected{{end}}>Delete</option>
+        <option value="approve" {{if eq .ActionFilter "approve"}}selected{{end}}>Approve</option>
+        <option value="reject" {{if eq .ActionFilter "reject"}}selected{{end}}>Reject</option>
+        <option value="login" {{if eq .ActionFilter "login"}}selected{{end}}>Login</option>
+        <option value="suspend" {{if eq .ActionFilter "suspend"}}selected{{end}}>Suspend</option>
+      </select>
+      <select class="aal-select" id="aal-filter-entity">
+        <option value="">All Entity Types</option>
+        <option value="user" {{if eq .EntityTypeFilter "user"}}selected{{end}}>User</option>
+        <option value="job" {{if eq .EntityTypeFilter "job"}}selected{{end}}>Job</option>
+        <option value="company" {{if eq .EntityTypeFilter "company"}}selected{{end}}>Company</option>
+        <option value="review" {{if eq .EntityTypeFilter "review"}}selected{{end}}>Review</option>
+        <option value="report" {{if eq .EntityTypeFilter "report"}}selected{{end}}>Report</option>
+      </select>
+    </div>
+    <div class="aal-filter-date">
+      <input type="date" class="aal-input" id="aal-filter-date-from" value="{{.DateFrom}}">
+      <span class="aal-date-sep">to</span>
+      <input type="date" class="aal-input" id="aal-filter-date-to" value="{{.DateTo}}">
+      <button class="aal-btn aal-btn-primary" id="aal-filter-btn">Apply</button>
+    </div>
+  </div>
+
+  {{/* ── Table ── */}}
+  {{if .Logs}}
+  <div class="aal-table-wrap">
+    <table class="aal-table">
+      <thead>
+        <tr>
+          <th class="aal-col-expand"></th>
+          <th>Admin</th>
+          <th>Action</th>
+          <th>Entity Type</th>
+          <th>Entity ID</th>
+          <th>Timestamp</th>
+          <th>IP Address</th>
+        </tr>
+      </thead>
+      <tbody id="aal-tbody">
+        {{range .Logs}}
+        <tr class="aal-row" data-log-id="{{.ID}}">
+          <td class="aal-col-expand">
+            <button class="aal-expand-btn" data-expand="{{.ID}}" aria-label="Expand details">&#x25B6;</button>
+          </td>
+          <td>
+            <div class="aal-admin-cell">
+              {{if .Admin.Avatar}}
+              <img src="{{.Admin.Avatar}}" alt="" class="aal-admin-avatar">
+              {{else}}
+              <span class="aal-admin-avatar aal-admin-avatar-text">{{.Admin.Name}}</span>
+              {{end}}
+              <span class="aal-admin-name">{{.Admin.Name}}</span>
+            </div>
+          </td>
+          <td><span class="aal-action-badge aal-action-{{.Action}}">{{.Action}}</span></td>
+          <td><span class="aal-entity-badge aal-entity-{{.EntityType}}">{{.EntityType}}</span></td>
+          <td><code class="aal-entity-id">{{.EntityID}}</code></td>
+          <td class="aal-timestamp">{{.CreatedAt}}</td>
+          <td><code class="aal-ip">{{.IPAddress}}</code></td>
+        </tr>
+        <tr class="aal-detail-row" data-detail-id="{{.ID}}" style="display:none">
+          <td colspan="7">
+            <div class="aal-detail-content">
+              <div class="aal-detail-col">
+                <div class="aal-detail-label">Old Value</div>
+                <pre class="aal-detail-json">{{.OldValue}}</pre>
+              </div>
+              <div class="aal-detail-col">
+                <div class="aal-detail-label">New Value</div>
+                <pre class="aal-detail-json">{{.NewValue}}</pre>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <div class="aal-empty">
+    <span class="aal-empty-icon">&#x1F50D;</span>
+    <p class="aal-empty-text">No audit log entries found.</p>
+  </div>
+  {{end}}
+
+  {{/* ── Pagination ── */}}
+  {{if gt .TotalPages 1}}
+  <div class="aal-pagination" data-page="{{.Page}}" data-total="{{.TotalPages}}" data-limit="{{.Limit}}">
+    <button class="aal-page-btn" data-page="prev" {{if le .Page 1}}disabled{{end}}>&larr; Previous</button>
+    <span class="aal-page-info">Page {{.Page}} of {{.TotalPages}}</span>
+    <button class="aal-page-btn" data-page="next" {{if ge .Page .TotalPages}}disabled{{end}}>Next &rarr;</button>
+  </div>
+  {{end}}
+</div>
+
+{{/* ── Loading Overlay ── */}}
+<div class="aal-loading" id="aal-loading" style="display:none">
+  <div class="aal-loading-spinner"></div>
+  <span class="aal-loading-text">Loading...</span>
+</div>
+
+<script src="/static/js/pages/admin/audit-logs.js"></script>

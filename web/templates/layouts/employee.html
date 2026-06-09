@@ -8,7 +8,7 @@
       <a href="/employee/applications" class="nav-link">APPLICATIONS</a>
     </div>
     <div class="nav-actions">
-      <button class="nav-icon-btn" id="notif-btn"><span>&#x1F514;</span>{{if .UnreadCount}}<span class="notif-dot"></span>{{end}}</button>
+      {{template "partials/notification-bell" .}}
       <div class="nav-avatar-wrap">
         <div class="nav-avatar" id="avatar-btn">
           {{if .User.Avatar}}<img src="{{.User.Avatar}}" alt="{{.User.Name}}">{{else}}<span class="avatar-initials">{{.User.Initials}}</span>{{end}}
@@ -49,6 +49,7 @@
       <a href="/employee/alerts" class="dash-link {{if eq .ActivePage "alerts"}}active{{end}}"><span class="dash-link-icon">&#x1F514;</span><span class="dash-link-text">Alerts</span>{{if .AlertCount}}<span class="dash-badge">{{.AlertCount}}</span>{{end}}</a>
       <a href="/employee/skills" class="dash-link {{if eq .ActivePage "skills"}}active{{end}}"><span class="dash-link-icon">&#x1F9E0;</span><span class="dash-link-text">Skills</span></a>
       <a href="/employee/settings" class="dash-link {{if eq .ActivePage "settings"}}active{{end}}"><span class="dash-link-icon">&#x2699;&#xFE0F;</span><span class="dash-link-text">Settings</span></a>
+      <a href="/notifications" class="dash-link {{if eq .ActivePage "notifications"}}active{{end}}"><span class="dash-link-icon">&#x1F514;</span><span class="dash-link-text">Notifications</span>{{if .UnreadCount}}<span class="dash-badge">{{.UnreadCount}}</span>{{end}}</a>
     </nav>
     <div class="dash-skills-widget">
       <h4 class="dash-skills-title">Skills Score</h4>
@@ -453,6 +454,7 @@
 }
 
 /* ── Notification Button ── */
+.nav-notif-wrap { position: relative; }
 .nav-icon-btn {
   position: relative;
   width: 34px;
@@ -477,6 +479,59 @@
   background: var(--danger);
   border-radius: 50%;
 }
+.notif-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 320px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: all 0.15s;
+  z-index: 100;
+}
+.notif-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
+.notif-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.notif-header-title { font-family: var(--fm); font-size: 10px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); }
+.notif-mark-all {
+  font-family: var(--fm); font-size: 9px; font-weight: 500;
+  background: none; border: none; color: var(--accent); cursor: pointer; padding: 2px 6px;
+  letter-spacing: 0.3px;
+}
+.notif-mark-all:hover { text-decoration: underline; }
+.notif-list { max-height: 280px; overflow-y: auto; }
+.notif-empty { padding: 24px 16px; text-align: center; font-size: 12px; color: var(--muted2); }
+.notif-footer {
+  display: block; padding: 10px 16px; text-align: center;
+  font-family: var(--fm); font-size: 10px; color: var(--accent);
+  border-top: 1px solid var(--border); letter-spacing: 0.3px;
+  transition: background 0.1s;
+}
+.notif-footer:hover { background: var(--s2); }
+.notif-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 16px; cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.notif-item:hover { background: var(--s2); }
+.notif-item:last-child { border-bottom: none; }
+.notif-item.unread { background: rgba(0,229,160,0.04); }
+.notif-item-icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+.notif-item-body { flex: 1; min-width: 0; }
+.notif-item-title { font-size: 12px; font-weight: 500; color: var(--text); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.notif-item-content { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.notif-item-time { font-size: 9px; color: var(--muted2); margin-top: 4px; }
 
 /* ── Responsive ── */
 @media (max-width: 860px) {
@@ -499,9 +554,68 @@
 }
 </style>
 <script>
-document.addEventListener('DOMContentLoaded',function(){initAvatarDropdown();initHamburger();});
+document.addEventListener('DOMContentLoaded',function(){initAvatarDropdown();initNotificationDropdown();initHamburger();loadNotificationDropdown();});
 function initHamburger(){var h=document.getElementById('hamburger');if(h){h.addEventListener('click',function(){this.classList.toggle('is-open');document.body.classList.toggle('menu-open');});}}
 function initAvatarDropdown(){var a=document.getElementById('avatar-btn'),d=document.getElementById('avatar-dropdown');if(a&&d){a.addEventListener('click',function(e){e.stopPropagation();d.classList.toggle('open');});document.addEventListener('click',function(){d.classList.remove('open');});}}
+function initNotificationDropdown(){var b=document.getElementById('notif-btn'),d=document.getElementById('notif-dropdown');if(b&&d){b.addEventListener('click',function(e){e.stopPropagation();d.classList.toggle('open');});document.addEventListener('click',function(){d.classList.remove('open');});}}
+function loadNotificationDropdown(){
+  var list=document.getElementById('notif-list');
+  if(!list)return;
+  if(window.AngaziaNotifications){
+    AngaziaNotifications.fetchUnread().then(function(notifs){
+      if(!notifs||notifs.length===0){
+        list.innerHTML='<div class="notif-empty">No new notifications</div>';
+        return;
+      }
+      list.innerHTML='';
+      notifs.slice(0,5).forEach(function(n){
+        var item=document.createElement('div');
+        item.className='notif-item'+(n.is_read?'':' unread');
+        item.innerHTML='<span class="notif-item-icon">'+(n.icon?n.icon:'&#x1F514;')+'</span>'
+          +'<div class="notif-item-body">'
+          +'<div class="notif-item-title">'+escapeHtml(n.title)+'</div>'
+          +(n.content?'<div class="notif-item-content">'+escapeHtml(n.content)+'</div>':'')
+          +'<div class="notif-item-time">'+timeAgo(n.created_at)+'</div>'
+          +'</div>';
+        if(n.action_url){
+          item.addEventListener('click',function(){window.location.href=n.action_url;});
+        }
+        list.appendChild(item);
+      });
+      if(notifs.length>5){
+        var more=document.createElement('div');
+        more.className='notif-item';
+        more.style.justifyContent='center';
+        more.innerHTML='<span style="font-size:11px;color:var(--accent)">View '+notifs.length+' notifications</span>';
+        more.addEventListener('click',function(){window.location.href='/notifications';});
+        list.appendChild(more);
+      }
+    }).catch(function(){
+      list.innerHTML='<div class="notif-empty">Could not load notifications</div>';
+    });
+  }
+  var markAll=document.getElementById('notif-mark-all-btn');
+  if(markAll){
+    markAll.addEventListener('click',function(e){
+      e.stopPropagation();
+      if(window.AngaziaNotifications)AngaziaNotifications.markAllAsRead();
+      var items=list.querySelectorAll('.notif-item.unread');
+      items.forEach(function(el){el.classList.remove('unread');});
+      markAll.style.display='none';
+    });
+  }
+}
+function escapeHtml(t){if(!t)return'';var d=document.createElement('div');d.appendChild(document.createTextNode(t));return d.innerHTML;}
+function timeAgo(t){
+  if(!t)return'';
+  var now=new Date(),d=new Date(t);
+  var s=Math.floor((now-d)/1000);
+  if(s<60)return'just now';
+  var m=Math.floor(s/60);if(m<60)return m+'m ago';
+  var h=Math.floor(m/60);if(h<24)return h+'h ago';
+  var dy=Math.floor(h/24);if(dy<7)return dy+'d ago';
+  return d.toLocaleDateString();
+}
 </script>
 {{if .Scripts}}<script>{{.Scripts}}</script>{{end}}
 </body>

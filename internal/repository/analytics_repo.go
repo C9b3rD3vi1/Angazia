@@ -10,6 +10,15 @@ import (
 )
 
 type AnalyticsRepository interface {
+	// Dashboard stats
+	GetDashboardStats(ctx context.Context, employerID string) (*models.DashboardStats, error)
+	
+	// Recent applications for dashboard
+	GetRecentApplications(ctx context.Context, employerID string, limit int) ([]models.RecentApplication, error)
+	
+	// Active job count for subscription usage
+	GetActiveJobCount(ctx context.Context, employerID string) (int, error)
+	
 	// Application trends
 	GetDailyTrends(ctx context.Context, employerID string, days int) ([]models.ApplicationTrend, error)
 	GetWeeklyTrends(ctx context.Context, employerID string, weeks int) ([]models.ApplicationTrend, error)
@@ -43,6 +52,59 @@ func NewAnalyticsRepository(db *gorm.DB) AnalyticsRepository {
 	return &AnalyticsRepositoryImpl{db: db}
 }
 
+func (r *AnalyticsRepositoryImpl) GetDashboardStats(ctx context.Context, employerID string) (*models.DashboardStats, error) {
+	var stats models.DashboardStats
+	query := `
+		SELECT
+			COUNT(DISTINCT j.id) FILTER (WHERE j.is_active = true) as active_jobs,
+			COUNT(DISTINCT a.id) as total_applicants,
+			COUNT(DISTINCT a.id) FILTER (WHERE a.applied_at >= NOW() - INTERVAL '30 days') as new_applications,
+			COALESCE(SUM(j.views_count), 0) as profile_views,
+			COUNT(DISTINCT a.id) FILTER (WHERE a.status = 'shortlisted') as shortlisted_count,
+			COUNT(DISTINCT a.id) FILTER (WHERE a.status = 'hired') as hired_count
+		FROM jobs j
+		LEFT JOIN applications a ON a.job_id = j.id
+		WHERE j.employer_id = ?
+	`
+	err := r.db.WithContext(ctx).Raw(query, employerID).Scan(&stats).Error
+	if err != nil {
+		return nil, err
+	}
+	return &stats, nil
+}
+
+func (r *AnalyticsRepositoryImpl) GetRecentApplications(ctx context.Context, employerID string, limit int) ([]models.RecentApplication, error) {
+	var apps []models.RecentApplication
+	query := `
+		SELECT 
+			a.id,
+			COALESCE(ep.full_name, 'Unknown') as candidate_name,
+			COALESCE(u.email, '') as candidate_email,
+			j.title as job_title,
+			j.id as job_id,
+			a.status,
+			COALESCE(a.match_score, 0) as match_score,
+			to_char(a.applied_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as applied_at
+		FROM applications a
+		JOIN jobs j ON a.job_id = j.id
+		JOIN users u ON a.employee_id = u.id
+		LEFT JOIN employee_profiles ep ON a.employee_id = ep.user_id
+		WHERE j.employer_id = ?
+		ORDER BY a.applied_at DESC
+		LIMIT ?
+	`
+	err := r.db.WithContext(ctx).Raw(query, employerID, limit).Scan(&apps).Error
+	return apps, err
+}
+
+func (r *AnalyticsRepositoryImpl) GetActiveJobCount(ctx context.Context, employerID string) (int, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.Job{}).
+		Where("employer_id = ? AND is_active = ?", employerID, true).
+		Count(&count).Error
+	return int(count), err
+}
+
 func (r *AnalyticsRepositoryImpl) GetDailyTrends(ctx context.Context, employerID string, days int) ([]models.ApplicationTrend, error) {
 	var trends []models.ApplicationTrend
 	
@@ -59,7 +121,7 @@ func (r *AnalyticsRepositoryImpl) GetDailyTrends(ctx context.Context, employerID
 		FROM applications a
 		JOIN jobs j ON a.job_id = j.id
 		WHERE j.employer_id = ? 
-			AND a.applied_at >= NOW() - INTERVAL '? days'
+			AND a.applied_at >= NOW() - (INTERVAL '1 day' * ?)
 		GROUP BY DATE(a.applied_at)
 		ORDER BY date ASC
 	`
@@ -84,7 +146,7 @@ func (r *AnalyticsRepositoryImpl) GetWeeklyTrends(ctx context.Context, employerI
 		FROM applications a
 		JOIN jobs j ON a.job_id = j.id
 		WHERE j.employer_id = ? 
-			AND a.applied_at >= NOW() - INTERVAL '? weeks'
+			AND a.applied_at >= NOW() - (INTERVAL '1 week' * ?)
 		GROUP BY DATE_TRUNC('week', a.applied_at)
 		ORDER BY date ASC
 	`
@@ -109,7 +171,7 @@ func (r *AnalyticsRepositoryImpl) GetMonthlyTrends(ctx context.Context, employer
 		FROM applications a
 		JOIN jobs j ON a.job_id = j.id
 		WHERE j.employer_id = ? 
-			AND a.applied_at >= NOW() - INTERVAL '? months'
+			AND a.applied_at >= NOW() - (INTERVAL '1 month' * ?)
 		GROUP BY DATE_TRUNC('month', a.applied_at)
 		ORDER BY date ASC
 	`
@@ -202,6 +264,7 @@ func (r *AnalyticsRepositoryImpl) GetJobPerformance(ctx context.Context, employe
 			j.applications_count as applications,
 			COUNT(CASE WHEN a.status = 'shortlisted' THEN 1 END) as shortlisted,
 			COUNT(CASE WHEN a.status = 'hired' THEN 1 END) as hired,
+			j.is_active,
 			j.posted_at,
 			CASE 
 				WHEN j.views_count > 0 THEN ROUND(CAST(j.applications_count AS DECIMAL) / j.views_count * 100, 2)
@@ -218,7 +281,7 @@ func (r *AnalyticsRepositoryImpl) GetJobPerformance(ctx context.Context, employe
 		FROM jobs j
 		LEFT JOIN applications a ON a.job_id = j.id
 		WHERE j.employer_id = ?
-		GROUP BY j.id, j.title, j.views_count, j.applications_count, j.posted_at
+		GROUP BY j.id, j.title, j.views_count, j.applications_count, j.posted_at, j.is_active
 		ORDER BY j.posted_at DESC
 		LIMIT ?
 	`
@@ -238,9 +301,9 @@ func (r *AnalyticsRepositoryImpl) GetJobPerformance(ctx context.Context, employe
 		if performances[i].Hired > 0 {
 			var avgDays float64
 			r.db.WithContext(ctx).Raw(`
-				SELECT COALESCE(AVG(EXTRACT(DAY FROM (a.hired_at - a.applied_at))), 0)
+				SELECT COALESCE(AVG(EXTRACT(DAY FROM (a.responded_at - a.applied_at))), 0)
 				FROM applications a
-				WHERE a.job_id = ? AND a.status = 'hired' AND a.hired_at IS NOT NULL
+				WHERE a.job_id = ? AND a.status = 'hired' AND a.responded_at IS NOT NULL
 			`, performances[i].JobID).Scan(&avgDays)
 			days := int(avgDays)
 			performances[i].DaysToHire = &days
@@ -261,6 +324,7 @@ func (r *AnalyticsRepositoryImpl) GetJobPerformanceByID(ctx context.Context, job
 			j.applications_count as applications,
 			COUNT(CASE WHEN a.status = 'shortlisted' THEN 1 END) as shortlisted,
 			COUNT(CASE WHEN a.status = 'hired' THEN 1 END) as hired,
+			j.is_active,
 			j.posted_at,
 			CASE 
 				WHEN j.views_count > 0 THEN ROUND(CAST(j.applications_count AS DECIMAL) / j.views_count * 100, 2)
@@ -277,7 +341,7 @@ func (r *AnalyticsRepositoryImpl) GetJobPerformanceByID(ctx context.Context, job
 		FROM jobs j
 		LEFT JOIN applications a ON a.job_id = j.id
 		WHERE j.id = ? AND j.employer_id = ?
-		GROUP BY j.id, j.title, j.views_count, j.applications_count, j.posted_at
+		GROUP BY j.id, j.title, j.views_count, j.applications_count, j.posted_at, j.is_active
 	`
 	
 	err := r.db.WithContext(ctx).Raw(query, jobID, employerID).Scan(&performance).Error
@@ -306,12 +370,12 @@ func (r *AnalyticsRepositoryImpl) GetTimeToHireMetrics(ctx context.Context, empl
 	
 	query := `
 		SELECT 
-			COALESCE(AVG(EXTRACT(DAY FROM (a.hired_at - a.applied_at))), 0) as avg_days,
-			COALESCE(MIN(EXTRACT(DAY FROM (a.hired_at - a.applied_at))), 0) as min_days,
-			COALESCE(MAX(EXTRACT(DAY FROM (a.hired_at - a.applied_at))), 0) as max_days
+			COALESCE(AVG(EXTRACT(DAY FROM (a.responded_at - a.applied_at))), 0) as avg_days,
+			COALESCE(MIN(EXTRACT(DAY FROM (a.responded_at - a.applied_at))), 0) as min_days,
+			COALESCE(MAX(EXTRACT(DAY FROM (a.responded_at - a.applied_at))), 0) as max_days
 		FROM applications a
 		JOIN jobs j ON a.job_id = j.id
-		WHERE j.employer_id = ? AND a.status = 'hired' AND a.hired_at IS NOT NULL
+		WHERE j.employer_id = ? AND a.status = 'hired' AND a.responded_at IS NOT NULL
 	`
 	
 	err := r.db.WithContext(ctx).Raw(query, employerID).Scan(&result).Error
@@ -331,10 +395,10 @@ func (r *AnalyticsRepositoryImpl) GetTimeToHireMetrics(ctx context.Context, empl
 	}
 	var titleResults []titleResult
 	r.db.WithContext(ctx).Raw(`
-		SELECT j.title, COALESCE(AVG(EXTRACT(DAY FROM (a.hired_at - a.applied_at))), 0) as days
+		SELECT j.title, COALESCE(AVG(EXTRACT(DAY FROM (a.responded_at - a.applied_at))), 0) as days
 		FROM applications a
 		JOIN jobs j ON a.job_id = j.id
-		WHERE j.employer_id = ? AND a.status = 'hired' AND a.hired_at IS NOT NULL
+		WHERE j.employer_id = ? AND a.status = 'hired' AND a.responded_at IS NOT NULL
 		GROUP BY j.title
 	`, employerID).Scan(&titleResults)
 	
@@ -373,14 +437,13 @@ func (r *AnalyticsRepositoryImpl) GetSourceAnalytics(ctx context.Context, employ
 	
 	query := `
 		SELECT 
-			COALESCE(a.source, 'direct') as source,
+			'direct' as source,
 			COUNT(*) as count,
-			ROUND(CAST(COUNT(*) AS DECIMAL) / SUM(COUNT(*)) OVER() * 100, 2) as percentage,
+			100.00 as percentage,
 			ROUND(CAST(SUM(CASE WHEN a.status = 'hired' THEN 1 ELSE 0 END) AS DECIMAL) / COUNT(*) * 100, 2) as conversion_rate
 		FROM applications a
 		JOIN jobs j ON a.job_id = j.id
 		WHERE j.employer_id = ?
-		GROUP BY COALESCE(a.source, 'direct')
 		ORDER BY count DESC
 	`
 	

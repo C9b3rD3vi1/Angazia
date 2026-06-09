@@ -54,11 +54,13 @@
     <nav class="dash-nav">
       <a href="/employer/dashboard" class="epr-link {{if eq .ActivePage "dashboard"}}active{{end}}"><span class="epr-link-icon">&#x1F4CA;</span><span class="epr-link-text">Dashboard</span></a>
       <a href="/employer/jobs" class="epr-link {{if eq .ActivePage "jobs"}}active{{end}}"><span class="epr-link-icon">&#x1F4BC;</span><span class="epr-link-text">My Jobs</span>{{if .JobCount}}<span class="epr-badge-num">{{.JobCount}}</span>{{end}}</a>
+      <a href="/employer/applications" class="epr-link {{if eq .ActivePage "applications"}}active{{end}}"><span class="epr-link-icon">&#x1F4E6;</span><span class="epr-link-text">Applications</span></a>
       <a href="/employer/candidates" class="epr-link {{if eq .ActivePage "candidates"}}active{{end}}"><span class="epr-link-icon">&#x1F465;</span><span class="epr-link-text">Candidates</span>{{if .CandidateCount}}<span class="epr-badge-num">{{.CandidateCount}}</span>{{end}}</a>
       <a href="/employer/talent-pool" class="epr-link {{if eq .ActivePage "talent"}}active{{end}}"><span class="epr-link-icon">&#x1F4E6;</span><span class="epr-link-text">Talent Pool</span></a>
       <a href="/employer/analytics" class="epr-link {{if eq .ActivePage "analytics"}}active{{end}}"><span class="epr-link-icon">&#x1F4C8;</span><span class="epr-link-text">Analytics</span></a>
       <a href="/employer/company" class="epr-link {{if eq .ActivePage "company"}}active{{end}}"><span class="epr-link-icon">&#x1F3E2;</span><span class="epr-link-text">Company Profile</span></a>
       <a href="/employer/matches" class="epr-link {{if eq .ActivePage "matches"}}active{{end}}"><span class="epr-link-icon">&#x1F916;</span><span class="epr-link-text">AI Matches</span></a>
+      <a href="/notifications" class="epr-link {{if eq .ActivePage "notifications"}}active{{end}}"><span class="epr-link-icon">&#x1F514;</span><span class="epr-link-text">Notifications</span>{{if .UnreadCount}}<span class="epr-badge-num">{{.UnreadCount}}</span>{{end}}</a>
     </nav>
     <div class="epr-plan">
       <div class="epr-plan-head">

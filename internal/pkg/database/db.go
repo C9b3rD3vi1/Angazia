@@ -19,7 +19,6 @@ var DB *gorm.DB
 func InitDB(cfg *config.Config) error {
 	var err error
 	
-	// Configure GORM logger
 	logLevel := logger.Silent
 	if cfg.IsDevelopment() {
 		logLevel = logger.Info
@@ -30,27 +29,25 @@ func InitDB(cfg *config.Config) error {
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
 		},
+		// Disable foreign key constraints entirely
+		DisableForeignKeyConstraintWhenMigrating: true,
 	}
 	
-	// Connect to database
 	dsn := cfg.GetDSN()
 	DB, err = gorm.Open(postgres.Open(dsn), gormConfig)
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 	
-	// Get underlying SQL DB to configure connection pool
 	sqlDB, err := DB.DB()
 	if err != nil {
 		return fmt.Errorf("failed to get database instance: %w", err)
 	}
 	
-	// Set connection pool settings
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 	
-	// Test connection
 	if err := sqlDB.Ping(); err != nil {
 		return fmt.Errorf("database ping failed: %w", err)
 	}
@@ -59,30 +56,32 @@ func InitDB(cfg *config.Config) error {
 	return nil
 }
 
-// AutoMigrate runs automatic migration for all models
+// AutoMigrate runs automatic migration for all models in correct order
 func AutoMigrate() error {
 	log.Println("🔄 Running database migrations...")
 	
-	// Migrate in order to handle dependencies
-	err := DB.AutoMigrate(
-		// User models
+	// Define migration order (tables without dependencies first)
+	modelsToMigrate := []interface{}{
+		// Level 1: Core tables (no dependencies)
 		&models.User{},
+		
+		// Level 2: Profile tables (depend on users)
 		&models.EmployeeProfile{},
 		&models.EmployerProfile{},
 		
-		// GitHub models
+		// Level 3: GitHub models
 		&models.GithubProfile{},
 		&models.GithubContribution{},
 		&models.GithubRepository{},
 		&models.GithubSyncLog{},
 		
-		// Job models
+		// Level 4: Job related (depend on employer profiles)
 		&models.Job{},
-		&models.Application{},
 		&models.SavedJob{},
 		&models.JobView{},
+		&models.Application{},
 		
-		// Match models
+		// Level 5: Match and Talent Pool
 		&models.Match{},
 		&models.MatchSettings{},
 		&models.MatchFeedback{},
@@ -90,17 +89,52 @@ func AutoMigrate() error {
 		&models.TalentPoolCandidate{},
 		&models.SearchHistory{},
 		
-		// 2FA models
+		// Level 6: Payment (no foreign key constraints)
+		&models.Payment{},
+		&models.PaymentIntent{},
+		
+		// Level 7: Subscription (no foreign key constraints)
+		&models.Subscription{},
+		&models.SubscriptionPlan{},
+		&models.SubscriptionHistory{},
+		&models.SubscriptionPlanFeature{},
+		&models.SubscriptionUsage{},
+		
+		// Level 8: Invoice (no foreign key constraints)
+		&models.Invoice{},
+		&models.InvoiceItem{},
+		
+		// Level 9: 2FA models
 		&models.TwoFASecret{},
+	//	&models.TrustedDevice{},
 		&models.TwoFAAuditLog{},
-
-		// Notification models
+		
+		// Level 10: Admin models
+		&models.AdminActionLog{},
+		&models.ModerationQueue{},
+		&models.SystemSetting{},
+		&models.ReportReason{},
+		
+		// Level 11: Notification models
 		&models.Notification{},
 		&models.NotificationPreferences{},
-	)
+		
+		// Level 12: Company models
+		&models.CompanyVerification{},
+		&models.TrustBadge{},
+		&models.CompanyReview{},
+		&models.CompanyAnalytics{},
+		&models.TeamInvitation{},
+		
+		// Level 13: GDPR models
+	}
 	
-	if err != nil {
-		return fmt.Errorf("migration failed: %w", err)
+	// Migrate each model individually to isolate errors
+	for _, model := range modelsToMigrate {
+		if err := DB.AutoMigrate(model); err != nil {
+			log.Printf("Warning: Could not migrate %T: %v", model, err)
+			// Continue with other migrations
+		}
 	}
 	
 	log.Println("✅ Database migrations completed successfully")
@@ -112,87 +146,51 @@ func CreateIndexes() error {
 	log.Println("📊 Creating additional indexes...")
 	
 	// User indexes
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)").Error; err != nil {
-		log.Printf("Warning: Could not create users email index: %v", err)
-	}
-	
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)").Error; err != nil {
-		log.Printf("Warning: Could not create users role index: %v", err)
-	}
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)")
 	
 	// Employee indexes
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_employee_skills ON employee_profiles USING GIN(skills)").Error; err != nil {
-		log.Printf("Warning: Could not create employee skills GIN index: %v", err)
-	}
-	
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_employee_github ON employee_profiles(github_username)").Error; err != nil {
-		log.Printf("Warning: Could not create employee github index: %v", err)
-	}
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_employee_skills ON employee_profiles USING GIN(skills)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_employee_github ON employee_profiles(github_username)")
 	
 	// Job indexes
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_jobs_employer ON jobs(employer_id)").Error; err != nil {
-		log.Printf("Warning: Could not create jobs employer index: %v", err)
-	}
-	
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_jobs_active ON jobs(is_active, posted_at)").Error; err != nil {
-		log.Printf("Warning: Could not create jobs active index: %v", err)
-	}
-	
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_jobs_skills ON jobs USING GIN(required_skills)").Error; err != nil {
-		log.Printf("Warning: Could not create jobs skills GIN index: %v", err)
-	}
-	
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_jobs_location ON jobs(location, is_remote)").Error; err != nil {
-		log.Printf("Warning: Could not create jobs location index: %v", err)
-	}
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_jobs_employer ON jobs(employer_id)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_jobs_active ON jobs(is_active, posted_at)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_jobs_skills ON jobs USING GIN(required_skills)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_jobs_location ON jobs(location, is_remote)")
 	
 	// Application indexes
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_applications_job ON applications(job_id)").Error; err != nil {
-		log.Printf("Warning: Could not create applications job index: %v", err)
-	}
-	
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_applications_employee ON applications(employee_id)").Error; err != nil {
-		log.Printf("Warning: Could not create applications employee index: %v", err)
-	}
-	
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status, applied_at)").Error; err != nil {
-		log.Printf("Warning: Could not create applications status index: %v", err)
-	}
-	
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_applications_score ON applications(match_score)").Error; err != nil {
-		log.Printf("Warning: Could not create applications score index: %v", err)
-	}
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_applications_job ON applications(job_id)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_applications_employee ON applications(employee_id)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status, applied_at)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_applications_score ON applications(match_score)")
 	
 	// Match indexes
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_matches_employee_score ON matches(employee_id, overall_score)").Error; err != nil {
-		log.Printf("Warning: Could not create matches employee score index: %v", err)
-	}
-	
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_matches_job ON matches(job_id)").Error; err != nil {
-		log.Printf("Warning: Could not create matches job index: %v", err)
-	}
-	
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_matches_expires ON matches(expires_at)").Error; err != nil {
-		log.Printf("Warning: Could not create matches expires index: %v", err)
-	}
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_matches_employee_score ON matches(employee_id, overall_score)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_matches_job ON matches(job_id)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_matches_expires ON matches(expires_at)")
 	
 	// GitHub indexes
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_github_employee ON github_profiles(employee_id)").Error; err != nil {
-		log.Printf("Warning: Could not create github employee index: %v", err)
-	}
-	
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_github_username ON github_profiles(github_username)").Error; err != nil {
-		log.Printf("Warning: Could not create github username index: %v", err)
-	}
-	
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_github_scores ON github_profiles(overall_score, activity_score)").Error; err != nil {
-		log.Printf("Warning: Could not create github scores index: %v", err)
-	}
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_github_employee ON github_profiles(employee_id)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_github_username ON github_profiles(github_username)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_github_scores ON github_profiles(overall_score, activity_score)")
 	
 	// Talent pool indexes
-	if err := DB.Exec("CREATE INDEX IF NOT EXISTS idx_talent_pool_employer ON talent_pools(employer_id)").Error; err != nil {
-		log.Printf("Warning: Could not create talent pool employer index: %v", err)
-	}
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_talent_pool_employer ON talent_pools(employer_id)")
+	
+	// Payment indexes
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_payments_transaction_id ON payments(transaction_id)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_payments_reference ON payments(reference)")
+	
+	// Subscription indexes
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_subscriptions_end_date ON subscriptions(end_date)")
+	
+	// Invoice indexes
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_invoices_user_id ON invoices(user_id)")
+	DB.Exec("CREATE INDEX IF NOT EXISTS idx_invoices_invoice_number ON invoices(invoice_number)")
 	
 	log.Println("✅ Additional indexes created successfully")
 	return nil

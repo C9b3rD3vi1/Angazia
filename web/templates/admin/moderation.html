@@ -1,0 +1,99 @@
+{{/* Admin Moderation & Reports */}}
+
+<div class="am-page">
+  {{/* ── Page Header ── */}}
+  <div class="am-header">
+    <div class="am-header-text">
+      <h1 class="am-title">Moderation Queue</h1>
+      <p class="am-subtitle">Review and manage reported content</p>
+    </div>
+    <div class="am-header-actions">
+      <button class="am-btn-ghost" data-action="refresh">&#x1F504; Refresh</button>
+    </div>
+  </div>
+
+  {{/* ── Tabs ── */}}
+  <div class="am-tabs">
+    <button class="am-tab {{if not .CurrentTab}}active{{end}}" data-status="">All</button>
+    <button class="am-tab {{if eq .CurrentTab "pending"}}active{{end}}" data-status="pending">Pending</button>
+    <button class="am-tab {{if eq .CurrentTab "approved"}}active{{end}}" data-status="approved">Approved</button>
+    <button class="am-tab {{if eq .CurrentTab "rejected"}}active{{end}}" data-status="rejected">Rejected</button>
+  </div>
+
+  {{/* ── Filters ── */}}
+  <div class="am-filters">
+    <select class="am-select" id="am-entity-filter">
+      <option value="">All Entity Types</option>
+      <option value="job" {{if eq .EntityTypeFilter "job"}}selected{{end}}>Job</option>
+      <option value="review" {{if eq .EntityTypeFilter "review"}}selected{{end}}>Review</option>
+      <option value="company" {{if eq .EntityTypeFilter "company"}}selected{{end}}>Company</option>
+    </select>
+  </div>
+
+  {{/* ── Moderation List ── */}}
+  {{if .ModerationItems}}
+  <div class="am-list" id="am-list">
+    {{range .ModerationItems}}
+    <div class="am-item" data-id="{{.ID}}">
+      <div class="am-item-top">
+        <div class="am-item-badges">
+          <span class="am-badge am-badge-{{.EntityType}}">{{.EntityType}}</span>
+          <span class="am-status am-status-{{.Status}}">{{.Status}}</span>
+        </div>
+        {{if .Reason}}
+        <p class="am-item-reason">{{.Reason}}</p>
+        {{end}}
+      </div>
+      <div class="am-item-meta">
+        <span class="am-meta-user">&#x1F464; <strong>{{.SubmittedBy.Name}}</strong></span>
+        <span class="am-meta-date">&#x1F4C5; {{.CreatedAt}}</span>
+        {{if .ReviewedBy.Name}}
+        <span class="am-meta-reviewer">Reviewed by: {{.ReviewedBy.Name}}</span>
+        {{end}}
+        <span class="am-meta-id">#{{.EntityID}}</span>
+      </div>
+      {{if eq .Status "pending"}}
+      <div class="am-item-actions">
+        <button class="am-btn am-btn-approve" data-action="approve" data-id="{{.ID}}">&#x2705; Approve</button>
+        <button class="am-btn am-btn-reject" data-action="reject" data-id="{{.ID}}">&#x274C; Reject</button>
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+  </div>
+  {{else}}
+  <div class="am-empty">
+    <span class="am-empty-icon">&#x1F4AD;</span>
+    <p class="am-empty-text">No moderation items found.</p>
+  </div>
+  {{end}}
+
+  {{/* ── Pagination ── */}}
+  {{if gt .TotalPages 1}}
+  <div class="am-pagination" data-page="{{.Page}}" data-total="{{.TotalPages}}">
+    <button class="am-page-btn" data-page="prev" {{if le .Page 1}}disabled{{end}}>&larr; Previous</button>
+    <span class="am-page-info">Page {{.Page}} of {{.TotalPages}}</span>
+    <button class="am-page-btn" data-page="next" {{if ge .Page .TotalPages}}disabled{{end}}>Next &rarr;</button>
+  </div>
+  {{end}}
+</div>
+
+{{/* ── Reject Modal ── */}}
+<div class="am-modal-overlay" id="am-reject-modal" style="display:none">
+  <div class="am-modal">
+    <div class="am-modal-head">
+      <h3 class="am-modal-title">Reject Item</h3>
+      <button class="am-modal-close" id="am-modal-close">&times;</button>
+    </div>
+    <div class="am-modal-body">
+      <label class="am-modal-label" for="am-reject-reason">Reason for rejection:</label>
+      <textarea class="am-modal-textarea" id="am-reject-reason" rows="4" placeholder="Provide a reason..."></textarea>
+    </div>
+    <div class="am-modal-actions">
+      <button class="am-btn am-btn-cancel" id="am-modal-cancel">Cancel</button>
+      <button class="am-btn am-btn-reject" id="am-confirm-reject">Reject</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/pages/admin/moderation.js"></script>

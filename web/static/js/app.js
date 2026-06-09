@@ -26,10 +26,7 @@ var AngaziaApp = (function () {
   function setupGlobalListeners() {
     AngaziaAPI.setOnUnauthorized(function () {
       AngaziaAuth.clearAuth();
-      var currentPath = window.location.pathname;
-      if (currentPath !== '/login' && currentPath !== '/register') {
-        window.location.href = '/login?redirect=' + encodeURIComponent(currentPath);
-      }
+      window.location.href = '/logout';
     });
 
     AngaziaNotifications.on('received', function (notification) {

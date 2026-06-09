@@ -1,0 +1,319 @@
+{{/* Employer - Edit Job */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">Edit Job</h1>
+      <p class="emp-page-sub" id="job-title-sub">Loading job details...</p>
+    </div>
+  </div>
+
+  <div id="edit-loading" class="emp-loading">
+    <div class="emp-spinner"></div>
+    <p>Loading job details...</p>
+  </div>
+
+  <div id="edit-error" class="emp-error" style="display:none;">
+    <div class="emp-error-icon">&#x26A0;&#xFE0F;</div>
+    <h3>Failed to load job</h3>
+    <p id="edit-error-msg"></p>
+    <button class="emp-btn emp-btn-primary" onclick="location.reload()">Retry</button>
+  </div>
+
+  <section id="edit-form" class="emp-section" style="display:none;">
+    <form id="form-job-edit" class="emp-form">
+      <input type="hidden" name="job_id" id="field-job-id">
+
+      <div class="emp-form-section">
+        <h3 class="emp-form-section-title">Basic Information</h3>
+
+        <div class="emp-field">
+          <label class="emp-label">Job Title <span class="emp-req">*</span></label>
+          <input type="text" name="title" id="field-title" class="emp-input" placeholder="e.g. Senior Backend Engineer" required>
+        </div>
+
+        <div class="emp-row-3">
+          <div class="emp-field">
+            <label class="emp-label">Employment Type</label>
+            <select name="type" id="field-type" class="emp-input">
+              <option value="full-time">Full-time</option>
+              <option value="part-time">Part-time</option>
+              <option value="contract">Contract</option>
+              <option value="internship">Internship</option>
+            </select>
+          </div>
+          <div class="emp-field">
+            <label class="emp-label">Location</label>
+            <input type="text" name="location" id="field-location" class="emp-input" placeholder="Nairobi, Kenya">
+          </div>
+          <div class="emp-field">
+            <label class="emp-label">Work Type</label>
+            <select name="work_type" id="field-work-type" class="emp-input">
+              <option value="remote">Remote</option>
+              <option value="hybrid">Hybrid</option>
+              <option value="onsite">On-site</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="emp-row-2">
+          <div class="emp-field">
+            <label class="emp-label">Minimum Salary (KES)</label>
+            <input type="number" name="salary_min" id="field-salary-min" class="emp-input" placeholder="e.g. 200000">
+          </div>
+          <div class="emp-field">
+            <label class="emp-label">Maximum Salary (KES)</label>
+            <input type="number" name="salary_max" id="field-salary-max" class="emp-input" placeholder="e.g. 400000">
+          </div>
+        </div>
+      </div>
+
+      <div class="emp-form-divider"></div>
+
+      <div class="emp-form-section">
+        <h3 class="emp-form-section-title">Description & Requirements</h3>
+
+        <div class="emp-field">
+          <label class="emp-label">Job Description <span class="emp-req">*</span></label>
+          <textarea name="description" id="field-description" class="emp-textarea" rows="8" placeholder="Describe the role..." required></textarea>
+        </div>
+
+        <div class="emp-field">
+          <label class="emp-label">Requirements <span class="emp-req">*</span></label>
+          <textarea name="requirements" id="field-requirements" class="emp-textarea emp-textarea-list" rows="6" placeholder="- List each requirement on a new line&#10;- Each line becomes a bullet item&#10;- Example: 5+ years experience in Go" required></textarea>
+          <div id="requirements-preview" class="emp-req-preview"></div>
+        </div>
+      </div>
+
+      <div class="emp-form-divider"></div>
+
+      <div class="emp-form-section">
+        <h3 class="emp-form-section-title">Skills & Screening</h3>
+
+        <div class="emp-field">
+          <label class="emp-label">Required Skills</label>
+          <input type="text" name="skills" id="field-skills" class="emp-input" placeholder="e.g. Go, PostgreSQL, React, Docker, AWS">
+          <span class="emp-hint">Comma-separated list of required skills</span>
+        </div>
+
+        <div class="emp-field">
+          <label class="emp-label">Experience Level</label>
+          <select name="experience_level" id="field-experience" class="emp-input">
+            <option value="any">Any Level</option>
+            <option value="junior">Junior (0-2 yrs)</option>
+            <option value="mid">Mid-Level (3-5 yrs)</option>
+            <option value="senior">Senior (5-8 yrs)</option>
+            <option value="lead">Lead (8+ yrs)</option>
+          </select>
+        </div>
+
+        <div class="emp-field">
+          <label class="emp-label">Application Deadline</label>
+          <input type="date" name="deadline" id="field-deadline" class="emp-input" style="max-width:200px;">
+        </div>
+      </div>
+
+      <div class="emp-form-divider"></div>
+
+      <div class="emp-form-footer">
+        <button type="submit" class="emp-btn emp-btn-primary emp-btn-lg">Save Changes</button>
+        <a href="/employer/jobs" class="emp-btn emp-btn-secondary emp-btn-lg">Cancel</a>
+        <span class="emp-form-note">Changes will be visible immediately</span>
+      </div>
+    </form>
+  </section>
+</div>
+
+<style>
+.emp-loading, .emp-error {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-top: 20px;
+}
+.emp-spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--purple);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.emp-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.emp-page-title {
+  font-family: var(--fh);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.emp-page-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.emp-section {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+  margin-top: 20px;
+}
+.emp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.emp-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.emp-form-section-title {
+  font-family: var(--fm);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.emp-form-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 24px 0;
+}
+.emp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.emp-label {
+  font-family: var(--fm);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.emp-req { color: var(--danger); }
+.emp-hint { font-size: 11px; color: var(--muted2); margin-top: 2px; }
+.emp-input {
+  padding: 10px 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.emp-input:focus { border-color: var(--purple); }
+.emp-input::placeholder { color: var(--muted2); }
+.emp-textarea {
+  padding: 10px 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+  line-height: 1.6;
+}
+.emp-textarea:focus { border-color: var(--purple); }
+.emp-textarea::placeholder { color: var(--muted2); }
+.emp-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.emp-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.emp-form-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.emp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  transition: all 0.15s;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+}
+.emp-btn:active { transform: scale(0.97); }
+.emp-btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--purple) 0%, #ec4899 100%);
+}
+.emp-btn-primary:hover { opacity: 0.85; }
+.emp-btn-secondary {
+  color: var(--text);
+  background: var(--s2);
+  border: 1px solid var(--border);
+}
+.emp-btn-secondary:hover { border-color: var(--muted2); }
+.emp-btn-lg { padding: 12px 28px; font-size: 12px; }
+.emp-form-note { font-size: 11px; color: var(--muted2); margin-left: auto; }
+.emp-textarea-list {
+  font-family: var(--fm);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.emp-req-preview {
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-height: 0;
+  display: none;
+}
+.emp-req-preview.has-items {
+  display: block;
+}
+.emp-req-preview ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.emp-req-preview li {
+  padding: 3px 0 3px 18px;
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.6;
+  position: relative;
+}
+.emp-req-preview li::before {
+  content: "\\2022";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+@media (max-width: 860px) {
+  .emp-page-head { flex-direction: column; align-items: flex-start; }
+  .emp-row-3 { grid-template-columns: 1fr; }
+  .emp-row-2 { grid-template-columns: 1fr; }
+  .emp-form-footer { flex-direction: column; align-items: stretch; }
+  .emp-form-note { margin-left: 0; text-align: center; }
+}
+</style>
+
+<script src="/static/js/pages/employer/job-edit.js"></script>

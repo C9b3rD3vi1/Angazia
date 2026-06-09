@@ -29,6 +29,7 @@ type ApplicationService interface {
 	GetJobApplicationStats(ctx context.Context, jobID string, employerID string) (*JobApplicationStats, error)
 	BulkShortlist(ctx context.Context, applicationIDs []string, employerID string) error
 	BulkReject(ctx context.Context, applicationIDs []string, employerID string) error
+	SetNotificationService(ns NotificationService)
 }
 
 type ApplyRequest struct {
@@ -57,11 +58,12 @@ type JobApplicationStats struct {
 }
 
 type ApplicationServiceImpl struct {
-	cfg             *config.Config
-	applicationRepo repository.ApplicationRepository
-	jobRepo         repository.JobRepository
-	userRepo        repository.UserRepository
-	emailService    EmailService
+	cfg                *config.Config
+	applicationRepo    repository.ApplicationRepository
+	jobRepo            repository.JobRepository
+	userRepo           repository.UserRepository
+	emailService       EmailService
+	notificationService NotificationService
 }
 
 func NewApplicationService(
@@ -78,6 +80,10 @@ func NewApplicationService(
 		userRepo:        userRepo,
 		emailService:    emailService,
 	}
+}
+
+func (s *ApplicationServiceImpl) SetNotificationService(ns NotificationService) {
+	s.notificationService = ns
 }
 
 func (s *ApplicationServiceImpl) Apply(ctx context.Context, employeeID string, req *ApplyRequest) (*models.Application, error) {
@@ -145,6 +151,10 @@ func (s *ApplicationServiceImpl) Apply(ctx context.Context, employeeID string, r
 			application.ID,
 			employeeProfile.User.Email,
 		)
+	}
+
+	if s.notificationService != nil {
+		go s.notificationService.NotifyNewApplication(context.Background(), req.JobID, job.EmployerID, employeeID)
 	}
 
 	return application, nil
@@ -323,6 +333,10 @@ func (s *ApplicationServiceImpl) ShortlistApplication(ctx context.Context, appli
 		)
 	}
 
+	if s.notificationService != nil {
+		go s.notificationService.NotifyApplicationStatusChange(context.Background(), applicationID, application.EmployeeID, employerID, "shortlisted")
+	}
+
 	return nil
 }
 
@@ -351,6 +365,10 @@ func (s *ApplicationServiceImpl) RejectApplication(ctx context.Context, applicat
 			"rejected",
 			application.Employee.User.Email,
 		)
+	}
+
+	if s.notificationService != nil {
+		go s.notificationService.NotifyApplicationStatusChange(context.Background(), applicationID, application.EmployeeID, employerID, "rejected")
 	}
 
 	return nil
@@ -385,6 +403,10 @@ func (s *ApplicationServiceImpl) ScheduleInterview(ctx context.Context, applicat
 		)
 	}
 
+	if s.notificationService != nil {
+		go s.notificationService.NotifyInterviewScheduled(context.Background(), applicationID, application.EmployeeID, employerID, interviewDate)
+	}
+
 	return nil
 }
 
@@ -414,6 +436,10 @@ func (s *ApplicationServiceImpl) MarkAsHired(ctx context.Context, applicationID 
 			application.Job.Employer.CompanyName,
 			application.Employee.User.Email,
 		)
+	}
+
+	if s.notificationService != nil {
+		go s.notificationService.NotifyApplicationStatusChange(context.Background(), applicationID, application.EmployeeID, employerID, "hired")
 	}
 
 	return nil

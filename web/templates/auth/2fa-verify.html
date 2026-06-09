@@ -1,0 +1,290 @@
+{{if .Success}}<div class="alert alert-success">{{.Success}}</div>{{end}}
+{{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
+<div class="tfav-wrap">
+  <div class="tfav-card">
+    <div class="tfav-header">
+      <div class="tfav-icon">&#x1F510;</div>
+      <h1 class="tfav-title">Two-Factor Authentication</h1>
+      <p class="tfav-sub">Enter the verification code from your authenticator app</p>
+    </div>
+    <div id="tfav-error" class="tfav-error" style="display:none"></div>
+
+    <div id="tfav-code-section">
+      <form id="tfav-form" class="tfav-form" autocomplete="off">
+        <div class="tfav-field">
+          <label class="tfav-label" for="tfav-code">Verification Code</label>
+          <input type="text" id="tfav-code" class="tfav-input tfav-input-code" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" placeholder="000000" autofocus>
+        </div>
+        <button type="submit" class="tfav-btn tfav-btn-primary tfav-btn-block" id="tfav-submit">Verify</button>
+      </form>
+      <div class="tfav-separator"><span>or</span></div>
+      <button class="tfav-btn tfav-btn-link" id="tfav-use-recovery">Use a recovery code instead</button>
+    </div>
+
+    <div id="tfav-recovery-section" style="display:none">
+      <form id="tfav-recovery-form" class="tfav-form" autocomplete="off">
+        <div class="tfav-field">
+          <label class="tfav-label" for="tfav-recovery-code">Recovery Code</label>
+          <input type="text" id="tfav-recovery-code" class="tfav-input" placeholder="Enter your recovery code" autocomplete="off" autofocus>
+        </div>
+        <button type="submit" class="tfav-btn tfav-btn-primary tfav-btn-block" id="tfav-recovery-submit">Verify Recovery Code</button>
+      </form>
+      <button class="tfav-btn tfav-btn-link" id="tfav-back-to-code">&larr; Back to verification code</button>
+    </div>
+  </div>
+</div>
+<style>
+.tfav-wrap {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  width: 100%;
+}
+.tfav-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+}
+.tfav-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.tfav-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
+}
+.tfav-title {
+  font-family: var(--fh);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text);
+  margin: 0 0 8px 0;
+}
+.tfav-sub {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0;
+}
+.tfav-error {
+  background: rgba(255,79,79,0.1);
+  border: 1px solid rgba(255,79,79,0.25);
+  border-radius: var(--radius);
+  color: var(--danger);
+  font-size: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.tfav-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.tfav-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tfav-label {
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted2);
+  text-align: center;
+}
+.tfav-input {
+  padding: 12px 14px;
+  font-family: var(--fm);
+  font-size: 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  outline: none;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+.tfav-input:focus { border-color: var(--accent); }
+.tfav-input-code {
+  font-family: var(--fb);
+  font-size: 28px;
+  letter-spacing: 10px;
+  max-width: 220px;
+  margin: 0 auto;
+  padding: 14px 16px;
+}
+.tfav-btn {
+  padding: 10px 20px;
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: opacity 0.15s;
+  border: none;
+}
+.tfav-btn:hover { opacity: 0.85; }
+.tfav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.tfav-btn-primary { background: var(--accent); color: var(--bg); }
+.tfav-btn-block { width: 100%; }
+.tfav-btn-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  text-transform: none;
+  padding: 8px 0;
+  width: 100%;
+  text-align: center;
+}
+.tfav-btn-link:hover { opacity: 0.7; text-decoration: underline; }
+.tfav-separator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.tfav-separator::before,
+.tfav-separator::after {
+  content:'';
+  flex:1;
+  height:1px;
+  background: var(--border);
+}
+@media (max-width: 480px) {
+  .tfav-card { padding: 28px 20px; }
+  .tfav-input-code { font-size: 22px; letter-spacing: 8px; }
+}
+</style>
+<script>
+(function(){
+  var errEl=document.getElementById('tfav-error');
+  var codeSection=document.getElementById('tfav-code-section');
+  var recoverySection=document.getElementById('tfav-recovery-section');
+  var form=document.getElementById('tfav-form');
+  var recoveryForm=document.getElementById('tfav-recovery-form');
+  var codeInput=document.getElementById('tfav-code');
+  var recoveryInput=document.getElementById('tfav-recovery-code');
+  var submitBtn=document.getElementById('tfav-submit');
+  var recoverySubmitBtn=document.getElementById('tfav-recovery-submit');
+
+  function showError(m){
+    if(errEl){errEl.textContent=m;errEl.style.display='';}
+  }
+  function hideError(){
+    if(errEl)errEl.style.display='none';
+  }
+  function disableBtn(b){if(b){b.disabled=true;}}
+  function enableBtn(b,t){if(b){b.disabled=false;if(t)b.textContent=t;}}
+
+  function getRoleRedirect(){
+    var role=null;
+    try{
+      var token=localStorage.getItem('angazia_access_token');
+      if(token){
+        var parts=token.split('.');
+        if(parts.length===3){
+          var payload=JSON.parse(atob(parts[1]));
+          if(payload.role)role=payload.role;
+        }
+      }
+    }catch(e){}
+    if(!role){
+      try{
+        if(AngaziaApp&&AngaziaApp.user&&AngaziaApp.user.role)role=AngaziaApp.user.role;
+      }catch(e){}
+    }
+    if(!role){
+      var m=document.cookie.match(/user_role=([^;]+)/);
+      if(m)role=m[1];
+    }
+    switch(role){
+      case'admin':return'/admin/dashboard';
+      case'employer':return'/employer/dashboard';
+      case'employee':return'/employee/dashboard';
+      default:return'/dashboard';
+    }
+  }
+
+  if(form){
+    form.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      hideError();
+      var code=codeInput.value.trim();
+      if(!code||code.length!==6){
+        showError('Please enter a valid 6-digit code');
+        return;
+      }
+      disableBtn(submitBtn);
+      submitBtn.textContent='Verifying\u2026';
+      AngaziaAPI.auth.twoFA.loginVerify({code:code}).then(function(){
+        window.location.href=getRoleRedirect();
+      }).catch(function(err){
+        enableBtn(submitBtn,'Verify');
+        showError((err.body&&err.body.message)||err.message||'Invalid code. Please try again.');
+        codeInput.value='';
+        codeInput.focus();
+      });
+    });
+  }
+
+  codeInput.addEventListener('input',function(){
+    this.value=this.value.replace(/\D/g,'');
+    if(this.value.length===6){
+      form.dispatchEvent(new Event('submit'));
+    }
+  });
+
+  document.getElementById('tfav-use-recovery').addEventListener('click',function(){
+    hideError();
+    codeSection.style.display='none';
+    recoverySection.style.display='';
+    recoveryInput.focus();
+  });
+
+  document.getElementById('tfav-back-to-code').addEventListener('click',function(){
+    hideError();
+    recoverySection.style.display='none';
+    codeSection.style.display='';
+    codeInput.focus();
+  });
+
+  if(recoveryForm){
+    recoveryForm.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      hideError();
+      var code=recoveryInput.value.trim();
+      if(!code){
+        showError('Please enter a recovery code');
+        return;
+      }
+      disableBtn(recoverySubmitBtn);
+      recoverySubmitBtn.textContent='Verifying\u2026';
+      AngaziaAPI.auth.twoFA.loginVerify({code:code}).then(function(){
+        window.location.href=getRoleRedirect();
+      }).catch(function(err){
+        enableBtn(recoverySubmitBtn,'Verify Recovery Code');
+        showError((err.body&&err.body.message)||err.message||'Invalid recovery code. Please try again.');
+        recoveryInput.value='';
+        recoveryInput.focus();
+      });
+    });
+  }
+})();
+</script>

@@ -7,140 +7,55 @@
     </div>
   </div>
 
-  <div class="emp-grid-2col">
-    <section class="emp-section">
+  <div id="billing-loading" class="emp-loading">
+    <div class="emp-loading-spinner"></div>
+    <span>Loading billing info...</span>
+  </div>
+
+  <div id="billing-error" class="emp-alert emp-alert-error" style="display:none"></div>
+
+  <div id="billing-content" style="display:none">
+
+    <div class="emp-grid-2col">
+      <section class="emp-section" id="current-plan-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">Current Plan</h2>
+          <a href="/employer/billing/invoices" class="emp-section-link">View Invoices</a>
+        </div>
+        <div class="emp-current-plan" id="current-plan-content"></div>
+      </section>
+
+      <section class="emp-section" id="plans-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">Available Plans</h2>
+        </div>
+        <div class="emp-plan-options" id="plans-content"></div>
+      </section>
+    </div>
+
+    <section class="emp-section emp-section-full" id="invoices-section" style="margin-top:20px">
       <div class="emp-section-head">
-        <h2 class="emp-section-title">Current Plan</h2>
-        <a href="/employer/billing/invoices" class="emp-section-link">View Invoices</a>
+        <h2 class="emp-section-title">Recent Invoices</h2>
       </div>
-
-      <div class="emp-current-plan">
-        <div class="emp-current-plan-icon">
-          {{if eq .Subscription.Plan "enterprise"}}&#x1F451;
-          {{else if eq .Subscription.Plan "pro"}}&#x1F525;
-          {{else if eq .Subscription.Plan "basic"}}&#x1F4A0;
-          {{else}}&#x1F3F0;{{end}}
-        </div>
-        <h3 class="emp-current-plan-name">{{.Subscription.Plan}}</h3>
-        <span class="emp-badge {{if .Subscription.IsActive}}emp-badge-active{{else}}emp-badge-inactive{{end}}">
-          {{if .Subscription.IsActive}}Active{{else}}Inactive{{end}}
-        </span>
-
-        <div class="emp-usage-bar">
-          <div class="emp-usage-head">
-            <span class="emp-usage-label">Usage</span>
-            <span class="emp-usage-count">{{.Subscription.JobsUsed}} / {{.Subscription.JobsLimit}} jobs</span>
-          </div>
-          <div class="emp-usage-track">
-            <div class="emp-usage-fill" style="width:{{.Subscription.Percentage}}%"></div>
-          </div>
-        </div>
-
-        <ul class="emp-plan-features">
-          <li class="emp-plan-feature">
-            <span class="emp-plan-feature-icon">&#x2705;</span>
-            <span>Up to <strong>{{.Subscription.JobsLimit}}</strong> active job listings</span>
-          </li>
-          <li class="emp-plan-feature">
-            <span class="emp-plan-feature-icon">&#x2705;</span>
-            <span>AI-powered candidate matching &amp; ranking</span>
-          </li>
-          <li class="emp-plan-feature">
-            <span class="emp-plan-feature-icon">&#x2705;</span>
-            <span>Detailed candidate analytics</span>
-          </li>
-          {{if ne .Subscription.Plan "free"}}
-          <li class="emp-plan-feature">
-            <span class="emp-plan-feature-icon">&#x2705;</span>
-            <span>Priority email &amp; chat support</span>
-          </li>
-          {{end}}
-          {{if eq .Subscription.Plan "enterprise"}}
-          <li class="emp-plan-feature">
-            <span class="emp-plan-feature-icon">&#x2705;</span>
-            <span>Dedicated account manager</span>
-          </li>
-          {{end}}
-        </ul>
-
-        {{if .Subscription.RenewalDate}}
-        <p class="emp-renewal-date">&#x1F504; Renews on {{.Subscription.RenewalDate}}</p>
-        {{end}}
+      <div class="emp-table-wrap">
+        <table class="emp-table">
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Date</th>
+              <th>Plan</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="invoices-tbody">
+            <tr><td colspan="6" class="emp-table-empty">No invoices yet</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
-    <section class="emp-section">
-      <div class="emp-section-head">
-        <h2 class="emp-section-title">Available Plans</h2>
-      </div>
-
-      <div class="emp-plan-options">
-        <div class="emp-plan-option {{if eq .Subscription.Plan "free"}}emp-plan-current{{end}}">
-          <h4 class="emp-plan-option-name">Free</h4>
-          <p class="emp-plan-price">KSh 0<span>/mo</span></p>
-          <ul class="emp-plan-bullets">
-            <li>3 active jobs</li>
-            <li>Basic candidate search</li>
-            <li>Email support</li>
-          </ul>
-          {{if eq .Subscription.Plan "free"}}
-          <span class="emp-plan-current-tag">Current</span>
-          {{end}}
-        </div>
-
-        <div class="emp-plan-option {{if eq .Subscription.Plan "basic"}}emp-plan-current{{end}}">
-          <h4 class="emp-plan-option-name">Basic</h4>
-          <p class="emp-plan-price">KSh 2,500<span>/mo</span></p>
-          <ul class="emp-plan-bullets">
-            <li>10 active jobs</li>
-            <li>Advanced filters</li>
-            <li>Basic analytics</li>
-            <li>Email support</li>
-          </ul>
-          {{if eq .Subscription.Plan "basic"}}
-          <span class="emp-plan-current-tag">Current</span>
-          {{else}}
-          <a href="/employer/billing/upgrade/basic" class="emp-btn emp-btn-outline emp-btn-full">Upgrade</a>
-          {{end}}
-        </div>
-
-        <div class="emp-plan-option emp-plan-option-featured {{if eq .Subscription.Plan "pro"}}emp-plan-current{{end}}">
-          <span class="emp-plan-popular">Most Popular</span>
-          <h4 class="emp-plan-option-name">Pro</h4>
-          <p class="emp-plan-price">KSh 6,500<span>/mo</span></p>
-          <ul class="emp-plan-bullets">
-            <li>50 active jobs</li>
-            <li>AI-powered matching</li>
-            <li>Advanced analytics</li>
-            <li>Priority support</li>
-            <li>Custom branding</li>
-          </ul>
-          {{if eq .Subscription.Plan "pro"}}
-          <span class="emp-plan-current-tag">Current</span>
-          {{else}}
-          <a href="/employer/billing/upgrade/pro" class="emp-btn emp-btn-primary emp-btn-full">Upgrade</a>
-          {{end}}
-        </div>
-
-        <div class="emp-plan-option {{if eq .Subscription.Plan "enterprise"}}emp-plan-current{{end}}">
-          <h4 class="emp-plan-option-name">Enterprise</h4>
-          <p class="emp-plan-price">Custom</p>
-          <ul class="emp-plan-bullets">
-            <li>Unlimited jobs</li>
-            <li>Full analytics suite</li>
-            <li>API access</li>
-            <li>Dedicated manager</li>
-            <li>Custom integrations</li>
-            <li>SLA guarantee</li>
-          </ul>
-          {{if eq .Subscription.Plan "enterprise"}}
-          <span class="emp-plan-current-tag">Current</span>
-          {{else}}
-          <a href="/employer/billing/upgrade/enterprise" class="emp-btn emp-btn-outline emp-btn-full">Contact Sales</a>
-          {{end}}
-        </div>
-      </div>
-    </section>
   </div>
 </div>
 
@@ -163,6 +78,37 @@
   font-size: 12px;
   color: var(--muted);
   margin-top: 4px;
+}
+
+.emp-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: var(--muted2);
+  font-size: 13px;
+}
+.emp-loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top: 3px solid var(--purple);
+  border-radius: 50%;
+  animation: emp-spin 0.8s linear infinite;
+}
+@keyframes emp-spin { to { transform: rotate(360deg); } }
+
+.emp-alert {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+.emp-alert-error {
+  background: rgba(239,68,68,0.08);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.15);
 }
 
 .emp-grid-2col {
@@ -224,6 +170,7 @@
 }
 .emp-badge-active { background: rgba(0,229,160,0.1); color: var(--accent); border: 1px solid rgba(0,229,160,0.2); }
 .emp-badge-inactive { background: var(--s2); color: var(--muted2); border: 1px solid var(--border); }
+.emp-badge-warning { background: rgba(255,159,67,0.1); color: #ff9f43; border: 1px solid rgba(255,159,67,0.2); }
 
 .emp-usage-bar {
   max-width: 280px;
@@ -275,6 +222,13 @@
   border-top: 1px solid var(--border);
 }
 
+.emp-plan-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 /* Plan Options */
 .emp-plan-options {
   display: flex;
@@ -309,6 +263,7 @@
   color: #fff;
   border-radius: 20px;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 .emp-plan-option-name {
   font-family: var(--fh);
@@ -355,6 +310,43 @@
   text-transform: uppercase;
 }
 
+/* Invoices table */
+.emp-section-full { padding: 24px; }
+.emp-table-wrap {
+  overflow-x: auto;
+  margin-top: 12px;
+}
+.emp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.emp-table th {
+  text-align: left;
+  padding: 14px 16px;
+  font-family: var(--fm);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.emp-table td {
+  padding: 14px 16px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+.emp-table tbody tr:last-child td { border-bottom: none; }
+.emp-table-empty {
+  text-align: center;
+  color: var(--muted2);
+  font-size: 13px;
+  padding: 48px 24px !important;
+}
+.emp-table td:first-child { padding-left: 0; }
+.emp-table th:first-child { padding-left: 0; }
+
 .emp-btn {
   display: inline-flex;
   align-items: center;
@@ -383,10 +375,19 @@
   color: var(--text);
 }
 .emp-btn-outline:hover { border-color: var(--purple); color: var(--purple); }
+.emp-btn-danger {
+  border-color: rgba(239,68,68,0.3);
+  color: #ef4444;
+}
+.emp-btn-danger:hover { border-color: #ef4444; }
 .emp-btn-full { width: 100%; text-align: center; }
+.emp-btn-sm { padding: 6px 14px; font-size: 10px; }
+.emp-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 @media (max-width: 860px) {
   .emp-page-head { flex-direction: column; align-items: flex-start; }
   .emp-grid-2col { grid-template-columns: 1fr; }
 }
 </style>
+
+<script src="/static/js/pages/employer/billing.js"></script>

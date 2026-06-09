@@ -70,6 +70,12 @@ func (h *WebSocketHub) run() {
 		case client := <-h.Register:
 			h.mu.Lock()
 			h.clients[client] = true
+			
+			// Create user-specific message channel if not exists
+			if _, ok := h.userMessages[client.UserID]; !ok {
+				h.userMessages[client.UserID] = make(chan []byte, 100)
+				go h.userMessageHandler(client.UserID)
+			}
 			h.mu.Unlock()
 			
 		case client := <-h.Unregister:
@@ -148,6 +154,10 @@ func (h *WebSocketHub) pingClients() {
 	defer h.mu.RUnlock()
 	
 	for client := range h.clients {
+		if client.Conn == nil {
+			continue
+		}
+		
 		if err := client.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 			go func(c *Client) {
 				h.Unregister <- c

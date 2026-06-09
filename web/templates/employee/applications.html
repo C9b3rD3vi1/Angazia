@@ -5,63 +5,184 @@
       <h1 class="emp-page-title">My Applications</h1>
       <p class="emp-page-sub">Track the status of every job you've applied to</p>
     </div>
+    <div class="emp-page-stats">
+      <div class="emp-stat-card">
+        <span class="emp-stat-value" id="total-applications">0</span>
+        <span class="emp-stat-label">Total Applications</span>
+      </div>
+      <div class="emp-stat-card">
+        <span class="emp-stat-value" id="active-applications">0</span>
+        <span class="emp-stat-label">Active</span>
+      </div>
+      <div class="emp-stat-card">
+        <span class="emp-stat-value" id="response-rate">0%</span>
+        <span class="emp-stat-label">Response Rate</span>
+      </div>
+    </div>
   </div>
 
-  <div class="emp-tabs">
-    <button class="emp-tab active">All <span class="emp-tab-count">{{.TotalApplications}}</span></button>
-    <button class="emp-tab">Pending <span class="emp-tab-count">{{.PendingCount}}</span></button>
-    <button class="emp-tab">Reviewed <span class="emp-tab-count">{{.ReviewedCount}}</span></button>
-    <button class="emp-tab">Interview <span class="emp-tab-count">{{.InterviewCount}}</span></button>
-    <button class="emp-tab">Offers <span class="emp-tab-count">{{.OfferCount}}</span></button>
-    <button class="emp-tab emp-tab-muted">Rejected <span class="emp-tab-count">{{.RejectedCount}}</span></button>
+  {{/* Loading State */}}
+  <div id="applications-loading" class="emp-loading" style="display: none;">
+    <div class="emp-spinner"></div>
+    <p>Loading your applications...</p>
   </div>
 
-  <div class="emp-app-list">
-    {{if .Applications}}
-    {{range .Applications}}
-    <div class="emp-app-card">
-      <div class="emp-app-head">
-        <div class="emp-app-brand">
-          {{if .CompanyLogo}}
-          <img src="{{.CompanyLogo}}" alt="{{.Company}}" class="emp-app-logo">
-          {{else}}
-          <span class="emp-app-logo-init">{{.CompanyInitials}}</span>
-          {{end}}
-          <div>
-            <h3 class="emp-app-title">{{.Title}}</h3>
-            <p class="emp-app-company">{{.Company}}</p>
-          </div>
-        </div>
-        <span class="emp-badge emp-badge-{{.Status}}">{{.Status}}</span>
-      </div>
-      <div class="emp-app-meta">
-        <span>&#x1F4C5; Applied {{.AppliedDate}}</span>
-        <span>&#x1F4CD; {{.Location}}</span>
-        <span>&#x1F4BC; {{.Type}}</span>
-      </div>
-      {{if .NextStep}}
-      <div class="emp-app-next">
-        <span class="emp-app-next-icon">&#x1F4CC;</span>
-        <span>Next step: <strong>{{.NextStep}}</strong></span>
-      </div>
-      {{end}}
+  {{/* Error State */}}
+  <div id="applications-error" class="emp-error" style="display: none;">
+    <div class="emp-error-icon">⚠️</div>
+    <h3>Failed to load applications</h3>
+    <p id="applications-error-msg"></p>
+    <button class="emp-btn emp-btn-primary" onclick="location.reload()">Try Again</button>
+  </div>
+
+  {{/* Applications Content */}}
+  <div id="applications-content" style="display: none;">
+    {{/* Status Tabs */}}
+    <div class="emp-tabs" id="application-tabs">
+      <button class="emp-tab active" data-status="all">
+        All <span class="emp-tab-count" id="tab-all-count">0</span>
+      </button>
+      <button class="emp-tab" data-status="pending">
+        Pending <span class="emp-tab-count" id="tab-pending-count">0</span>
+      </button>
+      <button class="emp-tab" data-status="viewed">
+        Reviewed <span class="emp-tab-count" id="tab-viewed-count">0</span>
+      </button>
+      <button class="emp-tab" data-status="shortlisted">
+        Shortlisted <span class="emp-tab-count" id="tab-shortlisted-count">0</span>
+      </button>
+      <button class="emp-tab" data-status="interview">
+        Interview <span class="emp-tab-count" id="tab-interview-count">0</span>
+      </button>
+      <button class="emp-tab" data-status="hired">
+        Offers <span class="emp-tab-count" id="tab-hired-count">0</span>
+      </button>
+      <button class="emp-tab emp-tab-muted" data-status="rejected">
+        Rejected <span class="emp-tab-count" id="tab-rejected-count">0</span>
+      </button>
     </div>
-    {{end}}
-    {{else}}
-    <div class="emp-empty">
-      <div class="emp-empty-icon">&#x1F4CB;</div>
-      <p class="emp-empty-text">You haven't applied to any jobs yet. Start exploring opportunities!</p>
-      <a href="/employee/jobs" class="emp-btn emp-btn-primary">Browse Jobs &rarr;</a>
+
+    {{/* Applications List */}}
+    <div id="applications-list" class="emp-app-list">
+      <div class="emp-loading-small">Loading applications...</div>
     </div>
-    {{end}}
+
+    {{/* Pagination */}}
+    <div id="applications-pagination" class="emp-pagination" style="display: none;">
+      <button class="emp-pagination-btn" id="prev-page" disabled>← Previous</button>
+      <span class="emp-pagination-info" id="page-info">Page 1 of 1</span>
+      <button class="emp-pagination-btn" id="next-page" disabled>Next →</button>
+    </div>
   </div>
 </div>
 
 <style>
+/* Employee Applications Styles */
+.emp-dash {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.emp-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.emp-page-title {
+  font-family: var(--fh);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.emp-page-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.emp-page-stats {
+  display: flex;
+  gap: 16px;
+}
+.emp-stat-card {
+  text-align: center;
+  padding: 8px 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-width: 100px;
+}
+.emp-stat-value {
+  display: block;
+  font-family: var(--fh);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.emp-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+/* Loading & Error States */
+.emp-loading, .emp-error {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.emp-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.emp-error-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+}
+.emp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  height: 42px;
+  font-family: var(--fm);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+}
+.emp-btn-primary {
+  background: var(--accent);
+  color: var(--bg);
+}
+.emp-btn-primary:hover {
+  opacity: 0.88;
+}
+
+/* Tabs */
 .emp-tabs {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  margin-bottom: 24px;
 }
 .emp-tab {
   display: flex;
@@ -79,14 +200,24 @@
   cursor: pointer;
   transition: all 0.15s;
 }
-.emp-tab:hover { border-color: var(--accent); color: var(--text); }
+.emp-tab:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
 .emp-tab.active {
   background: var(--accent);
   color: var(--bg);
   border-color: var(--accent);
 }
-.emp-tab.active .emp-tab-count { background: rgba(255,255,255,0.2); color: var(--bg); }
-.emp-tab-muted:hover { border-color: var(--border); color: var(--muted); cursor: default; }
+.emp-tab.active .emp-tab-count {
+  background: rgba(255,255,255,0.2);
+  color: var(--bg);
+}
+.emp-tab-muted:hover {
+  border-color: var(--border);
+  color: var(--muted);
+  cursor: default;
+}
 .emp-tab-count {
   font-size: 9px;
   padding: 1px 6px;
@@ -98,22 +229,31 @@
   line-height: 16px;
 }
 
+/* Applications List */
 .emp-app-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  min-height: 300px;
 }
 .emp-app-card {
-  padding: 18px 20px;
+  padding: 20px;
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  transition: border-color 0.15s;
+  gap: 14px;
+  transition: all 0.2s;
+  cursor: pointer;
 }
-.emp-app-card:hover { border-color: rgba(0,229,160,0.2); }
+.emp-app-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Card Header */
 .emp-app-head {
   display: flex;
   align-items: center;
@@ -125,78 +265,276 @@
   align-items: center;
   gap: 14px;
   min-width: 0;
+  flex: 1;
 }
 .emp-app-logo {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   object-fit: cover;
   flex-shrink: 0;
+  background: var(--s2);
 }
 .emp-app-logo-init {
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--fh);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--accent);
   flex-shrink: 0;
 }
 .emp-app-title {
   font-family: var(--fh);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text);
+  margin-bottom: 4px;
 }
 .emp-app-company {
   font-size: 12px;
   color: var(--muted);
-  margin-top: 2px;
 }
 
+/* Status Badges */
 .emp-badge {
   font-family: var(--fm);
   font-size: 10px;
   font-weight: 500;
   padding: 4px 12px;
-  border-radius: var(--radius);
+  border-radius: 20px;
   letter-spacing: 0.3px;
   text-transform: capitalize;
   white-space: nowrap;
 }
-.emp-badge-pending { background: rgba(245,166,35,0.1); color: var(--warn); border: 1px solid rgba(245,166,35,0.2); }
-.emp-badge-reviewed { background: rgba(59,130,246,0.1); color: #3b82f6; border: 1px solid rgba(59,130,246,0.2); }
-.emp-badge-interview { background: rgba(0,229,160,0.1); color: var(--accent); border: 1px solid rgba(0,229,160,0.2); }
-.emp-badge-offer { background: rgba(0,229,160,0.12); color: var(--accent); border: 1px solid rgba(0,229,160,0.25); }
-.emp-badge-rejected { background: rgba(255,79,79,0.08); color: var(--danger); border: 1px solid rgba(255,79,79,0.15); }
-.emp-badge-withdrawn { background: rgba(128,128,128,0.08); color: var(--muted); border: 1px solid rgba(128,128,128,0.15); }
+.emp-badge-pending {
+  background: rgba(245, 166, 35, 0.1);
+  color: var(--warn);
+  border: 1px solid rgba(245, 166, 35, 0.2);
+}
+.emp-badge-viewed {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+.emp-badge-shortlisted {
+  background: rgba(0, 229, 160, 0.1);
+  color: var(--accent);
+  border: 1px solid rgba(0, 229, 160, 0.2);
+}
+.emp-badge-interview {
+  background: rgba(0, 229, 160, 0.12);
+  color: var(--accent);
+  border: 1px solid rgba(0, 229, 160, 0.25);
+}
+.emp-badge-hired {
+  background: rgba(0, 229, 160, 0.15);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+.emp-badge-rejected {
+  background: rgba(255, 79, 79, 0.08);
+  color: var(--danger);
+  border: 1px solid rgba(255, 79, 79, 0.15);
+}
 
+/* Meta Information */
 .emp-app-meta {
   display: flex;
-  gap: 18px;
+  gap: 20px;
   font-family: var(--fm);
   font-size: 11px;
   color: var(--muted2);
   letter-spacing: 0.2px;
   flex-wrap: wrap;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
-.emp-app-next {
+
+/* Match Score */
+.emp-app-match {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
   background: var(--s2);
-  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+.emp-app-match-score {
+  font-weight: 700;
+  font-size: 16px;
+  font-family: var(--fh);
+}
+.emp-app-match-message {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Next Step */
+.emp-app-next {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(0, 229, 160, 0.05);
+  border: 1px solid rgba(0, 229, 160, 0.1);
   border-radius: var(--radius);
   font-size: 12px;
   color: var(--muted);
 }
-.emp-app-next strong { color: var(--text); font-weight: 500; }
-.emp-app-next-icon { font-size: 13px; }
+.emp-app-next strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+.emp-app-next-icon {
+  font-size: 14px;
+}
+
+/* Employer Notes */
+.emp-app-notes {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--muted);
+}
+.emp-app-notes strong {
+  color: #3b82f6;
+}
+
+/* Withdraw Button */
+.emp-app-withdraw {
+  margin-top: 4px;
+  text-align: right;
+}
+.emp-withdraw-btn {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--danger);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+.emp-withdraw-btn:hover {
+  opacity: 1;
+}
+
+/* Pagination */
+.emp-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.emp-pagination-btn {
+  padding: 8px 16px;
+  font-family: var(--fm);
+  font-size: 11px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.emp-pagination-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.emp-pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.emp-pagination-info {
+  font-family: var(--fm);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Empty & Loading States */
+.emp-loading-small {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.emp-empty {
+  text-align: center;
+  padding: 60px 20px;
+}
+.emp-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+.emp-empty-text {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+/* Responsive */
+@media (max-width: 860px) {
+  .emp-page-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .emp-page-stats {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .emp-tabs {
+    gap: 6px;
+  }
+  .emp-tab {
+    padding: 6px 12px;
+    font-size: 10px;
+  }
+  .emp-app-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .emp-app-meta {
+    gap: 12px;
+  }
+}
+@media (max-width: 640px) {
+  .emp-app-brand {
+    gap: 10px;
+  }
+  .emp-app-logo, .emp-app-logo-init {
+    width: 40px;
+    height: 40px;
+  }
+  .emp-app-title {
+    font-size: 14px;
+  }
+  .emp-page-stats {
+    flex-wrap: wrap;
+  }
+  .emp-stat-card {
+    flex: 1;
+    min-width: auto;
+  }
+}
 </style>
+
+<script src="/static/js/pages/employee/applications.js"></script>

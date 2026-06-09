@@ -3,7 +3,9 @@ package services
 import (
 	"context"
 	"fmt"
+	"io"
 	"mime/multipart"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -62,21 +64,23 @@ type CompanyStats struct {
 }
 
 type UpdateCompanyProfileRequest struct {
-	CompanyName        string `json:"company_name"`
-	CompanyWebsite     string `json:"company_website"`
-	CompanyLinkedIn    string `json:"company_linkedin"`
-	CompanyDescription string `json:"company_description"`
-	Industry           string `json:"industry"`
-	CompanySize        string `json:"company_size"`
-	Location           string `json:"location"`
-	PhoneNumber        string `json:"phone_number"`
-	EmailAddress       string `json:"email_address"`
+	CompanyName                  string `json:"company_name"`
+	CompanyWebsite               string `json:"company_website"`
+	CompanyLinkedIn              string `json:"company_linkedin"`
+	CompanyDescription           string `json:"company_description"`
+	Industry                     string `json:"industry"`
+	CompanySize                  string `json:"company_size"`
+	Location                     string `json:"location"`
+	PhoneNumber                  string `json:"phone_number"`
+	EmailAddress                 string `json:"email_address"`
+	BusinessRegistrationNumber   string `json:"business_registration_number"`
+	TaxID                        string `json:"tax_id"`
 }
 
 type VerificationRequest struct {
-	BusinessRegistrationNumber string   `json:"business_registration_number" validate:"required"`
-	TaxID                      string   `json:"tax_id" validate:"required"`
-	Documents                  []string `json:"documents" validate:"required,min=1"`
+	BusinessRegistrationNumber string   `json:"business_registration_number"`
+	TaxID                      string   `json:"tax_id"`
+	Documents                  []string `json:"documents"`
 }
 
 type SubmitReviewRequest struct {
@@ -230,6 +234,12 @@ func (s *CompanyServiceImpl) UpdateCompanyProfile(ctx context.Context, companyID
 	if req.Location != "" {
 		updates["location"] = req.Location
 	}
+	if req.PhoneNumber != "" {
+		updates["phone_number"] = req.PhoneNumber
+	}
+	if req.EmailAddress != "" {
+		updates["contact_email"] = req.EmailAddress
+	}
 	
 	if len(updates) == 0 {
 		return nil, fmt.Errorf("no fields to update")
@@ -238,7 +248,13 @@ func (s *CompanyServiceImpl) UpdateCompanyProfile(ctx context.Context, companyID
 	if err := s.employerRepo.UpdateEmployerProfile(ctx, companyID, updates); err != nil {
 		return nil, fmt.Errorf("failed to update company profile: %w", err)
 	}
-	
+
+	if req.BusinessRegistrationNumber != "" || req.TaxID != "" {
+		if err := s.companyRepo.UpsertVerificationDetails(ctx, companyID, req.BusinessRegistrationNumber, req.TaxID); err != nil {
+			return nil, fmt.Errorf("failed to update verification details: %w", err)
+		}
+	}
+
 	return s.employerRepo.GetEmployerProfile(ctx, companyID)
 }
 
@@ -248,18 +264,35 @@ func (s *CompanyServiceImpl) UploadCompanyLogo(ctx context.Context, companyID st
 	if !allowedExts[ext] {
 		return "", fmt.Errorf("invalid file type. Allowed: JPG, PNG, WEBP")
 	}
-	
+
 	newFilename := fmt.Sprintf("company_%s_%d%s", companyID, time.Now().Unix(), ext)
+	uploadDir := filepath.Join(s.cfg.UploadDir, "companies")
+	filePath := filepath.Join(uploadDir, newFilename)
+
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create upload directory: %w", err)
+	}
+
+	dst, err := os.Create(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create file: %w", err)
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, file); err != nil {
+		return "", fmt.Errorf("failed to write file: %w", err)
+	}
+
 	logoURL := fmt.Sprintf("%s/uploads/companies/%s", s.cfg.AppURL, newFilename)
-	
+
 	updates := map[string]interface{}{
 		"company_logo": logoURL,
 	}
-	
+
 	if err := s.employerRepo.UpdateEmployerProfile(ctx, companyID, updates); err != nil {
 		return "", fmt.Errorf("failed to update company logo: %w", err)
 	}
-	
+
 	return logoURL, nil
 }
 
@@ -273,16 +306,34 @@ func (s *CompanyServiceImpl) SubmitVerification(ctx context.Context, companyID s
 			return nil, fmt.Errorf("company already verified")
 		}
 	}
-	
-	documents := make(models.JSONArray, len(req.Documents))
-	for i, d := range req.Documents {
-		documents[i] = d
+
+	businessReg := req.BusinessRegistrationNumber
+	taxID := req.TaxID
+	var documents models.JSONArray
+
+	if existing != nil {
+		if businessReg == "" {
+			businessReg = existing.BusinessRegistrationNumber
+		}
+		if taxID == "" {
+			taxID = existing.TaxID
+		}
+		if len(req.Documents) == 0 {
+			documents = existing.Documents
+		}
+	}
+
+	if len(req.Documents) > 0 {
+		documents = make(models.JSONArray, len(req.Documents))
+		for i, d := range req.Documents {
+			documents[i] = d
+		}
 	}
 	
 	verification := &models.CompanyVerification{
 		CompanyID:                  companyID,
-		BusinessRegistrationNumber: req.BusinessRegistrationNumber,
-		TaxID:                      req.TaxID,
+		BusinessRegistrationNumber: businessReg,
+		TaxID:                      taxID,
 		Documents:                  documents,
 		Status:                     "pending",
 	}

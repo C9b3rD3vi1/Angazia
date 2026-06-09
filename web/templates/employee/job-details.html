@@ -1,0 +1,727 @@
+{{/* Employee Job Detail Page */}}
+<div class="job-detail-container">
+  {{/* Loading State */}}
+  <div id="job-loading" class="job-loading-state" style="display: flex;">
+    <div class="emp-spinner"></div>
+    <p>Loading job details...</p>
+  </div>
+
+  {{/* Error State */}}
+  <div id="job-error" class="job-error-state" style="display: none;">
+    <span class="job-error-icon">⚠️</span>
+    <h3>Failed to load job</h3>
+    <p id="job-error-msg"></p>
+    <button class="emp-btn emp-btn-primary" onclick="location.reload()">Try Again</button>
+    <button class="emp-btn emp-btn-ghost" onclick="history.back()">Go Back</button>
+  </div>
+
+  {{/* Job Content */}}
+  <div id="job-content" style="display: none;">
+    {{/* Header */}}
+    <div class="job-header">
+      <div class="job-header-left">
+        <button class="job-back-btn" onclick="history.back()">
+          <span>←</span> Back to Jobs
+        </button>
+        <div class="job-company-info">
+          <div class="job-logo-wrapper" id="job-logo"></div>
+          <div>
+            <h1 id="job-title" class="job-title"></h1>
+            <div class="job-company-details">
+              <span id="job-company" class="job-company"></span>
+              <span class="job-divider">•</span>
+              <span id="job-location" class="job-location"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="job-header-right">
+        <div class="job-match-card" id="job-match-card">
+          <span class="job-match-label">Match Score</span>
+          <span class="job-match-score" id="job-match-score">0%</span>
+        </div>
+      </div>
+    </div>
+
+    {{/* Quick Info */}}
+    <div class="job-quick-info">
+      <div class="job-info-item">
+        <span class="job-info-icon">💰</span>
+        <div>
+          <span class="job-info-label">Salary Range</span>
+          <span class="job-info-value" id="job-salary"></span>
+        </div>
+      </div>
+      <div class="job-info-item">
+        <span class="job-info-icon">💼</span>
+        <div>
+          <span class="job-info-label">Employment Type</span>
+          <span class="job-info-value" id="job-type"></span>
+        </div>
+      </div>
+      <div class="job-info-item">
+        <span class="job-info-icon">📍</span>
+        <div>
+          <span class="job-info-label">Work Mode</span>
+          <span class="job-info-value" id="job-work-mode"></span>
+        </div>
+      </div>
+      <div class="job-info-item">
+        <span class="job-info-icon">🎯</span>
+        <div>
+          <span class="job-info-label">Experience</span>
+          <span class="job-info-value" id="job-experience"></span>
+        </div>
+      </div>
+      <div class="job-info-item">
+        <span class="job-info-icon">📅</span>
+        <div>
+          <span class="job-info-label">Posted</span>
+          <span class="job-info-value" id="job-posted"></span>
+        </div>
+      </div>
+      <div class="job-info-item">
+        <span class="job-info-icon">👁️</span>
+        <div>
+          <span class="job-info-label">Views</span>
+          <span class="job-info-value" id="job-views">0</span>
+        </div>
+      </div>
+    </div>
+
+    {{/* Main Content */}}
+    <div class="job-main-grid">
+      {{/* Left Column - Job Details */}}
+      <div class="job-details-section">
+        <div class="job-section">
+          <h2 class="job-section-title">About the Role</h2>
+          <div id="job-description" class="job-description"></div>
+        </div>
+
+        <div class="job-section">
+          <h2 class="job-section-title">Requirements</h2>
+          <div id="job-requirements" class="job-requirements"></div>
+        </div>
+
+        <div class="job-section">
+          <h2 class="job-section-title">Responsibilities</h2>
+          <div id="job-responsibilities" class="job-responsibilities"></div>
+        </div>
+
+        <div class="job-section">
+          <h2 class="job-section-title">Required Skills</h2>
+          <div id="job-skills" class="job-skills-list"></div>
+        </div>
+
+        {{if .Benefits}}
+        <div class="job-section">
+          <h2 class="job-section-title">Benefits & Perks</h2>
+          <div id="job-benefits" class="job-benefits"></div>
+        </div>
+        {{end}}
+      </div>
+
+      {{/* Right Column - Actions */}}
+      <div class="job-actions-section">
+        {{/* Apply Card */}}
+        <div class="job-action-card" id="apply-card">
+          <h3 class="job-action-title">Interested in this position?</h3>
+          <div id="application-status" class="job-application-status"></div>
+          <div id="apply-form" style="display: none;">
+            <div class="job-form-group">
+              <label class="job-form-label">Cover Letter</label>
+              <textarea id="cover-letter" class="job-textarea" rows="6" 
+                placeholder="Why are you a great fit for this role? Include relevant experience and skills..."></textarea>
+              <p class="job-form-hint">Minimum 50 characters recommended</p>
+            </div>
+            <div class="job-form-group">
+              <label class="job-form-label">Resume URL (Optional)</label>
+              <input type="text" id="resume-url" class="job-input" placeholder="Link to your resume or portfolio">
+            </div>
+            <button id="submit-application" class="emp-btn emp-btn-primary job-submit-btn">Submit Application</button>
+          </div>
+          <div id="already-applied" class="job-already-applied" style="display: none;">
+            <div class="job-already-icon">✅</div>
+            <p>You have already applied for this position</p>
+            <a href="/employee/applications" class="emp-btn emp-btn-outline">View Application</a>
+          </div>
+          <div id="login-to-apply" class="job-login-message" style="display: none;">
+            <p>Please <a href="/login">log in</a> to apply for this position</p>
+          </div>
+        </div>
+
+        {{/* Save Job Card */}}
+        <div class="job-action-card">
+          <div class="job-save-container">
+            <button id="save-job-btn" class="emp-btn emp-btn-outline job-save-btn">
+              <span>☆</span> Save this job
+            </button>
+          </div>
+        </div>
+
+        {{/* Company Info Card */}}
+        <div class="job-action-card">
+          <h3 class="job-action-title">About the Company</h3>
+          <div id="company-description" class="job-company-description"></div>
+          <div id="company-stats" class="job-company-stats"></div>
+          <a href="#" id="company-link" class="emp-btn emp-btn-ghost job-company-link">View Company Profile →</a>
+        </div>
+
+        {{/* Skills Match Analysis */}}
+        <div class="job-action-card">
+          <h3 class="job-action-title">Skills Match Analysis</h3>
+          <div id="skills-match" class="job-skills-match">
+            <div class="skills-match-loading">
+              <div class="emp-spinner-small"></div>
+              <p>Analyzing your skills...</p>
+            </div>
+          </div>
+          <a href="/employee/profile/skills" class="job-update-skills">Update your skills →</a>
+        </div>
+
+        {{/* Similar Jobs */}}
+        <div class="job-action-card">
+          <h3 class="job-action-title">Similar Jobs</h3>
+          <div id="similar-jobs" class="job-similar-jobs">
+            <div class="job-similar-loading">Loading similar jobs...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Job Detail Page Styles */
+.job-detail-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Loading & Error States */
+.job-loading-state, .job-error-state {
+  text-align: center;
+  padding: 80px 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.emp-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.job-error-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+/* Header */
+.job-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.job-header-left {
+  flex: 1;
+}
+.job-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-family: var(--fm);
+  font-size: 12px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: all 0.15s;
+}
+.job-back-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.job-company-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.job-logo-wrapper {
+  width: 80px;
+  height: 80px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.job-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.job-logo-placeholder {
+  font-family: var(--fh);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.job-title {
+  font-family: var(--fh);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.job-company-details {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.job-company {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+}
+.job-location {
+  font-size: 14px;
+  color: var(--muted);
+}
+.job-divider {
+  color: var(--muted2);
+}
+.job-match-card {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+  padding: 16px 24px;
+  border-radius: var(--radius);
+  text-align: center;
+  min-width: 120px;
+}
+.job-match-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--bg);
+  opacity: 0.8;
+}
+.job-match-score {
+  font-family: var(--fh);
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--bg);
+  line-height: 1;
+}
+
+/* Quick Info */
+.job-quick-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  padding: 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.job-info-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.job-info-icon {
+  font-size: 24px;
+}
+.job-info-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+.job-info-value {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Main Grid */
+.job-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 32px;
+}
+@media (max-width: 1024px) {
+  .job-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Job Details Section */
+.job-section {
+  margin-bottom: 32px;
+}
+.job-section-title {
+  font-family: var(--fh);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.job-description,
+.job-requirements,
+.job-responsibilities {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.job-description p,
+.job-requirements p,
+.job-responsibilities p {
+  margin-bottom: 16px;
+}
+.job-description ul,
+.job-requirements ul,
+.job-responsibilities ul {
+  padding-left: 20px;
+  margin-bottom: 16px;
+}
+.job-description li,
+.job-requirements li,
+.job-responsibilities li {
+  margin-bottom: 8px;
+}
+.job-skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.job-skill-tag {
+  padding: 6px 14px;
+  background: rgba(0, 229, 160, 0.1);
+  border: 1px solid rgba(0, 229, 160, 0.2);
+  border-radius: 20px;
+  font-size: 13px;
+  color: var(--accent);
+}
+.job-skill-tag.missing {
+  background: rgba(255, 79, 79, 0.08);
+  border-color: rgba(255, 79, 79, 0.15);
+  color: var(--danger);
+  text-decoration: line-through;
+}
+.job-benefits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.job-benefit-tag {
+  padding: 6px 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Actions Section */
+.job-action-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.job-action-title {
+  font-family: var(--fh);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+.job-form-group {
+  margin-bottom: 16px;
+}
+.job-form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.job-textarea {
+  width: 100%;
+  padding: 12px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--fb);
+  font-size: 13px;
+  color: var(--text);
+  resize: vertical;
+}
+.job-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.job-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text);
+}
+.job-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.job-form-hint {
+  font-size: 10px;
+  color: var(--muted2);
+  margin-top: 4px;
+}
+.job-submit-btn {
+  width: 100%;
+  justify-content: center;
+}
+.job-already-applied {
+  text-align: center;
+  padding: 20px;
+}
+.job-already-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+.job-login-message {
+  text-align: center;
+  padding: 20px;
+}
+.job-login-message a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.job-save-container {
+  text-align: center;
+}
+.job-save-btn {
+  width: 100%;
+  justify-content: center;
+}
+.job-save-btn.saved {
+  background: rgba(0, 229, 160, 0.1);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.job-company-description {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+.job-company-stats {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.job-company-stat {
+  text-align: center;
+}
+.job-company-stat-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.job-company-stat-label {
+  font-size: 10px;
+  color: var(--muted);
+}
+.job-company-link {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Skills Match */
+.job-skills-match {
+  margin-bottom: 16px;
+}
+.skills-match-loading {
+  text-align: center;
+  padding: 20px;
+}
+.emp-spinner-small {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 8px;
+}
+.skills-match-progress {
+  margin-bottom: 16px;
+}
+.skills-match-bar {
+  height: 8px;
+  background: var(--s2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.skills-match-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+.skills-match-percent {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.skills-match-list {
+  margin-top: 16px;
+}
+.skills-match-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.skills-match-item.matching {
+  color: var(--accent);
+}
+.skills-match-item.missing {
+  color: var(--danger);
+}
+.job-update-skills {
+  display: block;
+  text-align: center;
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  margin-top: 12px;
+}
+.job-update-skills:hover {
+  text-decoration: underline;
+}
+
+/* Similar Jobs */
+.job-similar-jobs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.job-similar-item {
+  padding: 12px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.job-similar-item:hover {
+  border-color: var(--accent);
+}
+.job-similar-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.job-similar-company {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.job-similar-match {
+  font-size: 10px;
+  color: var(--accent);
+}
+.job-similar-loading {
+  text-align: center;
+  padding: 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Application Status */
+.job-application-status {
+  margin-bottom: 16px;
+}
+.application-status-card {
+  text-align: center;
+  padding: 16px;
+  background: rgba(0, 229, 160, 0.05);
+  border: 1px solid rgba(0, 229, 160, 0.15);
+  border-radius: var(--radius);
+}
+.application-status-pending {
+  color: var(--warn);
+}
+.application-status-shortlisted {
+  color: var(--accent);
+}
+.application-status-interview {
+  color: var(--accent);
+}
+.application-status-hired {
+  color: var(--accent);
+}
+.application-status-rejected {
+  color: var(--danger);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .job-header {
+    flex-direction: column;
+  }
+  .job-quick-info {
+    grid-template-columns: 1fr;
+  }
+  .job-company-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .job-title {
+    font-size: 22px;
+  }
+  .job-match-card {
+    align-self: flex-start;
+  }
+}
+</style>
+
+<script src="/static/js/pages/employee/job-detail.js"></script>

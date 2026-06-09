@@ -1,0 +1,457 @@
+{{/* Employer - Candidate Detail */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title" id="cd-name">Candidate Profile</h1>
+      <p class="emp-page-sub" id="cd-headline">Loading...</p>
+    </div>
+    <div class="emp-page-actions">
+      <button id="cd-save-btn" class="emp-btn emp-btn-primary">+ Save to Talent Pool</button>
+      <a href="/employer/candidates" class="emp-btn emp-btn-secondary">&larr; Back to Candidates</a>
+    </div>
+  </div>
+
+  <div id="cd-pool-badge-wrap" style="margin-bottom:12px;display:none;">
+    <span class="emp-status-badge" id="cd-pool-badge">--</span>
+  </div>
+
+  <div id="cd-loading" class="emp-loading">
+    <div class="emp-spinner"></div>
+    <p>Loading candidate profile...</p>
+  </div>
+
+  <div id="cd-error" class="emp-error" style="display:none;">
+    <div class="emp-error-icon">&#x26A0;&#xFE0F;</div>
+    <h3>Failed to load candidate profile</h3>
+    <p id="cd-error-msg"></p>
+    <button class="emp-btn emp-btn-primary" onclick="location.reload()">Retry</button>
+  </div>
+
+  <div id="cd-content" style="display:none;">
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <div class="emp-card-header-left emp-cd-profile-row">
+          <div class="emp-cd-avatar" id="cd-avatar">
+            <span class="emp-cd-initials" id="cd-initials">--</span>
+          </div>
+          <div>
+            <h2 class="emp-card-title" id="cd-fullname">--</h2>
+            <span class="emp-text-muted" id="cd-headline2"></span>
+          </div>
+        </div>
+        <div>
+          <span class="emp-status-badge" id="cd-availability">--</span>
+        </div>
+      </div>
+      <div class="emp-card-body">
+        <div class="emp-stats-grid emp-cd-stats">
+          <div class="emp-stat-card">
+            <div class="emp-stat-value" id="cd-exp-years">0</div>
+            <div class="emp-stat-label">Years Exp.</div>
+          </div>
+          <div class="emp-stat-card">
+            <div class="emp-stat-value" id="cd-exp-level">--</div>
+            <div class="emp-stat-label">Level</div>
+          </div>
+          <div class="emp-stat-card">
+            <div class="emp-stat-value" id="cd-location">--</div>
+            <div class="emp-stat-label">Location</div>
+          </div>
+          <div class="emp-stat-card">
+            <div class="emp-stat-value" id="cd-remote">--</div>
+            <div class="emp-stat-label">Remote</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">Bio</h2>
+      </div>
+      <div class="emp-card-body">
+        <p id="cd-bio" class="emp-text-muted" style="line-height:1.6;">No bio provided.</p>
+      </div>
+    </div>
+
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">Skills</h2>
+      </div>
+      <div class="emp-card-body">
+        <div id="cd-skills" class="emp-tags-container">
+          <span class="emp-tag">No skills listed</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">Links</h2>
+      </div>
+      <div class="emp-card-body">
+        <div id="cd-links" class="emp-cd-links">
+          <span class="emp-text-muted">No links provided.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">GitHub Profile</h2>
+      </div>
+      <div class="emp-card-body">
+        <div id="cd-github" class="emp-cd-links">
+          <span class="emp-text-muted">No GitHub profile linked.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="cd-toast" class="emp-toast" style="display:none;"></div>
+
+<div class="emp-modal-overlay" id="cd-pool-modal" style="display:none;">
+  <div class="emp-modal">
+    <div class="emp-modal-head">
+      <h3 class="emp-modal-title">Add to Talent Pool</h3>
+      <button class="emp-modal-close" id="cd-pool-modal-close">&times;</button>
+    </div>
+    <div class="emp-modal-body">
+      <p style="margin:0 0 16px;font-size:14px;color:var(--text);">
+        Add <strong id="cd-modal-candidate-name">this candidate</strong> to a talent pool?
+      </p>
+      <div id="cd-pool-loading" class="emp-modal-loading">
+        <div class="emp-spinner" style="width:28px;height:28px;border-width:2px;"></div>
+        <p>Loading pools...</p>
+      </div>
+      <div id="cd-pool-error" class="emp-modal-error" style="display:none;">
+        <p id="cd-pool-error-msg"></p>
+      </div>
+      <div id="cd-pool-form" style="display:none;">
+        <div class="emp-field">
+          <label class="emp-label">Choose Pool</label>
+          <select id="cd-pool-select" class="emp-input">
+            <option value="">Select a pool...</option>
+          </select>
+        </div>
+        <div class="emp-field">
+          <label class="emp-label">Notes (Optional)</label>
+          <textarea id="cd-pool-notes" class="emp-textarea" rows="3" placeholder="Add notes about this candidate..."></textarea>
+        </div>
+      </div>
+      <div id="cd-pool-empty" style="display:none;">
+        <p class="emp-text-muted" style="text-align:center;">No talent pools yet. <a href="/employer/talent-pool" style="color:var(--purple);">Create one</a> first.</p>
+      </div>
+    </div>
+    <div class="emp-modal-foot">
+      <button class="emp-btn emp-btn-ghost" id="cd-pool-cancel">Cancel</button>
+      <button class="emp-btn emp-btn-primary" id="cd-pool-confirm" disabled>Confirm</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.emp-loading, .emp-error {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-top: 20px;
+}
+.emp-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--purple);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.emp-error-icon { font-size: 48px; margin-bottom: 16px; }
+
+.emp-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.emp-page-title {
+  font-family: var(--fh);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.emp-page-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.emp-page-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.emp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  transition: opacity 0.15s, transform 0.1s;
+  cursor: pointer;
+  border: none;
+}
+.emp-btn:active { transform: scale(0.97); }
+.emp-btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--purple) 0%, #ec4899 100%);
+}
+.emp-btn-primary:hover { opacity: 0.85; }
+.emp-btn-secondary {
+  color: var(--text);
+  background: var(--s2);
+  border: 1px solid var(--border);
+}
+.emp-btn-secondary:hover { border-color: var(--muted2); }
+
+.emp-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.emp-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--s2);
+  border-bottom: 1px solid var(--border);
+}
+.emp-card-title {
+  font-family: var(--fm);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 0;
+}
+.emp-card-body {
+  padding: 20px;
+}
+
+.emp-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.emp-stat-card {
+  text-align: center;
+  padding: 16px;
+  background: var(--s2);
+  border-radius: 10px;
+}
+.emp-stat-value {
+  font-family: var(--fh);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.emp-stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.emp-status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.emp-status-badge.active {
+  background: rgba(0,229,160,0.12);
+  color: var(--accent);
+}
+.emp-tag {
+  font-size: 10px;
+  padding: 3px 10px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 4px;
+}
+
+.emp-cd-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.emp-cd-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), #ec4899);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.emp-cd-initials {
+  font-family: var(--fh);
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+}
+.emp-cd-stats { margin-top: 8px; }
+.emp-text-muted { color: var(--muted); font-size: 13px; }
+.emp-tags-container {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.emp-cd-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.emp-cd-links a {
+  color: var(--purple);
+  text-decoration: none;
+  font-size: 13px;
+}
+.emp-cd-links a:hover { text-decoration: underline; }
+
+@media (max-width: 860px) {
+  .emp-page-head { flex-direction: column; align-items: flex-start; }
+  .emp-page-actions { width: 100%; justify-content: flex-start; }
+  .emp-stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.emp-btn-ghost { background: transparent; color: var(--muted); }
+.emp-btn-ghost:hover { background: var(--s2); color: var(--text); }
+
+.emp-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.emp-modal {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+}
+.emp-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.emp-modal-title {
+  font-family: var(--fh);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+.emp-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--muted);
+}
+.emp-modal-body {
+  padding: 24px;
+}
+.emp-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+}
+.emp-modal-loading, .emp-modal-error {
+  text-align: center;
+  padding: 24px;
+}
+.emp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.emp-label {
+  font-family: var(--fm);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.emp-input {
+  padding: 10px 12px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+.emp-input:focus { border-color: var(--purple); }
+.emp-textarea {
+  padding: 10px 12px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.emp-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  z-index: 2000;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  animation: toast-in 0.25s ease-out;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.emp-toast.success { background: var(--accent); color: #000; }
+.emp-toast.error { background: var(--danger); color: #fff; }
+</style>
+
+<script src="/static/js/pages/employer/candidate-detail.js"></script>

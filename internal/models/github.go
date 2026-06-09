@@ -2,7 +2,6 @@ package models
 
 import (
 	"time"
-	"encoding/json"
 )
 
 // GithubProfile stores GitHub user data
@@ -101,43 +100,6 @@ type GithubSyncLog struct {
 	SyncedAt    time.Time `json:"synced_at" gorm:"autoCreateTime;index"`
 }
 
-// Helper structs for JSON fields
-type JSONMap map[string]interface{}
-type JSONArray []interface{}
-
-// Scan/Value for JSONMap (for GORM)
-func (j JSONMap) Value() (interface{}, error) {
-	return json.Marshal(j)
-}
-
-func (j *JSONMap) Scan(value interface{}) error {
-	if value == nil {
-		*j = make(JSONMap)
-		return nil
-	}
-	bytes, ok := value.([]byte)
-	if !ok {
-		return nil
-	}
-	return json.Unmarshal(bytes, j)
-}
-
-// Scan/Value for JSONArray
-func (j JSONArray) Value() (interface{}, error) {
-	return json.Marshal(j)
-}
-
-func (j *JSONArray) Scan(value interface{}) error {
-	if value == nil {
-		*j = make(JSONArray, 0)
-		return nil
-	}
-	bytes, ok := value.([]byte)
-	if !ok {
-		return nil
-	}
-	return json.Unmarshal(bytes, j)
-}
 
 // Helper methods for GithubProfile
 func (g *GithubProfile) IsActiveContributor() bool {

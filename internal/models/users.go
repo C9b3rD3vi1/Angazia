@@ -21,6 +21,7 @@ type User struct {
 	Role         UserRole  `json:"role" gorm:"type:varchar(50);not null"`
 	IsVerified   bool      `json:"is_verified" gorm:"default:false"`
 	IsActive     bool      `json:"is_active" gorm:"default:true"`
+	AvatarURL    string    `json:"avatar_url,omitempty" gorm:"size:512"`
 	LastLoginAt  *time.Time `json:"last_login_at,omitempty"`
 	CreatedAt    time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt    time.Time `json:"updated_at" gorm:"autoUpdateTime"`
@@ -72,12 +73,14 @@ type EmployerProfile struct {
 	UserID                string     `json:"user_id" gorm:"type:uuid;primaryKey"`
 	CompanyName           string     `json:"company_name" gorm:"size:255;not null;index"`
 	CompanyWebsite        string     `json:"company_website,omitempty" gorm:"size:512"`
-	CompanyLinkedIn       string     `json:"company_linkedin,omitempty" gorm:"size:512"`
+	CompanyLinkedIn       string     `json:"company_linkedin,omitempty" gorm:"column:company_linkedin;size:512"`
 	CompanyLogo           string     `json:"company_logo,omitempty" gorm:"size:512"`
 	CompanyDescription    string     `json:"company_description" gorm:"type:text"`
 	Industry              string     `json:"industry" gorm:"size:100;index"`
 	CompanySize           string     `json:"company_size" gorm:"size:50"` // 1-10, 11-50, 51-200, 201-500, 500+
 	Location              string     `json:"location" gorm:"size:255"`
+	PhoneNumber           string     `json:"phone_number,omitempty" gorm:"size:50"`
+	ContactEmail          string     `json:"contact_email,omitempty" gorm:"size:255"`
 	VerificationStatus    string     `json:"verification_status" gorm:"default:'pending';size:50"` // pending, verified, rejected
 	VerifiedAt            *time.Time `json:"verified_at,omitempty"`
 	VerifiedBy            string     `json:"verified_by,omitempty" gorm:"size:255"`

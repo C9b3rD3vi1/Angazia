@@ -28,6 +28,8 @@ func SetupApplicationRoutes(
 	employer.Post("/applications/:id/reject", applicationHandler.RejectApplication)
 	employer.Post("/applications/:id/interview", applicationHandler.ScheduleInterview)
 	employer.Post("/applications/bulk-shortlist", applicationHandler.BulkShortlist)
+	employer.Post("/applications/bulk-reject", applicationHandler.BulkReject)
+	employer.Post("/applications/:id/hire", applicationHandler.MarkAsHired)
 	
 	// Shared application view (both roles can view individual applications)
 	protected.Get("/applications/:id", applicationHandler.GetApplication)

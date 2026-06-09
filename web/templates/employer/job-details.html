@@ -1,0 +1,397 @@
+{{/* Employer - Job Detail Page */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title" id="job-title">Job Details</h1>
+      <p class="emp-page-sub" id="job-status"></p>
+    </div>
+    <div class="emp-page-actions">
+      <button id="edit-job-btn" class="emp-btn emp-btn-secondary">✏️ Edit Job</button>
+      <button id="close-job-btn" class="emp-btn emp-btn-warning">🔒 Close Job</button>
+      <button id="delete-job-btn" class="emp-btn emp-btn-danger">🗑️ Delete Job</button>
+    </div>
+  </div>
+
+  {{/* Loading State */}}
+  <div id="job-loading" class="emp-loading">
+    <div class="emp-spinner"></div>
+    <p>Loading job details...</p>
+  </div>
+
+  {{/* Error State */}}
+  <div id="job-error" class="emp-error" style="display:none;">
+    <div class="emp-error-icon">⚠️</div>
+    <h3>Failed to load job</h3>
+    <p id="job-error-msg"></p>
+    <button class="emp-btn emp-btn-primary" onclick="location.reload()">Retry</button>
+  </div>
+
+  {{/* Job Content */}}
+  <div id="job-content" style="display:none;">
+    {{/* Job Overview Card */}}
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">Job Overview</h2>
+        <span id="job-status-badge" class="emp-status-badge"></span>
+      </div>
+      <div class="emp-card-body">
+        <div class="emp-stats-grid">
+          <div class="emp-stat-card">
+            <div class="emp-stat-value" id="stat-applications">0</div>
+            <div class="emp-stat-label">Total Applications</div>
+          </div>
+          <div class="emp-stat-card">
+            <div class="emp-stat-value" id="stat-views">0</div>
+            <div class="emp-stat-label">Total Views</div>
+          </div>
+          <div class="emp-stat-card">
+            <div class="emp-stat-value" id="stat-shortlisted">0</div>
+            <div class="emp-stat-label">Shortlisted</div>
+          </div>
+          <div class="emp-stat-card">
+            <div class="emp-stat-value" id="stat-hired">0</div>
+            <div class="emp-stat-label">Hired</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {{/* Job Details Card */}}
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">Job Information</h2>
+        <a href="/employer/job-edit/${jobId}" class="emp-link">Edit Job</a>
+      </div>
+      <div class="emp-card-body">
+        <div class="emp-detail-grid">
+          <div class="emp-detail-item">
+            <label>Job Title</label>
+            <p id="detail-title">-</p>
+          </div>
+          <div class="emp-detail-item">
+            <label>Employment Type</label>
+            <p id="detail-type">-</p>
+          </div>
+          <div class="emp-detail-item">
+            <label>Location</label>
+            <p id="detail-location">-</p>
+          </div>
+          <div class="emp-detail-item">
+            <label>Work Type</label>
+            <p id="detail-work-type">-</p>
+          </div>
+          <div class="emp-detail-item">
+            <label>Salary Range</label>
+            <p id="detail-salary">-</p>
+          </div>
+          <div class="emp-detail-item">
+            <label>Experience Level</label>
+            <p id="detail-experience">-</p>
+          </div>
+          <div class="emp-detail-item">
+            <label>Posted Date</label>
+            <p id="detail-posted">-</p>
+          </div>
+          <div class="emp-detail-item">
+            <label>Application Deadline</label>
+            <p id="detail-deadline">-</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {{/* Description Card */}}
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">Job Description</h2>
+      </div>
+      <div class="emp-card-body">
+        <div id="detail-description" class="emp-rich-text"></div>
+      </div>
+    </div>
+
+    {{/* Requirements Card */}}
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">Requirements</h2>
+      </div>
+      <div class="emp-card-body">
+        <div id="detail-requirements" class="emp-rich-text"></div>
+      </div>
+    </div>
+
+    {{/* Skills Card */}}
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">Required Skills</h2>
+      </div>
+      <div class="emp-card-body">
+        <div id="detail-skills" class="emp-skills-container"></div>
+      </div>
+    </div>
+
+    {{/* Applications Section */}}
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">Recent Applications</h2>
+        <a href="/employer/job-applications/${jobId}" class="emp-link">View All →</a>
+      </div>
+      <div class="emp-card-body">
+        <div id="recent-applications" class="emp-applications-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.emp-loading, .emp-error {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-top: 20px;
+}
+.emp-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--purple);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.emp-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.emp-page-title {
+  font-family: var(--fh);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.emp-page-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.emp-page-actions {
+  display: flex;
+  gap: 12px;
+}
+.emp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  transition: opacity 0.15s, transform 0.1s;
+  cursor: pointer;
+  border: none;
+}
+.emp-btn:active { transform: scale(0.97); }
+.emp-btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--purple) 0%, #ec4899 100%);
+}
+.emp-btn-primary:hover { opacity: 0.85; }
+.emp-btn-secondary {
+  color: var(--text);
+  background: var(--s2);
+  border: 1px solid var(--border);
+}
+.emp-btn-secondary:hover { border-color: var(--muted2); }
+.emp-btn-warning {
+  color: #fff;
+  background: var(--warn);
+}
+.emp-btn-warning:hover { opacity: 0.85; }
+.emp-btn-danger {
+  color: #fff;
+  background: var(--danger);
+}
+.emp-btn-danger:hover { opacity: 0.85; }
+
+.emp-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.emp-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--s2);
+  border-bottom: 1px solid var(--border);
+}
+.emp-card-title {
+  font-family: var(--fm);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 0;
+}
+.emp-card-body {
+  padding: 20px;
+}
+
+.emp-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.emp-stat-card {
+  text-align: center;
+  padding: 16px;
+  background: var(--s2);
+  border-radius: 10px;
+}
+.emp-stat-value {
+  font-family: var(--fh);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.emp-stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.emp-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+.emp-detail-item label {
+  display: block;
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.emp-detail-item p {
+  font-size: 14px;
+  color: var(--text);
+  margin: 0;
+}
+
+.emp-rich-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.emp-skills-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.emp-skill-badge {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.emp-applications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.emp-application-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--s2);
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.emp-application-item:hover {
+  background: var(--s3);
+}
+.emp-application-info {
+  flex: 1;
+}
+.emp-application-name {
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.emp-application-details {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  gap: 16px;
+}
+.emp-application-score {
+  font-family: var(--fh);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--accent);
+  margin-right: 16px;
+}
+.emp-application-actions {
+  display: flex;
+  gap: 8px;
+}
+.emp-status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.emp-status-badge.active {
+  background: rgba(0,229,160,0.12);
+  color: var(--accent);
+}
+.emp-status-badge.closed {
+  background: rgba(255,79,79,0.1);
+  color: var(--danger);
+}
+.emp-link {
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--purple);
+  text-decoration: none;
+}
+.emp-link:hover { text-decoration: underline; }
+
+@media (max-width: 860px) {
+  .emp-page-head { flex-direction: column; align-items: flex-start; }
+  .emp-page-actions { width: 100%; justify-content: flex-start; }
+  .emp-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .emp-detail-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<script src="/static/js/pages/employer/job-details.js"></script>

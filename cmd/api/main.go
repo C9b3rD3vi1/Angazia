@@ -128,7 +128,8 @@ func main() {
 	
 	// Additional services
 	applicationSvc := services.NewApplicationService(cfg, applicationRepo, jobRepo, userRepo, emailSvc)
-	notificationSvc := services.NewNotificationService(cfg, notificationRepo, emailSvc)
+	notificationSvc := services.NewNotificationService(cfg, notificationRepo, userRepo, emailSvc)
+	applicationSvc.SetNotificationService(notificationSvc)
 	matchingSvc := services.NewMatchingService(cfg, aiProvider, jobRepo, userRepo, githubRepo, matchRepo)
 	alertSvc := services.NewAlertService(cfg, alertRepo, jobRepo, emailSvc)
 	searchSvc := services.NewSearchService(cfg, searchRepo, jobRepo, userRepo)
@@ -159,9 +160,26 @@ func main() {
 		_ = services.NewCacheService(redisWrapped, jobRepo, userRepo)
 		_ = pkgredis.NewSessionManager(redisWrapped, 24*time.Hour)
 	}
-	
+
+	// ========== SEED SUBSCRIPTION PLANS ==========
+	// This will create default plans if they don't exist
+	ctx := context.Background()
+	if cfg.IsDevelopment() {
+			log.Println("🌱 Seeding subscription plans...")
+			if err := database.SeedSubscriptionPlans(ctx, subscriptionSvc); err != nil {
+				log.Printf("Warning: Failed to seed subscription plans: %v", err)
+			}
+		}
+
+	// ========== BACKFILL SUBSCRIPTIONS FOR EXISTING EMPLOYERS ==========
+	// Creates subscription records for employers who registered before
+	// the auto-subscription-on-registration feature was added.
+	if err := database.BackfillEmployerSubscriptions(ctx, db); err != nil {
+		log.Printf("Warning: Failed to backfill subscriptions: %v", err)
+	}
+
 	// Initialize handlers
-	authHandler := handlers.NewAuthHandler(authSvc)
+	authHandler := handlers.NewAuthHandler(authSvc, cfg)
 	// Initialize job handler
 	jobHandler := handlers.NewJobHandler(jobSvc)
 
@@ -173,6 +191,7 @@ func main() {
 	searchHandler := handlers.NewSearchHandler(searchSvc)
 	adminHandler := handlers.NewAdminHandler(adminSvc)
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsSvc)
+	dashboardHandler := handlers.NewDashboardHandler(analyticsSvc, subscriptionSvc)
 	candidateAnalyticsHandler := handlers.NewCandidateAnalyticsHandler(candidateAnalyticsSvc)
 	talentPoolHandler := handlers.NewTalentPoolHandler(talentPoolSvc)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionSvc)
@@ -180,6 +199,9 @@ func main() {
 	alertHandler := handlers.NewAlertHandler(alertSvc)
 	planHandler := handlers.NewAdminPlanHandler(subscriptionSvc)
 	webHandler := handlers.NewWebHandler(jobSvc, companyService)
+	if notificationSvc != nil {
+		webHandler = handlers.NewWebHandlerWithNotifications(jobSvc, companyService, notificationSvc)
+	}
 	companyHandler := handlers.NewCompanyHandler(companyService)
 	resumeHandler := handlers.NewResumeHandler(profileSvc)
 	websocketHandler := handlers.NewWebSocketHandler()
@@ -222,6 +244,33 @@ func main() {
 		}
 		return r
 	})
+	toInt := func(v interface{}) int {
+		switch n := v.(type) {
+		case int:
+			return n
+		case int64:
+			return int(n)
+		case float64:
+			return int(n)
+		case float32:
+			return int(n)
+		case int32:
+			return int(n)
+		default:
+			return 0
+		}
+	}
+	engine.AddFunc("add", func(a, b interface{}) int {
+		return toInt(a) + toInt(b)
+	})
+	engine.AddFunc("percentage", func(part, total interface{}) int {
+		p := toInt(part)
+		t := toInt(total)
+		if t <= 0 {
+			return 0
+		}
+		return int(float64(p) / float64(t) * 100)
+	})
 
 	app := fiber.New(fiber.Config{
 		AppName:               cfg.AppName,
@@ -239,6 +288,13 @@ func main() {
 	
 	// Static files
 	app.Static("/static", cfg.StaticDir, fiber.Static{
+		Compress:      true,
+		ByteRange:     true,
+		Browse:        false,
+		CacheDuration: 24 * time.Hour,
+		MaxAge:        86400,
+	})
+	app.Static("/uploads", cfg.UploadDir, fiber.Static{
 		Compress:      true,
 		ByteRange:     true,
 		Browse:        false,
@@ -291,6 +347,9 @@ func main() {
 	// Analytics routes
 	routes.SetupAnalyticsRoutes(api, analyticsHandler)
 	
+	// Dashboard routes
+	routes.SetupDashboardRoutes(api, dashboardHandler)
+	
 	// Candidate analytics routes
 	routes.SetupCandidateAnalyticsRoutes(api, candidateAnalyticsHandler)
 	
@@ -306,6 +365,10 @@ func main() {
 	// Plan routes (public + admin)
 	routes.SetupPublicPlanRoutes(api, planHandler)
 	routes.SetupAdminPlanRoutes(api, planHandler)
+
+	// Admin subscription management routes
+	adminSubHandler := handlers.NewAdminSubscriptionHandler(subscriptionSvc)
+	routes.SetupAdminSubscriptionRoutes(api, adminSubHandler)
 	
 	// 2FA routes
 	twoFARepo := repository.NewTwoFARepository(db)
@@ -313,11 +376,13 @@ func main() {
 	smsProvider := smsProviderFactory.GetProvider()
 	twoFAService := services.NewTwoFAService(cfg, twoFARepo, userRepo, smsProvider, emailSvc, redisClient)
 	twoFAHandler := handlers.NewTwoFAHandler(twoFAService)
+	authHandler.SetTwoFAService(twoFAService)
 	routes.SetupTwoFARoutes(api, twoFAHandler)
 	routes.SetupTwoFAGlobalMiddleware(app, twoFAService)
 	
 	// Web routes (HTML pages)
-	routes.SetupWebRoutes(app, webHandler, authHandler, authSvc)
+	adminWebHandler := handlers.NewAdminWebHandler(adminSvc, jobSvc, subscriptionSvc, companyService, authSvc)
+	routes.SetupWebRoutes(app, webHandler, authHandler, authSvc, adminWebHandler, notificationSvc, jobSvc)
 	
 	// WebSocket routes
 	routes.SetupWebSocketRoutes(app, websocketHandler)
@@ -368,13 +433,16 @@ func initializeDatabase(cfg *config.Config, db *gorm.DB) error {
 	}
 	
 	if cfg.IsDevelopment() {
-		if err := database.SeedData(); err != nil {
+		if err := database.SeedData(cfg); err != nil {
 			log.Println("Warning: Could not seed data:", err)
 		}
+		
 	}
 	
 	return nil
 }
+
+
 
 func setupMiddleware(app *fiber.App, cfg *config.Config) {
 	app.Use(logger.New(logger.Config{

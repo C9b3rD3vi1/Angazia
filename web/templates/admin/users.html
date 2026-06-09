@@ -1,0 +1,135 @@
+{{/* Admin User Management */}}
+
+<div class="au-page">
+  {{/* - Page Header - */}}
+  <div class="au-header">
+    <div class="au-header-text">
+      <h1 class="au-title">User Management</h1>
+      <p class="au-subtitle">Manage all platform users</p>
+    </div>
+    <div class="au-header-actions">
+      <button class="au-btn au-btn-ghost" data-action="reload">&#x1F504; Refresh</button>
+    </div>
+  </div>
+
+  {{/* - Filters - */}}
+  <div class="au-filters">
+    <div class="au-search-wrap">
+      <span class="au-search-icon">&#x1F50D;</span>
+      <input type="text" class="au-input au-search-input" id="au-search" placeholder="Search by name, email, company..." />
+    </div>
+    <div class="au-filter-group">
+      <select class="au-select" id="au-filter-role">
+        <option value="">All Roles</option>
+        <option value="employee">Employee</option>
+        <option value="employer">Employer</option>
+        <option value="admin">Admin</option>
+      </select>
+      <select class="au-select" id="au-filter-status">
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+      <select class="au-select" id="au-filter-verified">
+        <option value="">All Verification</option>
+        <option value="verified">Verified</option>
+        <option value="unverified">Unverified</option>
+      </select>
+      <button class="au-btn au-btn-primary" id="au-filter-btn">Apply</button>
+    </div>
+  </div>
+
+  {{/* - Bulk Actions - */}}
+  <div class="au-bulk" id="au-bulk" style="display:none;">
+    <span class="au-bulk-count" id="au-bulk-count">0 selected</span>
+    <button class="au-btn au-btn-sm au-btn-danger" id="au-bulk-suspend">Suspend</button>
+    <button class="au-btn au-btn-sm au-btn-success" id="au-bulk-activate">Activate</button>
+    <button class="au-btn au-btn-sm au-btn-danger" id="au-bulk-delete">Delete</button>
+    <button class="au-btn au-btn-sm au-btn-ghost" id="au-bulk-clear">Clear</button>
+  </div>
+
+  {{/* - Loading State - */}}
+  <div class="au-loading" id="au-loading">
+    <div class="au-spinner"></div>
+    <p class="au-loading-text">Loading users...</p>
+  </div>
+
+  {{/* - Error State - */}}
+  <div class="au-error" id="au-error" style="display:none;">
+    <span class="au-error-icon">&#x26A0;&#xFE0F;</span>
+    <p class="au-error-text" id="au-error-text">Failed to load users.</p>
+    <button class="au-btn au-btn-primary" data-action="retry">Retry</button>
+  </div>
+
+  {{/* - Empty State - */}}
+  <div class="au-empty" id="au-empty" style="display:none;">
+    <span class="au-empty-icon">&#x1F465;</span>
+    <p class="au-empty-text">No users found.</p>
+    <p class="au-empty-hint" id="au-empty-hint">Try adjusting your filters or search terms.</p>
+  </div>
+
+  {{/* - Table - */}}
+  <div class="au-table-wrap" id="au-table-wrap" style="display:none;">
+    <table class="au-table" id="au-table">
+      <thead>
+        <tr>
+          <th class="au-th-check"><input type="checkbox" id="au-select-all" /></th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Verified</th>
+          <th>Created</th>
+          <th class="au-th-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="au-tbody"></tbody>
+    </table>
+  </div>
+
+  {{/* - Pagination - */}}
+  <div class="au-pagination" id="au-pagination" style="display:none;">
+    <div class="au-pagi-info" id="au-pagi-info"></div>
+    <div class="au-pagi-btns" id="au-pagi-btns"></div>
+  </div>
+</div>
+
+{{/* - Confirm Modal - */}}
+<div class="au-modal-overlay" id="au-modal" style="display:none;">
+  <div class="au-modal">
+    <div class="au-modal-head">
+      <h3 class="au-modal-title" id="au-modal-title">Confirm Action</h3>
+      <button class="au-modal-close" id="au-modal-close">&times;</button>
+    </div>
+    <div class="au-modal-body">
+      <p id="au-modal-msg">Are you sure?</p>
+    </div>
+    <div class="au-modal-foot">
+      <button class="au-btn au-btn-ghost" id="au-modal-cancel">Cancel</button>
+      <button class="au-btn au-btn-danger" id="au-modal-confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+{{/* - View User Modal - */}}
+<div class="au-modal-overlay" id="au-view-modal" style="display:none;">
+  <div class="au-modal au-modal-lg">
+    <div class="au-modal-head">
+      <h3 class="au-modal-title">User Details</h3>
+      <button class="au-modal-close" id="au-view-close">&times;</button>
+    </div>
+    <div class="au-modal-body" id="au-view-body">
+      <div class="au-loading" id="au-view-loading">
+        <div class="au-spinner"></div>
+        <p class="au-loading-text">Loading user details...</p>
+      </div>
+    </div>
+    <div class="au-modal-foot">
+      <button class="au-btn au-btn-ghost" id="au-view-close-btn">Close</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="/static/js/pages/admin/users.js"></script>
+

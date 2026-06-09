@@ -1,0 +1,187 @@
+{{/* Admin User Detail */}}
+
+<div class="aud-page">
+  {{/*  Page Header  */}}
+  <div class="aud-header">
+    <div class="aud-header-left">
+      <a href="/admin/users" class="aud-back-link">&larr; Back to Users</a>
+      <h1 class="aud-title" id="aud-title">
+        {{if .UserDetail}}{{.UserDetail.FullName}}{{else}}User Details{{end}}
+      </h1>
+    </div>
+    <div class="aud-header-actions" id="aud-header-actions">
+      <button class="aud-btn aud-btn-ghost" data-action="audReload">&#x1F504; Refresh</button>
+    </div>
+  </div>
+
+  {{/*  Loading State  */}}
+  <div class="aud-loading" id="aud-loading">
+    <div class="aud-spinner"></div>
+    <p class="aud-loading-text">Loading user details...</p>
+  </div>
+
+  {{/*  Error State  */}}
+  <div class="aud-error" id="aud-error" style="display:none;">
+    <span class="aud-error-icon">&#x26A0;&#xFE0F;</span>
+    <p class="aud-error-text" id="aud-error-text">Failed to load user details.</p>
+    <button class="aud-btn aud-btn-primary" data-action="audLoad">Retry</button>
+  </div>
+
+  {{/*  Main Content  */}}
+  <div id="aud-content" style="display:none;">
+
+    {{/*  Profile Card  */}}
+    <div class="aud-card aud-profile-card">
+      <div class="aud-profile">
+        <div class="aud-avatar-wrap">
+          <span class="aud-avatar-text" id="aud-avatar">?</span>
+        </div>
+        <div class="aud-profile-info">
+          <h2 class="aud-profile-name" id="aud-name">-</h2>
+          <p class="aud-profile-email" id="aud-email">-</p>
+          <div class="aud-profile-meta">
+            <span class="aud-role-badge" id="aud-role">-</span>
+            <span class="aud-status-badge" id="aud-status">-</span>
+            <span class="aud-verified-badge" id="aud-verified">-</span>
+          </div>
+        </div>
+        <div class="aud-profile-actions" id="aud-profile-actions"></div>
+      </div>
+    </div>
+
+    {{/*  Detail Info  */}}
+    <div class="aud-grid-2col">
+      <div class="aud-col-left">
+
+        {{/*  User Info Card  */}}
+        <div class="aud-card">
+          <div class="aud-card-head">
+            <h3 class="aud-card-title">&#x1F464; Account Information</h3>
+          </div>
+          <div class="aud-card-body aud-info-grid">
+            <div class="aud-info-row">
+              <span class="aud-info-label">User ID</span>
+              <span class="aud-info-value" id="aud-info-id">-</span>
+            </div>
+            <div class="aud-info-row">
+              <span class="aud-info-label">Full Name</span>
+              <span class="aud-info-value" id="aud-info-name">-</span>
+            </div>
+            <div class="aud-info-row">
+              <span class="aud-info-label">Email</span>
+              <span class="aud-info-value" id="aud-info-email">-</span>
+            </div>
+            <div class="aud-info-row">
+              <span class="aud-info-label">Role</span>
+              <span class="aud-info-value" id="aud-info-role">-</span>
+            </div>
+            <div class="aud-info-row">
+              <span class="aud-info-label">Company</span>
+              <span class="aud-info-value" id="aud-info-company">-</span>
+            </div>
+            <div class="aud-info-row">
+              <span class="aud-info-label">Status</span>
+              <span class="aud-info-value" id="aud-info-status">-</span>
+            </div>
+            <div class="aud-info-row">
+              <span class="aud-info-label">Verified</span>
+              <span class="aud-info-value" id="aud-info-verified">-</span>
+            </div>
+            <div class="aud-info-row">
+              <span class="aud-info-label">Created</span>
+              <span class="aud-info-value" id="aud-info-created">-</span>
+            </div>
+            <div class="aud-info-row">
+              <span class="aud-info-label">Last Login</span>
+              <span class="aud-info-value" id="aud-info-lastlogin">-</span>
+            </div>
+          </div>
+        </div>
+
+        {{/*  Activity / History  */}}
+        <div class="aud-card">
+          <div class="aud-card-head">
+            <h3 class="aud-card-title">&#x1F4C3; Activity History</h3>
+          </div>
+          <div class="aud-card-body">
+            <div class="aud-loading-sm" id="aud-activity-loading" style="display:flex;">
+              <div class="aud-spinner-sm"></div>
+              <span>Loading activity...</span>
+            </div>
+            <div class="aud-empty-sm" id="aud-activity-empty" style="display:none;">
+              <p class="aud-empty-text-sm">No activity recorded for this user.</p>
+            </div>
+            <div class="aud-timeline" id="aud-timeline" style="display:none;"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="aud-col-right">
+
+        {{/*  Stats  */}}
+        <div class="aud-card">
+          <div class="aud-card-head">
+            <h3 class="aud-card-title">&#x1F4CA; Statistics</h3>
+          </div>
+          <div class="aud-card-body">
+            <div class="aud-stats-grid">
+              <div class="aud-stat-card">
+                <span class="aud-stat-icon">&#x1F4BC;</span>
+                <div class="aud-stat-body">
+                  <span class="aud-stat-value" id="aud-stat-jobs">-</span>
+                  <span class="aud-stat-label">Jobs Posted</span>
+                </div>
+              </div>
+              <div class="aud-stat-card">
+                <span class="aud-stat-icon">&#x1F4CB;</span>
+                <div class="aud-stat-body">
+                  <span class="aud-stat-value" id="aud-stat-apps">-</span>
+                  <span class="aud-stat-label">Applications</span>
+                </div>
+              </div>
+              <div class="aud-stat-card">
+                <span class="aud-stat-icon">&#x1F6A9;</span>
+                <div class="aud-stat-body">
+                  <span class="aud-stat-value" id="aud-stat-reports">-</span>
+                  <span class="aud-stat-label">Reports</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {{/*  Quick Actions  */}}
+        <div class="aud-card">
+          <div class="aud-card-head">
+            <h3 class="aud-card-title">&#x2699;&#xFE0F; Quick Actions</h3>
+          </div>
+          <div class="aud-card-body">
+            <div class="aud-quick-actions" id="aud-quick-actions"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{{/* Confirm Modal */}}
+<div class="aud-modal-overlay" id="aud-modal" style="display:none;">
+  <div class="aud-modal">
+    <div class="aud-modal-head">
+      <h3 class="aud-modal-title" id="aud-modal-title">Confirm Action</h3>
+      <button class="aud-modal-close" id="aud-modal-close">&times;</button>
+    </div>
+    <div class="aud-modal-body">
+      <p id="aud-modal-msg">Are you sure?</p>
+    </div>
+    <div class="aud-modal-foot">
+      <button class="aud-btn aud-btn-ghost" id="aud-modal-cancel">Cancel</button>
+      <button class="aud-btn aud-btn-danger" id="aud-modal-confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="/static/js/pages/admin/user-detail.js"></script>

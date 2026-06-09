@@ -1,0 +1,52 @@
+{{/* Admin - Notifications */}}
+
+<div class="an-page">
+  <div class="an-header">
+    <div>
+      <h1 class="an-title">Notifications</h1>
+      <p class="an-subtitle">System-wide notifications and alerts</p>
+    </div>
+    <div class="an-header-actions">
+      <button class="an-btn an-btn-outline" id="an-mark-all-btn" style="display:none">Mark All as Read</button>
+    </div>
+  </div>
+
+  <div class="an-tabs">
+    <button class="an-tab active" data-filter="all">All</button>
+    <button class="an-tab" data-filter="unread">Unread</button>
+    <button class="an-tab" data-filter="application">Applications</button>
+    <button class="an-tab" data-filter="interview">Interviews</button>
+    <button class="an-tab" data-filter="message">Messages</button>
+    <button class="an-tab" data-filter="alert">Alerts</button>
+  </div>
+
+  <div class="an-toolbar">
+    <div class="an-search-wrap">
+      <span class="an-search-icon">S</span>
+      <input class="an-input an-search-input" type="text" id="an-search-input" placeholder="Search notifications...">
+    </div>
+    <select class="an-select" id="an-sort-select">
+      <option value="newest">Newest First</option>
+      <option value="oldest">Oldest First</option>
+    </select>
+  </div>
+
+  <div id="an-loading" class="an-loading">
+    <div class="an-spinner"></div>
+    <span class="an-loading-text">Loading notifications...</span>
+  </div>
+
+  <div id="an-error" class="an-error" style="display:none">
+    <span class="an-error-text">Failed to load notifications</span>
+    <button class="an-btn" onclick="location.reload()">Retry</button>
+  </div>
+
+  <div id="an-list" class="an-list" style="display:none"></div>
+
+  <div id="an-pagination" class="an-pagination" style="display:none">
+    <span class="an-pagi-info" id="an-pagi-info"></span>
+    <div class="an-pagi-btns" id="an-pagi-btns"></div>
+  </div>
+</div>
+
+<script src="/static/js/pages/admin/notifications.js"></script>

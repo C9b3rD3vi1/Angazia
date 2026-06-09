@@ -46,7 +46,7 @@ func (h *AdminPlanHandler) CreatePlan(c *fiber.Ctx) error {
 
 // GetPlans returns all subscription plans
 func (h *AdminPlanHandler) GetPlans(c *fiber.Ctx) error {
-	plans, err := h.subscriptionService.GetPlans(c.Context())
+	plans, err := h.subscriptionService.GetAllPlans(c.Context(), true)
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
@@ -113,6 +113,7 @@ func (h *AdminPlanHandler) DeletePlan(c *fiber.Ctx) error {
 	return utils.SuccessWithMessage(c, "Plan deleted successfully", nil)
 }
 
+
 // TogglePlanActive enables/disables a plan
 func (h *AdminPlanHandler) TogglePlanActive(c *fiber.Ctx) error {
 	adminID := c.Locals("user_id")
@@ -132,7 +133,14 @@ func (h *AdminPlanHandler) TogglePlanActive(c *fiber.Ctx) error {
 		return utils.BadRequest(c, err.Error())
 	}
 
-	_, err := h.subscriptionService.UpdatePlan(c.Context(), planID, &services.UpdatePlanRequest{
+	// Get the plan first to find it by UUID or plan_id
+	plan, err := h.subscriptionService.GetPlanByID(c.Context(), planID)
+	if err != nil {
+		return utils.NotFound(c, "Plan")
+	}
+
+	// Update the plan's active status using the plan_id (not UUID) since UpdatePlan expects plan_id
+	_, err = h.subscriptionService.UpdatePlan(c.Context(), plan.PlanID, &services.UpdatePlanRequest{
 		IsActive: &req.IsActive,
 	})
 	if err != nil {

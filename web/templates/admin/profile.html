@@ -1,0 +1,60 @@
+{{/* Admin - Profile */}}
+
+<div class="ap-wrap">
+  <div class="ap-header">
+    <h1 class="ap-title">Profile</h1>
+    <p class="ap-subtitle">Manage your admin account</p>
+  </div>
+
+  {{if .Error}}
+  <div class="ap-alert ap-alert-error">{{.Error}}</div>
+  {{end}}
+  {{if .Success}}
+  <div class="ap-alert ap-alert-success">{{.Success}}</div>
+  {{end}}
+
+  {{/* Profile Info */}}
+  <section class="ap-section">
+    <div class="ap-section-head">
+      <h2 class="ap-section-title">Account Information</h2>
+    </div>
+    <div class="ap-info-grid">
+      <div class="ap-info-item">
+        <span class="ap-info-label">Email</span>
+        <span class="ap-info-value">{{.ProfileUser.Email}}</span>
+      </div>
+      <div class="ap-info-item">
+        <span class="ap-info-label">Role</span>
+        <span class="ap-info-value">{{.ProfileUser.Role}}</span>
+      </div>
+      <div class="ap-info-item">
+        <span class="ap-info-label">Member Since</span>
+        <span class="ap-info-value">N/A</span>
+      </div>
+    </div>
+  </section>
+
+  {{/* Change Password */}}
+  <section class="ap-section">
+    <div class="ap-section-head">
+      <h2 class="ap-section-title">Change Password</h2>
+    </div>
+    <form class="ap-form" method="POST" action="/admin/profile/password">
+      <div class="ap-field">
+        <label class="ap-label" for="current_password">Current Password</label>
+        <input class="ap-input" type="password" id="current_password" name="current_password" required>
+      </div>
+      <div class="ap-field">
+        <label class="ap-label" for="new_password">New Password</label>
+        <input class="ap-input" type="password" id="new_password" name="new_password" required minlength="8">
+      </div>
+      <div class="ap-field">
+        <label class="ap-label" for="confirm_password">Confirm New Password</label>
+        <input class="ap-input" type="password" id="confirm_password" name="confirm_password" required minlength="8">
+      </div>
+      <div class="ap-field">
+        <button class="ap-btn ap-btn-primary" type="submit">Update Password</button>
+      </div>
+    </form>
+  </section>
+</div>

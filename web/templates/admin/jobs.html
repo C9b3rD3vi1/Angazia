@@ -1,0 +1,162 @@
+{{/* Admin Job Management */}}
+
+<div class="aj-page">
+  <div class="aj-header">
+    <div>
+      <h1 class="aj-title">Jobs</h1>
+      <p class="aj-subtitle">Manage and moderate job listings across the platform</p>
+    </div>
+    <div class="aj-header-actions">
+      <button class="aj-btn aj-btn-ghost" data-action="reload">Refresh</button>
+    </div>
+  </div>
+
+  <div class="aj-toolbar">
+    <div class="aj-search-wrap">
+      <span class="aj-search-icon">S</span>
+      <input type="text" class="aj-input aj-search-input" id="aj-search" placeholder="Search by title or company...">
+    </div>
+    <select class="aj-input aj-select" id="aj-status-filter">
+      <option value="">All Status</option>
+      <option value="active">Active</option>
+      <option value="closed">Closed</option>
+      <option value="pending">Pending</option>
+      <option value="draft">Draft</option>
+    </select>
+    <button class="aj-btn aj-btn-primary" id="aj-apply-filter">Apply</button>
+  </div>
+
+  <div class="aj-stats">
+    <div class="aj-stat-card">
+      <span class="aj-stat-value">{{.Stats.TotalJobs}}</span>
+      <span class="aj-stat-label">Total Jobs</span>
+    </div>
+    <div class="aj-stat-card">
+      <span class="aj-stat-value">{{.Stats.ActiveJobs}}</span>
+      <span class="aj-stat-label">Active</span>
+    </div>
+    <div class="aj-stat-card">
+      <span class="aj-stat-value">{{.Stats.PendingJobs}}</span>
+      <span class="aj-stat-label">Pending</span>
+    </div>
+    <div class="aj-stat-card">
+      <span class="aj-stat-value">{{.Stats.ClosedJobs}}</span>
+      <span class="aj-stat-label">Closed</span>
+    </div>
+  </div>
+
+  <div class="aj-bulk" id="aj-bulk" style="display:none;">
+    <span class="aj-bulk-count" id="aj-bulk-count">0 selected</span>
+    <button class="aj-btn aj-btn-sm aj-btn-success" id="aj-bulk-approve">Approve</button>
+    <button class="aj-btn aj-btn-sm aj-btn-danger" id="aj-bulk-reject">Reject</button>
+    <button class="aj-btn aj-btn-sm aj-btn-ghost" id="aj-bulk-clear">Clear</button>
+  </div>
+
+  <div class="aj-loading" id="aj-loading" style="display:none;">
+    <div class="aj-spinner"></div>
+    <p class="aj-loading-text">Loading jobs...</p>
+  </div>
+
+  <div class="aj-error" id="aj-error" style="display:none;">
+    <p class="aj-error-text" id="aj-error-text">Failed to load jobs.</p>
+    <button class="aj-btn aj-btn-primary" data-action="retry">Retry</button>
+  </div>
+
+  <div class="aj-empty" id="aj-empty" style="display:none;">
+    <p class="aj-empty-text">No jobs found.</p>
+  </div>
+
+  <section class="aj-section">
+    <div class="aj-section-head">
+      <h2 class="aj-section-title">All Job Listings</h2>
+      <span class="aj-section-count" id="aj-total-count">{{.TotalJobs}}</span>
+    </div>
+    <div class="aj-table-wrap">
+      <table class="aj-table" id="aj-table">
+        <thead>
+          <tr>
+            <th class="aj-th-check"><input type="checkbox" id="aj-select-all" /></th>
+            <th>Job Title</th>
+            <th>Company</th>
+            <th>Status</th>
+            <th>Applications</th>
+            <th>Views</th>
+            <th>Posted Date</th>
+            <th class="aj-th-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="aj-table-body">
+          {{if .Jobs}}
+          {{range .Jobs}}
+          <tr data-job-id="{{.ID}}">
+            <td class="aj-th-check"><input type="checkbox" class="aj-row-check" data-job-id="{{.ID}}" /></td>
+            <td>
+              <a href="/admin/jobs/{{.ID}}" class="aj-table-link">
+                <span class="aj-table-title">{{.Title}}</span>
+              </a>
+            </td>
+            <td>
+              <a href="/admin/companies/{{.CompanyID}}" class="aj-table-company">
+                {{if .CompanyLogo}}
+                <img src="{{.CompanyLogo}}" alt="" class="aj-table-clogo">
+                {{else}}
+                <span class="aj-table-clogo-placeholder">{{.CompanyInitials}}</span>
+                {{end}}
+                <span>{{.CompanyName}}</span>
+              </a>
+            </td>
+            <td>
+              <span class="aj-status-badge {{.Status}}">{{.Status}}</span>
+            </td>
+            <td><span class="aj-table-number">{{.ApplicationsCount}}</span></td>
+            <td><span class="aj-table-number">{{.ViewsCount}}</span></td>
+            <td><span class="aj-table-muted">{{.PostedDate}}</span></td>
+            <td>
+              <div class="aj-row-actions">
+                {{if eq .Status "pending"}}
+                <button class="aj-btn-sm aj-btn-sm-accept" data-action="approve" data-job-id="{{.ID}}" data-bulk-action="approve">Approve</button>
+                <button class="aj-btn-sm aj-btn-sm-reject" data-action="reject" data-job-id="{{.ID}}" data-bulk-action="reject">Reject</button>
+                {{end}}
+                <a href="/admin/jobs/{{.ID}}" class="aj-btn-sm aj-btn-sm-ghost">View</a>
+              </div>
+            </td>
+          </tr>
+          {{end}}
+          {{else}}
+          <tr class="aj-no-data-row">
+            <td colspan="8">
+              <div class="aj-empty">
+                <p class="aj-empty-text">No jobs found.</p>
+              </div>
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="aj-pagination" id="aj-pagination" style="display:none;">
+    <div class="aj-pagi-info" id="aj-pagi-info"></div>
+    <div class="aj-pagi-btns" id="aj-pagi-btns"></div>
+  </div>
+</div>
+
+<div class="aj-modal-overlay" id="aj-reject-modal" style="display:none">
+  <div class="aj-modal">
+    <div class="aj-modal-head">
+      <h3 class="aj-modal-title">Reject Job Listing</h3>
+      <button class="aj-modal-close" id="aj-modal-close">&times;</button>
+    </div>
+    <div class="aj-modal-body">
+      <p class="aj-modal-desc">Provide a reason for rejecting this job listing. The employer will be notified.</p>
+      <textarea class="aj-input aj-textarea" id="aj-reject-reason" rows="4" placeholder="Reason for rejection..."></textarea>
+    </div>
+    <div class="aj-modal-foot">
+      <button class="aj-btn aj-btn-ghost" id="aj-modal-cancel">Cancel</button>
+      <button class="aj-btn aj-btn-danger" id="aj-modal-confirm">Reject</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/pages/admin/jobs.js"></script>
