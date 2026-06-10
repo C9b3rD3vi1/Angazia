@@ -53,8 +53,10 @@ func EmployerPageData(authService services.AuthService, notificationService serv
 		}
 
 		userMap := fiber.Map{
+			"ID":       profile.User.ID,
 			"Name":     companyName,
 			"Email":    profile.User.Email,
+			"Role":     profile.User.Role,
 			"Avatar":   profile.User.AvatarURL,
 			"Initials": initials,
 		}

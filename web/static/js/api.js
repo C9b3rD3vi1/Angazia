@@ -170,6 +170,9 @@ var AngaziaAPI = (function () {
 		recovery: function (data) { return apiPost('/auth/2fa/recovery', data); },
 		recover: function (data) { return apiGet('/auth/2fa/recover', data); },
       },
+      sessions: function () { return apiGet('/auth/sessions'); },
+      revokeSession: function (data) { return apiPost('/auth/sessions/revoke', data); },
+      deleteAccount: function (data) { return apiPost('/auth/delete-account', data); },
     },
 
     jobs: {

@@ -1,8 +1,71 @@
 package models
 
 import (
+	"database/sql/driver"
+	"encoding/json"
 	"time"
 )
+
+// WorkExperienceItem represents a single work experience entry stored as JSONB
+type WorkExperienceItem struct {
+	Title       string `json:"title"`
+	Company     string `json:"company"`
+	StartDate   string `json:"start_date"`
+	EndDate     string `json:"end_date"`
+	Current     bool   `json:"current"`
+	Description string `json:"description"`
+}
+
+// WorkExperiences implements sql.Scanner and driver.Valuer for JSONB
+type WorkExperiences []WorkExperienceItem
+
+func (w WorkExperiences) Value() (driver.Value, error) {
+	if w == nil {
+		return nil, nil
+	}
+	return json.Marshal(w)
+}
+
+func (w *WorkExperiences) Scan(value interface{}) error {
+	if value == nil {
+		*w = make(WorkExperiences, 0)
+		return nil
+	}
+	bytes, ok := value.([]byte)
+	if !ok {
+		return nil
+	}
+	return json.Unmarshal(bytes, w)
+}
+
+// CertificationItem represents a single certification entry stored as JSONB
+type CertificationItem struct {
+	Name   string `json:"name"`
+	Issuer string `json:"issuer"`
+	Year   string `json:"year"`
+}
+
+// Certifications implements sql.Scanner and driver.Valuer for JSONB
+type Certifications []CertificationItem
+
+func (c Certifications) Value() (driver.Value, error) {
+	if c == nil {
+		return nil, nil
+	}
+	return json.Marshal(c)
+}
+
+func (c *Certifications) Scan(value interface{}) error {
+	if value == nil {
+		*c = make(Certifications, 0)
+		return nil
+	}
+	bytes, ok := value.([]byte)
+	if !ok {
+		return nil
+	}
+	return json.Unmarshal(bytes, c)
+}
 
 // UserRole defines the role types
 type UserRole string
@@ -43,8 +106,10 @@ type EmployeeProfile struct {
 	IsHybrid          bool       `json:"is_hybrid" gorm:"default:false"`
 	ExperienceLevel   string     `json:"experience_level" gorm:"size:50"` // entry, junior, mid, senior, lead
 	YearsOfExperience int        `json:"years_of_experience"`
-	Skills            []string   `json:"skills" gorm:"type:text[]"` // PostgreSQL array
-	ResumeURL         string     `json:"resume_url,omitempty" gorm:"size:512"`
+	Skills            []string           `json:"skills" gorm:"type:jsonb;serializer:json"`
+	Experience        WorkExperiences    `json:"experience" gorm:"type:jsonb"`
+	Certifications    Certifications     `json:"certifications" gorm:"type:jsonb"`
+	ResumeURL         string             `json:"resume_url,omitempty" gorm:"size:512"`
 	PortfolioURL      string     `json:"portfolio_url,omitempty" gorm:"size:512"`
 	LinkedInURL       string     `json:"linkedin_url,omitempty" gorm:"size:512"`
 	IsVisible         bool       `json:"is_visible" gorm:"default:true"`
@@ -107,6 +172,25 @@ func (EmployeeProfile) TableName() string {
 
 func (EmployerProfile) TableName() string {
 	return "employer_profiles"
+}
+
+// UserSession represents an active login session
+type UserSession struct {
+	ID         string    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	UserID     string    `json:"user_id" gorm:"type:uuid;not null;index"`
+	Token      string    `json:"-" gorm:"uniqueIndex;not null;size:512"`
+	Device     string    `json:"device,omitempty" gorm:"size:255"`
+	Browser    string    `json:"browser,omitempty" gorm:"size:255"`
+	OS         string    `json:"os,omitempty" gorm:"size:100"`
+	IPAddress  string    `json:"ip_address,omitempty" gorm:"size:45"`
+	IsCurrent  bool      `json:"is_current" gorm:"-:all"` // transient, not stored
+	LastActive time.Time `json:"last_active" gorm:"autoCreateTime"`
+	ExpiresAt  time.Time `json:"expires_at" gorm:"not null;index"`
+	CreatedAt  time.Time `json:"created_at" gorm:"autoCreateTime"`
+}
+
+func (UserSession) TableName() string {
+	return "user_sessions"
 }
 
 // Helper methods for EmployeeProfile

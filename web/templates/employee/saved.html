@@ -3,44 +3,25 @@
   <div class="emp-page-head">
     <div>
       <h1 class="emp-page-title">Saved Jobs</h1>
-      <p class="emp-page-sub">{{.TotalSaved}} positions you've bookmarked</p>
+      <p class="emp-page-sub">Positions you've bookmarked</p>
     </div>
   </div>
 
-  <div class="emp-saved-grid">
-    {{if .SavedJobs}}
-    {{range .SavedJobs}}
-    <a href="/jobs/{{.ID}}" class="emp-saved-card">
-      <div class="emp-saved-top">
-        <div class="emp-saved-brand">
-          {{if .CompanyLogo}}
-          <img src="{{.CompanyLogo}}" alt="{{.Company}}" class="emp-saved-logo">
-          {{else}}
-          <span class="emp-saved-logo-init">{{.CompanyInitials}}</span>
-          {{end}}
-        </div>
-        <button class="emp-saved-rm" title="Remove">&times;</button>
-      </div>
-      <h3 class="emp-saved-title">{{.Title}}</h3>
-      <p class="emp-saved-company">{{.Company}}</p>
-      <div class="emp-saved-tags">
-        <span class="emp-tag">{{.Location}}</span>
-        <span class="emp-tag">{{.Type}}</span>
-      </div>
-      <div class="emp-saved-foot">
-        <span class="emp-saved-match">&#x1F3AF; {{.Match}}% Match</span>
-        {{if .Salary}}<span class="emp-saved-salary">{{.Salary}}</span>{{end}}
-      </div>
-      <span class="emp-saved-apply">Apply Now &rarr;</span>
-    </a>
-    {{end}}
-    {{else}}
-    <div class="emp-empty" style="grid-column:1/-1;">
-      <div class="emp-empty-icon">&#x1F516;</div>
-      <p class="emp-empty-text">No saved jobs yet. Save jobs you're interested in to review later.</p>
-      <a href="/employee/jobs" class="emp-btn emp-btn-primary">Browse Jobs &rarr;</a>
-    </div>
-    {{end}}
+  <div id="saved-loading" class="emp-loading" style="display: flex;">
+    <div class="emp-spinner"></div>
+    <p>Loading saved jobs...</p>
+  </div>
+
+  <div id="saved-error" class="emp-error" style="display: none;">
+    <div class="emp-error-icon">⚠️</div>
+    <h3>Failed to load saved jobs</h3>
+    <p id="saved-error-msg"></p>
+    <button class="emp-btn emp-btn-primary" onclick="location.reload()">Try Again</button>
+  </div>
+
+  <div id="saved-content" style="display: none;">
+    <div id="saved-subtitle" class="emp-page-sub" style="margin-bottom:16px"></div>
+    <div id="saved-grid" class="emp-saved-grid"></div>
   </div>
 </div>
 
@@ -57,13 +38,16 @@
   padding: 20px;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  transition: all 0.15s;
+  border-radius: 12px;
+  transition: all 0.2s;
   position: relative;
+  text-decoration: none;
+  color: inherit;
 }
 .emp-saved-card:hover {
-  border-color: rgba(0,229,160,0.3);
+  border-color: var(--accent);
   box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+  transform: translateY(-1px);
 }
 .emp-saved-top {
   display: flex;
@@ -93,8 +77,8 @@
   flex-shrink: 0;
 }
 .emp-saved-rm {
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -102,13 +86,13 @@
   color: var(--muted2);
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s;
   line-height: 1;
   flex-shrink: 0;
 }
-.emp-saved-rm:hover { color: var(--danger); border-color: var(--danger); }
+.emp-saved-rm:hover { color: var(--danger); border-color: var(--danger); transform: scale(1.05); }
 .emp-saved-title {
   font-family: var(--fh);
   font-size: 15px;
@@ -151,16 +135,54 @@
   letter-spacing: 0.3px;
   color: var(--accent);
   border: 1px solid rgba(0,229,160,0.2);
-  border-radius: var(--radius);
-  transition: all 0.15s;
+  border-radius: 8px;
+  transition: all 0.2s;
   margin-top: auto;
 }
 .emp-saved-apply:hover { background: rgba(0,229,160,0.06); border-color: var(--accent); }
+.emp-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.emp-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-align: center;
+}
+.emp-error-icon { font-size: 48px; }
+.emp-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+}
+.empty-state .emp-empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+.empty-state .emp-empty-text { font-size: 14px; color: var(--muted); margin-bottom: 16px; }
 
-@media (max-width: 960px) {
-  .emp-saved-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 640px) {
-  .emp-saved-grid { grid-template-columns: 1fr; }
-}
+@media (max-width: 960px) { .emp-saved-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .emp-saved-grid { grid-template-columns: 1fr; } }
 </style>
+
+<script src="/static/js/pages/employee/saved.js"></script>

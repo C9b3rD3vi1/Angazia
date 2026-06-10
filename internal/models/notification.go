@@ -49,6 +49,7 @@ type NotificationPreferences struct {
 	Messages          bool      `json:"messages" gorm:"default:true"`
 	SystemAlerts      bool      `json:"system_alerts" gorm:"default:true"`
 	Marketing         bool      `json:"marketing" gorm:"default:false"`
+	DigestFrequency   string    `json:"digest_frequency" gorm:"default:'never';size:20"` // never, daily, weekly, monthly
 	
 	// Quiet hours
 	QuietHoursEnabled bool      `json:"quiet_hours_enabled" gorm:"default:false"`

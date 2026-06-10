@@ -15,11 +15,13 @@ func SetupWebRoutes(
 	adminWebHandler *handlers.AdminWebHandler,
 	notificationService services.NotificationService,
 	jobService services.JobService,
+	jobHandler *handlers.JobHandler,
+	dashboardHandler *handlers.DashboardHandler,
 ) {
 	// Public pages
 	app.Get("/", webHandler.HomePage)
-	app.Get("/jobs", webHandler.JobsPage)
-	app.Get("/jobs/:id", webHandler.JobDetailPage)
+	app.Get("/jobs", jobHandler.JobsPage)
+	app.Get("/jobs/:id", jobHandler.JobDetailPage)
 	app.Get("/companies/:id", webHandler.CompanyPage)
 	app.Get("/about", webHandler.AboutPage)
 	app.Get("/contact", webHandler.ContactPage)
@@ -40,11 +42,12 @@ func SetupWebRoutes(
 		middleware.WebRequireRole("employee"),
 		middleware.EmployeePageData(authService, notificationService),
 	)
-	employee.Get("/dashboard", webHandler.EmployeeDashboardPage)
-	employee.Get("/jobs", webHandler.EmployeeJobsPage)
+	employee.Get("/dashboard", dashboardHandler.EmployeeDashboardPage)
+	employee.Get("/jobs", jobHandler.EmployeeJobsPage)
+	employee.Get("/jobs/:id", jobHandler.EmployeeJobDetailPage)
 	employee.Get("/applications", webHandler.EmployeeApplicationsPage)
-	employee.Get("/saved", webHandler.EmployeeSavedJobsPage)
-	employee.Get("/alerts", webHandler.EmployeeJobAlertsPage)
+	employee.Get("/saved", jobHandler.EmployeeSavedJobsPage)
+	employee.Get("/alerts", jobHandler.EmployeeJobAlertsPage)
 	employee.Get("/skills", webHandler.EmployeeSkillsPage)
 	employee.Get("/settings", webHandler.EmployeeSettingsPage)
 
@@ -55,8 +58,8 @@ func SetupWebRoutes(
 		middleware.EmployerPageData(authService, notificationService, jobService),
 	)
 	employer.Get("/dashboard", webHandler.EmployerDashboardPage)
-	employer.Get("/jobs", webHandler.EmployerJobsPage)
-	employer.Get("/jobs/:id", webHandler.EmployerJobDetailPage)
+	employer.Get("/jobs", jobHandler.EmployerJobsPage)
+	employer.Get("/jobs/:id", jobHandler.EmployerJobDetailPage)
 	employer.Get("/candidates", webHandler.EmployerCandidatesPage)
 	employer.Get("/candidates/:id", webHandler.EmployerCandidateDetailPage)
 	employer.Get("/applications", webHandler.EmployerApplicationsPage)
@@ -65,9 +68,9 @@ func SetupWebRoutes(
 	employer.Get("/company", webHandler.EmployerCompanyPage)
 	employer.Get("/company-edit", webHandler.EmployerCompanyEditPage)
 	employer.Get("/matches", webHandler.EmployerMatchesPage)
-	employer.Get("/job-post", webHandler.EmployerJobPostPage)
-	employer.Get("/job-edit/:id", webHandler.EmployerJobEditPage)
-	employer.Get("/job-applications/:id", webHandler.EmployerJobApplicationsPage)
+	employer.Get("/job-post", jobHandler.EmployerJobPostPage)
+	employer.Get("/job-edit/:id", jobHandler.EmployerJobEditPage)
+	employer.Get("/job-applications/:id", jobHandler.EmployerJobApplicationsPage)
 	employer.Get("/billing", webHandler.EmployerBillingPage)
 	employer.Get("/billing/invoices", webHandler.EmployerBillingInvoicesPage)
 	employer.Get("/billing/upgrade/:plan", webHandler.EmployerBillingUpgradePage)

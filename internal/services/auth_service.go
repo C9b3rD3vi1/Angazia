@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -43,6 +44,13 @@ type AuthService interface {
 	GetProfile(ctx context.Context, userID string) (*ProfileResponse, error)
 	UpdateProfile(ctx context.Context, userID string, req *UpdateProfileRequest) error
 	GetCandidateProfile(ctx context.Context, candidateID string) (*ProfileResponse, error)
+
+	// Session management
+	GetSessions(ctx context.Context, userID string) ([]*models.UserSession, error)
+	RevokeSession(ctx context.Context, userID, sessionID string) error
+
+	// Account management
+	DeleteAccount(ctx context.Context, userID, password string) error
 
 	// Admin
 	GetOrCreateAdmin(ctx context.Context, email string) (*models.User, error)
@@ -92,19 +100,21 @@ type ProfileResponse struct {
 }
 
 type UpdateProfileRequest struct {
-	FullName          string   `json:"full_name"`
-	Headline          string   `json:"headline"`
-	Bio               string   `json:"bio"`
-	Location          string   `json:"location"`
-	IsRemoteOnly      bool     `json:"is_remote_only"`
-	ExperienceLevel   string   `json:"experience_level"`
-	YearsOfExperience int      `json:"years_of_experience"`
-	Skills            []string `json:"skills"`
-	ResumeURL         string   `json:"resume_url"`
-	PortfolioURL      string   `json:"portfolio_url"`
-	LinkedInURL       string   `json:"linkedin_url"`
-	IsVisible         bool     `json:"is_visible"`
-	IsAvailable       bool     `json:"is_available"`
+	FullName          string                      `json:"full_name"`
+	Headline          string                      `json:"headline"`
+	Bio               string                      `json:"bio"`
+	Location          string                      `json:"location"`
+	IsRemoteOnly      bool                        `json:"is_remote_only"`
+	ExperienceLevel   string                      `json:"experience_level"`
+	YearsOfExperience int                         `json:"years_of_experience"`
+	Skills            []string                    `json:"skills"`
+	Experience        []models.WorkExperienceItem `json:"experience"`
+	Certifications    []models.CertificationItem  `json:"certifications"`
+	ResumeURL         string                      `json:"resume_url"`
+	PortfolioURL      string                      `json:"portfolio_url"`
+	LinkedInURL       string                      `json:"linkedin_url"`
+	IsVisible         bool                        `json:"is_visible"`
+	IsAvailable       bool                        `json:"is_available"`
 	
 	// Employer specific
 	CompanyName        string `json:"company_name"`
@@ -343,7 +353,11 @@ func (s *AuthServiceImpl) Login(ctx context.Context, email, password, ipAddress,
 	s.logSuccessfulLogin(ctx, user.ID, ipAddress, userAgent)
 	
 	// Generate auth response
-	return s.generateAuthResponse(ctx, user)
+	resp, err := s.generateAuthResponse(ctx, user)
+	if err == nil {
+		s.createSession(ctx, user.ID, resp.AccessToken, userAgent, ipAddress)
+	}
+	return resp, err
 }
 
 func (s *AuthServiceImpl) Logout(ctx context.Context, userID, token string) error {
@@ -698,23 +712,27 @@ func (s *AuthServiceImpl) UpdateProfile(ctx context.Context, userID string, req 
 	
 	// Update role-specific profile
 	if user.Role == models.RoleEmployee {
-		updates := map[string]interface{}{
-			"full_name":           req.FullName,
-			"headline":            req.Headline,
-			"bio":                 req.Bio,
-			"location":            req.Location,
-			"is_remote_only":      req.IsRemoteOnly,
-			"experience_level":    req.ExperienceLevel,
-			"years_of_experience": req.YearsOfExperience,
-			"skills":              req.Skills,
-			"resume_url":          req.ResumeURL,
-			"portfolio_url":       req.PortfolioURL,
-			"linkedin_url":        req.LinkedInURL,
-			"is_visible":          req.IsVisible,
-			"is_available":        req.IsAvailable,
-			"updated_at":          time.Now(),
+		profile := models.EmployeeProfile{
+			FullName:          req.FullName,
+			Headline:          req.Headline,
+			Bio:               req.Bio,
+			Location:          req.Location,
+			IsRemoteOnly:      req.IsRemoteOnly,
+			ExperienceLevel:   req.ExperienceLevel,
+			YearsOfExperience: req.YearsOfExperience,
+			Skills:            req.Skills,
+			Experience:        models.WorkExperiences(req.Experience),
+			Certifications:    models.Certifications(req.Certifications),
+			ResumeURL:         req.ResumeURL,
+			PortfolioURL:      req.PortfolioURL,
+			LinkedInURL:       req.LinkedInURL,
+			IsVisible:         req.IsVisible,
+			IsAvailable:       req.IsAvailable,
 		}
-		return s.userRepo.UpdateEmployeeProfile(ctx, userID, updates)
+		return s.db.WithContext(ctx).
+			Model(&models.EmployeeProfile{}).
+			Where("user_id = ?", userID).
+			Updates(&profile).Error
 	} else if user.Role == models.RoleEmployer {
 		updates := map[string]interface{}{
 			"company_name":        req.CompanyName,
@@ -858,6 +876,90 @@ func (s *AuthServiceImpl) generateAuthResponse(ctx context.Context, user *models
 	}, nil
 }
 
+// ── Session management ──
+
+func (s *AuthServiceImpl) createSession(ctx context.Context, userID, token, userAgent, ipAddress string) {
+	device, browser, os := parseUserAgent(userAgent)
+	session := &models.UserSession{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		Token:     token,
+		Device:    device,
+		Browser:   browser,
+		OS:        os,
+		IPAddress: ipAddress,
+		LastActive: time.Now(),
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+	}
+	s.db.WithContext(ctx).Create(session)
+}
+
+func (s *AuthServiceImpl) GetSessions(ctx context.Context, userID string) ([]*models.UserSession, error) {
+	var sessions []*models.UserSession
+	if err := s.db.WithContext(ctx).
+		Where("user_id = ? AND expires_at > ?", userID, time.Now()).
+		Order("created_at DESC").
+		Find(&sessions).Error; err != nil {
+		return nil, err
+	}
+	return sessions, nil
+}
+
+func (s *AuthServiceImpl) RevokeSession(ctx context.Context, userID, sessionID string) error {
+	result := s.db.WithContext(ctx).
+		Where("id = ? AND user_id = ?", sessionID, userID).
+		Delete(&models.UserSession{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("session not found")
+	}
+	return nil
+}
+
+// ── Account management ──
+
+func (s *AuthServiceImpl) DeleteAccount(ctx context.Context, userID, password string) error {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+	if user == nil {
+		return errors.New("user not found")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+		return errors.New("invalid password")
+	}
+
+	// Delete all user data in a transaction
+	tx := s.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Delete sessions
+	tx.Where("user_id = ?", userID).Delete(&models.UserSession{})
+	// Delete notifications
+	tx.Where("user_id = ?", userID).Delete(&models.Notification{})
+	// Delete notification preferences
+	tx.Where("user_id = ?", userID).Delete(&models.NotificationPreferences{})
+	// Delete employee profile
+	tx.Where("user_id = ?", userID).Delete(&models.EmployeeProfile{})
+	// Delete employer profile
+	tx.Where("user_id = ?", userID).Delete(&models.EmployerProfile{})
+	// Delete auth tokens
+	tx.Where("user_id = ?", userID).Delete(&StoredToken{})
+	tx.Where("user_id = ?", userID).Delete(&BlacklistedToken{})
+	// Delete the user
+	tx.Where("id = ?", userID).Delete(&models.User{})
+
+	return tx.Commit().Error
+}
+
 func (s *AuthServiceImpl) generateToken(user *models.User, expiration time.Duration) (string, error) {
 	claims := &TokenClaims{
 		UserID: user.ID,
@@ -934,4 +1036,55 @@ func (s *AuthServiceImpl) validatePassword(password string) error {
 		return errors.New("password must be less than 72 characters")
 	}
 	return nil
+}
+
+func parseUserAgent(userAgent string) (device, browser, os string) {
+	ua := strings.ToLower(userAgent)
+	switch {
+	case strings.Contains(ua, "iphone"):
+		device = "iPhone"
+	case strings.Contains(ua, "ipad"):
+		device = "iPad"
+	case strings.Contains(ua, "android"):
+		device = "Android"
+	case strings.Contains(ua, "linux"):
+		device = "Linux Desktop"
+	case strings.Contains(ua, "macintosh") || strings.Contains(ua, "mac os"):
+		device = "Mac"
+	case strings.Contains(ua, "windows"):
+		device = "Windows"
+	default:
+		device = "Unknown"
+	}
+
+	switch {
+	case strings.Contains(ua, "edg/"):
+		browser = "Edge"
+	case strings.Contains(ua, "chrome/") && !strings.Contains(ua, "edg/"):
+		browser = "Chrome"
+	case strings.Contains(ua, "safari/") && !strings.Contains(ua, "chrome/"):
+		browser = "Safari"
+	case strings.Contains(ua, "firefox/"):
+		browser = "Firefox"
+	case strings.Contains(ua, "opera") || strings.Contains(ua, "opr/"):
+		browser = "Opera"
+	default:
+		browser = "Unknown"
+	}
+
+	switch {
+	case strings.Contains(ua, "windows nt"):
+		os = "Windows"
+	case strings.Contains(ua, "mac os x") || strings.Contains(ua, "macintosh"):
+		os = "macOS"
+	case strings.Contains(ua, "linux") && !strings.Contains(ua, "android"):
+		os = "Linux"
+	case strings.Contains(ua, "android"):
+		os = "Android"
+	case strings.Contains(ua, "iphone") || strings.Contains(ua, "ipad"):
+		os = "iOS"
+	default:
+		os = "Unknown"
+	}
+	return
 }

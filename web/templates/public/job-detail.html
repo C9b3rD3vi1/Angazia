@@ -75,7 +75,7 @@
       {{if .job.salary}}<div class="job-header-salary">&#x1F4B0; {{.job.salary}}</div>{{end}}
       {{if .job.type}}<div class="job-header-type">{{.job.type}}</div>{{end}}
       <div class="job-header-actions">
-        <a href="/jobs/{{$.jobID}}/apply" class="btn-apply">&#x1F4E4; Apply Now</a>
+        <a href="/employee/jobs/{{$.jobID}}" class="btn-apply">&#x1F4E4; Apply Now</a>
         <button class="btn-save" onclick="saveJob('{{$.jobID}}')">&#x2B50; Save</button>
       </div>
       <div class="share-bar">

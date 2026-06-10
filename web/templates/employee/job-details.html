@@ -1,4 +1,14 @@
 {{/* Employee Job Detail Page */}}
+<script>
+window._sessionUser = {
+  id: '{{.User.ID}}',
+  name: '{{.User.Name}}',
+  email: '{{.User.Email}}',
+  role: '{{.User.Role}}',
+  avatar: '{{.User.Avatar}}',
+  initials: '{{.User.Initials}}'
+};
+</script>
 <div class="job-detail-container">
   {{/* Loading State */}}
   <div id="job-loading" class="job-loading-state" style="display: flex;">

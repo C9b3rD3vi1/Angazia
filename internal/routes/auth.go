@@ -21,6 +21,9 @@ func SetupAuthRoutes(router fiber.Router, authHandler *handlers.AuthHandler) {
 	protected := router.Group("/auth", middleware.AuthMiddleware())
 	protected.Post("/logout", authHandler.Logout)
 	protected.Post("/change-password", authHandler.ChangePassword)
+	protected.Get("/sessions", authHandler.GetSessions)
+	protected.Post("/sessions/revoke", authHandler.RevokeSession)
+	protected.Post("/delete-account", authHandler.DeleteAccount)
 	
 	// Profile routes (authentication required)
 	profile := router.Group("/profile", middleware.AuthMiddleware())

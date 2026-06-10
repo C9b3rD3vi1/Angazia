@@ -378,7 +378,8 @@ func (r *JobRepositoryImpl) GetSavedJobs(ctx context.Context, employeeID string,
 	}
 	
 	offset := (page - 1) * limit
-	err := query.Order("saved_jobs.saved_at DESC").
+	err := query.Preload("Employer").
+		Order("saved_jobs.saved_at DESC").
 		Offset(offset).
 		Limit(limit).
 		Find(&jobs).Error

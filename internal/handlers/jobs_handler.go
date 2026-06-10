@@ -1,25 +1,231 @@
 package handlers
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 
+	"github.com/C9b3rD3vi1/Angazia/internal/models"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
 
 type JobHandler struct {
-	jobService services.JobService
-	validator  *validator.Validate
+	jobService     services.JobService
+	companyService services.CompanyService
+	validator      *validator.Validate
 }
 
-func NewJobHandler(jobService services.JobService) *JobHandler {
+func NewJobHandler(jobService services.JobService, companyService services.CompanyService) *JobHandler {
 	return &JobHandler{
-		jobService: jobService,
-		validator:  validator.New(),
+		jobService:     jobService,
+		companyService: companyService,
+		validator:      validator.New(),
 	}
+}
+
+// ── Page rendering handlers ──
+
+// JobsPage renders the public job listings page
+func (h *JobHandler) JobsPage(c *fiber.Ctx) error {
+	return c.Render("public/jobs", fiber.Map{
+		"Title":      "Tech Jobs in Kenya - Find Your Next Role",
+		"ActivePage": "jobs",
+	}, "layouts/base")
+}
+
+// JobDetailPage renders the public job details page
+func (h *JobHandler) JobDetailPage(c *fiber.Ctx) error {
+	jobID := c.Params("id")
+
+	job, err := h.jobService.GetJob(c.Context(), jobID)
+	if err != nil {
+		return c.Render("public/job-detail", fiber.Map{
+			"Title":      "Job Not Found",
+			"JobID":      jobID,
+			"ActivePage": "jobs",
+		}, "layouts/base")
+	}
+
+	var requirements []string
+	if job.Requirements != "" {
+		requirements = strings.Split(job.Requirements, "\n")
+		for i := range requirements {
+			requirements[i] = strings.TrimSpace(requirements[i])
+		}
+	}
+
+	var responsibilities []string
+	if job.Responsibilities != "" {
+		responsibilities = strings.Split(job.Responsibilities, "\n")
+		for i := range responsibilities {
+			responsibilities[i] = strings.TrimSpace(responsibilities[i])
+		}
+	}
+
+	company, _ := h.companyService.GetCompanyProfile(c.Context(), job.EmployerID)
+
+	companyName := ""
+	if job.Employer != nil {
+		companyName = job.Employer.CompanyName
+	}
+
+	jobMap := fiber.Map{
+		"title":            job.Title,
+		"company":          companyName,
+		"companyID":        job.EmployerID,
+		"location":         job.Location,
+		"salary":           formatJobSalary(job),
+		"type":             job.EmploymentType,
+		"description":      job.Description,
+		"requirements":     requirements,
+		"responsibilities": responsibilities,
+		"postedDate":       job.PostedAt.Format("Jan 2, 2006"),
+		"expiresDate":      "",
+	}
+
+	if job.ExpiresAt != nil {
+		jobMap["expiresDate"] = job.ExpiresAt.Format("Jan 2, 2006")
+	}
+
+	companyMap := fiber.Map{}
+	if company != nil && company.Profile != nil {
+		companyMap = fiber.Map{
+			"name":     company.Profile.CompanyName,
+			"logo":     company.Profile.CompanyLogo,
+			"industry": company.Profile.Industry,
+			"size":     company.Profile.CompanySize,
+		}
+	}
+
+	similarJobs, _ := h.jobService.GetSimilarJobs(c.Context(), jobID, 5)
+	var similarJobsMap []fiber.Map
+	for _, sj := range similarJobs {
+		companyName := ""
+		if sj.Employer != nil {
+			companyName = sj.Employer.CompanyName
+		}
+		similarJobsMap = append(similarJobsMap, fiber.Map{
+			"id":      sj.ID,
+			"title":   sj.Title,
+			"company": companyName,
+			"salary":  formatJobSalary(sj),
+		})
+	}
+
+	return c.Render("public/job-detail", fiber.Map{
+		"Title":       job.Title + " - Angazia",
+		"JobID":       jobID,
+		"ActivePage":  "jobs",
+		"job":         jobMap,
+		"company":     companyMap,
+		"similarJobs": similarJobsMap,
+	}, "layouts/base")
+}
+
+// EmployeeJobDetailPage renders the employee job detail page
+func (h *JobHandler) EmployeeJobDetailPage(c *fiber.Ctx) error {
+	return c.Render("employee/job-details", mergePageData(c, fiber.Map{
+		"Title":      "Job Details - Angazia",
+		"ActivePage": "jobs",
+	}), "layouts/employee")
+}
+
+// EmployeeJobsPage renders the employee job listings page
+func (h *JobHandler) EmployeeJobsPage(c *fiber.Ctx) error {
+	return c.Render("employee/jobs", mergePageData(c, fiber.Map{
+		"Title":      "Find Jobs - Angazia",
+		"ActivePage": "jobs",
+	}), "layouts/employee")
+}
+
+// EmployeeSavedJobsPage renders the employee saved jobs page
+func (h *JobHandler) EmployeeSavedJobsPage(c *fiber.Ctx) error {
+	return c.Render("employee/saved", mergePageData(c, fiber.Map{
+		"Title":      "Saved Jobs - Angazia",
+		"ActivePage": "saved",
+	}), "layouts/employee")
+}
+
+// EmployeeJobAlertsPage renders the employee job alerts page
+func (h *JobHandler) EmployeeJobAlertsPage(c *fiber.Ctx) error {
+	return c.Render("employee/alerts", mergePageData(c, fiber.Map{
+		"Title":      "Job Alerts - Angazia",
+		"ActivePage": "alerts",
+	}), "layouts/employee")
+}
+
+// EmployerJobsPage renders the employer's job listings page
+func (h *JobHandler) EmployerJobsPage(c *fiber.Ctx) error {
+	return c.Render("employer/jobs", mergePageData(c, fiber.Map{
+		"Title":      "My Jobs - Angazia",
+		"ActivePage": "jobs",
+	}), "layouts/employer")
+}
+
+// EmployerJobPostPage renders the employer job creation page
+func (h *JobHandler) EmployerJobPostPage(c *fiber.Ctx) error {
+	return c.Render("employer/job-post", mergePageData(c, fiber.Map{
+		"Title":      "Post a New Job - Angazia",
+		"ActivePage": "jobs",
+	}), "layouts/employer")
+}
+
+// EmployerJobDetailPage renders the employer's single job detail page
+func (h *JobHandler) EmployerJobDetailPage(c *fiber.Ctx) error {
+	return c.Render("employer/job-detail", mergePageData(c, fiber.Map{
+		"Title":      "Job Details - Angazia",
+		"ActivePage": "jobs",
+	}), "layouts/employer")
+}
+
+// EmployerJobEditPage renders the employer job edit page
+func (h *JobHandler) EmployerJobEditPage(c *fiber.Ctx) error {
+	return c.Render("employer/job-edit", mergePageData(c, fiber.Map{
+		"Title":      "Edit Job - Angazia",
+		"ActivePage": "jobs",
+	}), "layouts/employer")
+}
+
+// EmployerJobApplicationsPage renders the applications for a job
+func (h *JobHandler) EmployerJobApplicationsPage(c *fiber.Ctx) error {
+	return c.Render("employer/job-applications", mergePageData(c, fiber.Map{
+		"Title":      "Job Applications - Angazia",
+		"ActivePage": "jobs",
+	}), "layouts/employer")
+}
+
+func formatJobSalary(job *models.Job) string {
+	if job.SalaryMin == 0 && job.SalaryMax == 0 {
+		return ""
+	}
+	currency := job.SalaryCurrency
+	if currency == "" {
+		currency = "KES"
+	}
+	if job.SalaryMin > 0 && job.SalaryMax > 0 {
+		return fmt.Sprintf("%s %s - %s", currency, formatNumber(job.SalaryMin), formatNumber(job.SalaryMax))
+	}
+	if job.SalaryMin > 0 {
+		return fmt.Sprintf("%s %s+", currency, formatNumber(job.SalaryMin))
+	}
+	if job.SalaryMax > 0 {
+		return fmt.Sprintf("Up to %s %s", currency, formatNumber(job.SalaryMax))
+	}
+	return ""
+}
+
+func formatNumber(n int) string {
+	if n >= 1000000 {
+		return fmt.Sprintf("%.1fM", float64(n)/1000000)
+	}
+	if n >= 1000 {
+		return fmt.Sprintf("%.1fK", float64(n)/1000)
+	}
+	return fmt.Sprintf("%d", n)
 }
 
 func (h *JobHandler) CreateJob(c *fiber.Ctx) error {

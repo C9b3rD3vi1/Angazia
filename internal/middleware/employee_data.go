@@ -35,11 +35,14 @@ func EmployeePageData(authService services.AuthService, notificationService serv
 		}
 
 		userMap := fiber.Map{
-			"Name":     userName,
-			"Email":    profile.User.Email,
-			"Avatar":   profile.User.AvatarURL,
-			"Initials": initials,
-			"Headline": "",
+			"ID":              profile.User.ID,
+			"Name":            userName,
+			"Email":           profile.User.Email,
+			"Role":            profile.User.Role,
+			"Avatar":          profile.User.AvatarURL,
+			"Initials":        initials,
+			"Headline":        "",
+			"GithubConnected": false,
 		}
 
 		profileMap := fiber.Map{
@@ -62,17 +65,34 @@ func EmployeePageData(authService services.AuthService, notificationService serv
 			unreadCount = counts.TotalUnread
 		}
 
+		notifPrefs := fiber.Map{
+			"NotifyJobAlerts":          true,
+			"NotifyApplicationUpdates": true,
+			"NotifyMessages":           true,
+			"NotifyMarketing":          false,
+			"DigestFrequency":          "never",
+		}
+		if prefs, err := notificationService.GetPreferences(c.Context(), userID); err == nil && prefs != nil {
+			notifPrefs["NotifyJobAlerts"] = prefs.JobAlerts
+			notifPrefs["NotifyApplicationUpdates"] = prefs.ApplicationUpdates
+			notifPrefs["NotifyMessages"] = prefs.Messages
+			notifPrefs["NotifyMarketing"] = prefs.Marketing
+			notifPrefs["DigestFrequency"] = prefs.DigestFrequency
+		}
+
 		data := fiber.Map{
-			"User":              userMap,
-			"Profile":           profileMap,
-			"ProfileStrength":   0,
-			"SkillsScore":       0,
-			"SkillsOffset":      264,
-			"SkillsLabel":       "No skills yet",
-			"MatchCount":        0,
-			"ApplicationCount":  0,
-			"AlertCount":        0,
-			"UnreadCount":       unreadCount,
+			"User":                    userMap,
+			"Profile":                 profileMap,
+			"NotificationPreferences": notifPrefs,
+			"ProfileStrength":         0,
+			"ProfileViews":            0,
+			"SkillsScore":             0,
+			"SkillsOffset":            264,
+			"SkillsLabel":             "No skills yet",
+			"MatchCount":              0,
+			"ApplicationCount":        0,
+			"AlertCount":              0,
+			"UnreadCount":             unreadCount,
 		}
 
 		if profile.EmployeeProfile != nil {
@@ -91,7 +111,10 @@ func EmployeePageData(authService services.AuthService, notificationService serv
 			profileMap["IsVisible"] = ep.IsVisible
 			profileMap["IsRemoteOnly"] = ep.IsRemoteOnly
 
+			userMap["GithubConnected"] = ep.GithubConnected
+
 			data["ProfileStrength"] = calcProfileStrength(ep)
+			data["ProfileViews"] = ep.ProfileViews
 			skillsScore := min(len(ep.Skills)*10, 100)
 			data["SkillsScore"] = skillsScore
 			data["SkillsOffset"] = 264 - (264 * skillsScore / 100)

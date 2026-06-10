@@ -138,7 +138,7 @@ func main() {
 	candidateAnalyticsSvc := services.NewCandidateAnalyticsService(cfg, candidateAnalyticsRepo, jobRepo, applicationRepo, matchingSvc)
 	talentPoolSvc := services.NewTalentPoolService(cfg, talentRepo, userRepo, jobRepo, matchingSvc)
 	subscriptionSvc := services.NewSubscriptionService(cfg, subscriptionRepo, paymentRepo, userRepo, jobRepo)
-	profileSvc := services.NewProfileService(cfg, userRepo, githubRepo)
+	profileSvc := services.NewProfileService(cfg, userRepo, githubRepo, db)
 	
 	// Initialize ES-based services
 	var (
@@ -180,8 +180,6 @@ func main() {
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authSvc, cfg)
-	// Initialize job handler
-	jobHandler := handlers.NewJobHandler(jobSvc)
 
 	reviewHandler := handlers.NewReviewHandler(companyService)
 	githubHandler := handlers.NewGitHubHandler(githubSvc)
@@ -191,17 +189,18 @@ func main() {
 	searchHandler := handlers.NewSearchHandler(searchSvc)
 	adminHandler := handlers.NewAdminHandler(adminSvc)
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsSvc)
-	dashboardHandler := handlers.NewDashboardHandler(analyticsSvc, subscriptionSvc)
 	candidateAnalyticsHandler := handlers.NewCandidateAnalyticsHandler(candidateAnalyticsSvc)
 	talentPoolHandler := handlers.NewTalentPoolHandler(talentPoolSvc)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionSvc)
 	notificationHandler := handlers.NewNotificationHandler(notificationSvc)
 	alertHandler := handlers.NewAlertHandler(alertSvc)
 	planHandler := handlers.NewAdminPlanHandler(subscriptionSvc)
-	webHandler := handlers.NewWebHandler(jobSvc, companyService)
+	webHandler := handlers.NewWebHandler(companyService)
 	if notificationSvc != nil {
-		webHandler = handlers.NewWebHandlerWithNotifications(jobSvc, companyService, notificationSvc)
+		webHandler = handlers.NewWebHandlerWithNotifications(companyService, notificationSvc)
 	}
+	jobHandler := handlers.NewJobHandler(jobSvc, companyService)
+	dashboardHandler := handlers.NewDashboardHandler(analyticsSvc, subscriptionSvc, candidateAnalyticsSvc, matchingSvc, jobSvc, applicationSvc)
 	companyHandler := handlers.NewCompanyHandler(companyService)
 	resumeHandler := handlers.NewResumeHandler(profileSvc)
 	websocketHandler := handlers.NewWebSocketHandler()
@@ -382,7 +381,7 @@ func main() {
 	
 	// Web routes (HTML pages)
 	adminWebHandler := handlers.NewAdminWebHandler(adminSvc, jobSvc, subscriptionSvc, companyService, authSvc)
-	routes.SetupWebRoutes(app, webHandler, authHandler, authSvc, adminWebHandler, notificationSvc, jobSvc)
+	routes.SetupWebRoutes(app, webHandler, authHandler, authSvc, adminWebHandler, notificationSvc, jobSvc, jobHandler, dashboardHandler)
 	
 	// WebSocket routes
 	routes.SetupWebSocketRoutes(app, websocketHandler)

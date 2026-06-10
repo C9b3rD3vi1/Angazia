@@ -14,6 +14,7 @@ import (
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/parser"
 	"github.com/C9b3rD3vi1/Angazia/internal/repository"
+	"gorm.io/gorm"
 )
 
 type ProfileService interface {
@@ -62,6 +63,7 @@ type ProfileServiceImpl struct {
 	cfg         *config.Config
 	userRepo    repository.UserRepository
 	githubRepo  repository.GitHubRepository
+	db          *gorm.DB
 	pdfParser   *parser.PDFParser
 }
 
@@ -69,11 +71,13 @@ func NewProfileService(
 	cfg *config.Config,
 	userRepo repository.UserRepository,
 	githubRepo repository.GitHubRepository,
+	db *gorm.DB,
 ) ProfileService {
 	return &ProfileServiceImpl{
 		cfg:        cfg,
 		userRepo:   userRepo,
 		githubRepo: githubRepo,
+		db:         db,
 		pdfParser:  parser.NewPDFParser(),
 	}
 }
@@ -92,22 +96,6 @@ func (s *ProfileServiceImpl) ParseAndUpdateProfile(ctx context.Context, userID s
 	}
 	
 	newSkills := []string{}
-	updates := make(map[string]interface{})
-	
-	// Update name if empty
-	if profile.FullName == "" && parsed.FullName != "" {
-		updates["full_name"] = parsed.FullName
-	}
-	
-	// Update location if empty
-	if profile.Location == "" && parsed.Location != "" {
-		updates["location"] = parsed.Location
-	}
-	
-	// Update bio if empty
-	if profile.Bio == "" && parsed.Summary != "" {
-		updates["bio"] = parsed.Summary
-	}
 	
 	// Merge skills
 	existingSkills := make(map[string]bool)
@@ -122,22 +110,33 @@ func (s *ProfileServiceImpl) ParseAndUpdateProfile(ctx context.Context, userID s
 		}
 	}
 	
+	// Build profile updates using struct (non-zero fields will be sent)
+	updates := models.EmployeeProfile{}
+	
+	if profile.FullName == "" && parsed.FullName != "" {
+		updates.FullName = parsed.FullName
+	}
+	
+	if profile.Location == "" && parsed.Location != "" {
+		updates.Location = parsed.Location
+	}
+	
+	if profile.Bio == "" && parsed.Summary != "" {
+		updates.Bio = parsed.Summary
+	}
+	
 	if len(newSkills) > 0 {
-		allSkills := append(profile.Skills, newSkills...)
-		updates["skills"] = allSkills
+		updates.Skills = append(profile.Skills, newSkills...)
 	}
 	
-	// Update LinkedIn URL if empty
 	if profile.LinkedInURL == "" && parsed.LinkedInURL != "" {
-		updates["linkedin_url"] = parsed.LinkedInURL
+		updates.LinkedInURL = parsed.LinkedInURL
 	}
 	
-	// Update portfolio URL if empty
 	if profile.PortfolioURL == "" && parsed.PortfolioURL != "" {
-		updates["portfolio_url"] = parsed.PortfolioURL
+		updates.PortfolioURL = parsed.PortfolioURL
 	}
 	
-	// Update experience level based on total years
 	if profile.ExperienceLevel == "" && parsed.TotalExperience > 0 {
 		experienceLevel := "entry"
 		if parsed.TotalExperience >= 7 {
@@ -147,18 +146,19 @@ func (s *ProfileServiceImpl) ParseAndUpdateProfile(ctx context.Context, userID s
 		} else if parsed.TotalExperience >= 1 {
 			experienceLevel = "junior"
 		}
-		updates["experience_level"] = experienceLevel
+		updates.ExperienceLevel = experienceLevel
 		
 		if profile.YearsOfExperience == 0 {
-			updates["years_of_experience"] = parsed.TotalExperience
+			updates.YearsOfExperience = parsed.TotalExperience
 		}
 	}
 	
-	// Apply updates
-	if len(updates) > 0 {
-		if err := s.userRepo.UpdateEmployeeProfile(ctx, userID, updates); err != nil {
-			return nil, fmt.Errorf("failed to update profile: %w", err)
-		}
+	// Apply updates via struct so GORM knows field types
+	if err := s.db.WithContext(ctx).
+		Model(&models.EmployeeProfile{}).
+		Where("user_id = ?", userID).
+		Updates(&updates).Error; err != nil {
+		return nil, fmt.Errorf("failed to update profile: %w", err)
 	}
 	
 	// Get updated profile

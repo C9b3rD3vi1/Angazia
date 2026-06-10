@@ -109,6 +109,9 @@ func AutoMigrate() error {
 	//	&models.TrustedDevice{},
 		&models.TwoFAAuditLog{},
 		
+		// Level 9b: Session models
+		&models.UserSession{},
+		
 		// Level 10: Admin models
 		&models.AdminActionLog{},
 		&models.ModerationQueue{},
@@ -126,7 +129,12 @@ func AutoMigrate() error {
 		&models.CompanyAnalytics{},
 		&models.TeamInvitation{},
 		
-		// Level 13: GDPR models
+		// Level 13: Alert/SavedSearch models
+	&models.AlertSettings{},
+	&models.SavedSearch{},
+	&models.AlertHistory{},
+
+	// Level 14: GDPR models
 	}
 	
 	// Migrate each model individually to isolate errors

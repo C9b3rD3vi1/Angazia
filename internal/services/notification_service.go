@@ -65,9 +65,10 @@ type UpdatePreferencesRequest struct {
 	JobAlerts          *bool `json:"job_alerts"`
 	InterviewReminders *bool `json:"interview_reminders"`
 	Messages           *bool `json:"messages"`
-	SystemAlerts       *bool `json:"system_alerts"`
-	Marketing          *bool `json:"marketing"`
-	QuietHoursEnabled  *bool `json:"quiet_hours_enabled"`
+	SystemAlerts       *bool   `json:"system_alerts"`
+	Marketing          *bool   `json:"marketing"`
+	DigestFrequency    *string `json:"digest_frequency"`
+	QuietHoursEnabled  *bool   `json:"quiet_hours_enabled"`
 	QuietStartHour     *int  `json:"quiet_start_hour"`
 	QuietEndHour       *int  `json:"quiet_end_hour"`
 	QuietTimezone      *string `json:"quiet_timezone"`
@@ -330,6 +331,9 @@ func (s *NotificationServiceImpl) UpdatePreferences(ctx context.Context, userID 
 	}
 	if req.Marketing != nil {
 		updates["marketing"] = *req.Marketing
+	}
+	if req.DigestFrequency != nil {
+		updates["digest_frequency"] = *req.DigestFrequency
 	}
 	if req.QuietHoursEnabled != nil {
 		updates["quiet_hours_enabled"] = *req.QuietHoursEnabled

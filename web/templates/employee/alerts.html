@@ -9,7 +9,7 @@
   </div>
 
   {{/* Loading State */}}
-  <div id="alerts-loading" class="emp-loading" style="display: none;">
+  <div id="alerts-loading" class="emp-loading" style="display: flex;">
     <div class="emp-spinner"></div>
     <p>Loading your alerts...</p>
   </div>
@@ -122,13 +122,13 @@
   padding: 20px;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   gap: 14px;
   transition: all 0.2s;
 }
-.emp-alert-card:hover { border-color: var(--accent); }
+.emp-alert-card:hover { border-color: var(--accent); transform: translateY(-1px); }
 
 .emp-alert-head {
   display: flex;
@@ -179,9 +179,9 @@
   color: var(--text);
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s;
 }
 .emp-alert-toggle:hover { border-color: var(--accent); color: var(--accent); }
 .emp-alert-delete {
@@ -194,11 +194,11 @@
   color: var(--muted2);
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s;
 }
-.emp-alert-delete:hover { color: var(--danger); border-color: var(--danger); }
+.emp-alert-delete:hover { color: var(--danger); border-color: var(--danger); transform: scale(1.05); }
 
 .emp-alert-criteria {
   display: flex;
@@ -250,7 +250,7 @@
 .emp-modal {
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 12px;
   width: 90%;
   max-width: 560px;
   max-height: 85vh;
@@ -280,9 +280,9 @@
   color: var(--muted);
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s;
 }
 .emp-modal-close:hover { color: var(--danger); border-color: var(--danger); }
 .emp-modal-body { padding: 24px; }
@@ -310,14 +310,14 @@
   padding: 10px 14px;
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 8px;
   color: var(--text);
   font-size: 13px;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.2s;
 }
-.emp-input:focus { border-color: var(--accent); }
+.emp-input:focus { border-color: #00e5a0; }
 .emp-input::placeholder { color: var(--muted2); }
 .emp-hint {
   display: block;
@@ -335,8 +335,45 @@
   background: var(--s2);
   border: 1px solid var(--border);
   color: var(--text);
+  border-radius: 8px;
+  transition: all 0.2s;
 }
-.emp-btn-secondary:hover { border-color: var(--muted2); }
+.emp-btn-secondary:hover { border-color: var(--muted2); transform: translateY(-1px); }
+
+/* Loading / Error States */
+.emp-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.emp-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 20px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-align: center;
+}
+.emp-error-icon { font-size: 48px; }
+.emp-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border);
+  border-top-color: #00e5a0;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Responsive */
 @media (max-width: 640px) {
@@ -347,4 +384,4 @@
 }
 </style>
 
-<script src="/static/js/pages/employee/alerts.js"></script>
+<script src="/static/js/pages/employee/alert.js"></script>

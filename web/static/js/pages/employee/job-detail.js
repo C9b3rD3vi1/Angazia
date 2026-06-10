@@ -95,6 +95,13 @@
 
   // Check authentication status
   async function checkAuthStatus() {
+    // Employee pages use session cookies — server-embedded user data is available
+    if (window._sessionUser && window._sessionUser.id) {
+      isLoggedIn = true;
+      userRole = window._sessionUser.role || 'employee';
+      return;
+    }
+    // Fallback: check localStorage JWT (for non-session contexts)
     const token = localStorage.getItem('angazia_access_token');
     const userStr = localStorage.getItem('user');
     
@@ -445,7 +452,7 @@
       }
       
       elements.similarJobs.innerHTML = jobs.map(job => `
-        <div class="job-similar-item" onclick="window.location.href='/jobs/${job.id}'">
+        <div class="job-similar-item" onclick="window.location.href='/employee/jobs/${job.id}'">
           <div class="job-similar-title">${escapeHtml(job.title)}</div>
           <div class="job-similar-company">${escapeHtml(job.employer?.company_name || job.company_name || 'Unknown')}</div>
           <div class="job-similar-match">${job.match_score || 0}% Match</div>

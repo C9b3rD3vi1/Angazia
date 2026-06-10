@@ -55,19 +55,21 @@ type ChangePasswordRequest struct {
 }
 
 type UpdateProfileRequest struct {
-	FullName          string   `json:"full_name"`
-	Headline          string   `json:"headline"`
-	Bio               string   `json:"bio"`
-	Location          string   `json:"location"`
-	IsRemoteOnly      bool     `json:"is_remote_only"`
-	ExperienceLevel   string   `json:"experience_level"`
-	YearsOfExperience int      `json:"years_of_experience"`
-	Skills            []string `json:"skills"`
-	ResumeURL         string   `json:"resume_url"`
-	PortfolioURL      string   `json:"portfolio_url"`
-	LinkedInURL       string   `json:"linkedin_url"`
-	IsVisible         bool     `json:"is_visible"`
-	IsAvailable       bool     `json:"is_available"`
+	FullName          string                      `json:"full_name"`
+	Headline          string                      `json:"headline"`
+	Bio               string                      `json:"bio"`
+	Location          string                      `json:"location"`
+	IsRemoteOnly      bool                        `json:"is_remote_only"`
+	ExperienceLevel   string                      `json:"experience_level"`
+	YearsOfExperience int                         `json:"years_of_experience"`
+	Skills            []string                    `json:"skills"`
+	Experience        []models.WorkExperienceItem `json:"experience"`
+	Certifications    []models.CertificationItem  `json:"certifications"`
+	ResumeURL         string                      `json:"resume_url"`
+	PortfolioURL      string                      `json:"portfolio_url"`
+	LinkedInURL       string                      `json:"linkedin_url"`
+	IsVisible         bool                        `json:"is_visible"`
+	IsAvailable       bool                        `json:"is_available"`
 	
 	// Employer specific
 	CompanyName        string `json:"company_name"`
@@ -582,6 +584,8 @@ func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 		ExperienceLevel:   req.ExperienceLevel,
 		YearsOfExperience: req.YearsOfExperience,
 		Skills:            req.Skills,
+		Experience:        req.Experience,
+		Certifications:    req.Certifications,
 		ResumeURL:         req.ResumeURL,
 		PortfolioURL:      req.PortfolioURL,
 		LinkedInURL:       req.LinkedInURL,
@@ -614,6 +618,106 @@ func (h *AuthHandler) WebLogout(c *fiber.Ctx) error {
 	c.Cookie(&fiber.Cookie{Name: "access_token", Value: "", Path: "/", MaxAge: -1})
 	c.Cookie(&fiber.Cookie{Name: "refresh_token", Value: "", Path: "/api/v1/auth/refresh", MaxAge: -1})
 	return c.Redirect("/login", fiber.StatusFound)
+}
+
+// GetSessions returns active sessions for the authenticated user
+func (h *AuthHandler) GetSessions(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+
+	sessions, err := h.authService.GetSessions(c.Context(), userID.(string))
+	if err != nil {
+		return utils.InternalServerError(c, "Failed to get sessions")
+	}
+
+	// Get current session ID from token
+	currentToken := ""
+	if authHeader := c.Get("Authorization"); authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+		currentToken = strings.TrimPrefix(authHeader, "Bearer ")
+	}
+
+	// Build response with is_current flag
+	type sessionResp struct {
+		ID         string `json:"id"`
+		Device     string `json:"device"`
+		Browser    string `json:"browser"`
+		OS         string `json:"os"`
+		IP         string `json:"ip"`
+		IsCurrent  bool   `json:"is_current"`
+		LastActive string `json:"last_active"`
+		CreatedAt  string `json:"created_at"`
+	}
+	result := make([]sessionResp, 0, len(sessions))
+	for _, s := range sessions {
+		result = append(result, sessionResp{
+			ID:         s.ID,
+			Device:     s.Device,
+			Browser:    s.Browser,
+			OS:         s.OS,
+			IP:         s.IPAddress,
+			IsCurrent:  s.Token == currentToken,
+			LastActive: s.LastActive.Format("Jan 2, 2006 15:04"),
+			CreatedAt:  s.CreatedAt.Format("Jan 2, 2006 15:04"),
+		})
+	}
+
+	return utils.Success(c, fiber.Map{
+		"sessions": result,
+	})
+}
+
+// RevokeSession revokes a specific session
+func (h *AuthHandler) RevokeSession(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+
+	var req struct {
+		SessionID string `json:"session_id"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return utils.BadRequest(c, "Invalid request body")
+	}
+	if req.SessionID == "" {
+		return utils.BadRequest(c, "Session ID is required")
+	}
+
+	if err := h.authService.RevokeSession(c.Context(), userID.(string), req.SessionID); err != nil {
+		return utils.BadRequest(c, err.Error())
+	}
+
+	return utils.SuccessWithMessage(c, "Session revoked successfully", nil)
+}
+
+// DeleteAccount deletes the user's account permanently
+func (h *AuthHandler) DeleteAccount(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+
+	var req struct {
+		Password string `json:"password"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return utils.BadRequest(c, "Invalid request body")
+	}
+	if req.Password == "" {
+		return utils.BadRequest(c, "Password is required")
+	}
+
+	if err := h.authService.DeleteAccount(c.Context(), userID.(string), req.Password); err != nil {
+		return utils.BadRequest(c, err.Error())
+	}
+
+	// Clear cookies
+	c.Cookie(&fiber.Cookie{Name: "access_token", Value: "", Path: "/", MaxAge: -1})
+	c.Cookie(&fiber.Cookie{Name: "refresh_token", Value: "", Path: "/api/v1/auth/refresh", MaxAge: -1})
+
+	return utils.SuccessWithMessage(c, "Account deleted successfully", nil)
 }
 
 // Helper function to get user ID from context

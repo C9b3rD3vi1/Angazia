@@ -366,7 +366,7 @@
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const jobId = btn.getAttribute('data-id');
-        if (jobId) window.location.href = `/jobs/${jobId}`;
+        if (jobId) window.location.href = `/employee/jobs/${jobId}`;
       });
     });
     
@@ -374,7 +374,7 @@
       card.addEventListener('click', (e) => {
         if (e.target.closest('.emp-save-btn') || e.target.closest('.emp-apply-btn')) return;
         const jobId = card.getAttribute('data-id');
-        if (jobId) window.location.href = `/jobs/${jobId}`;
+        if (jobId) window.location.href = `/employee/jobs/${jobId}`;
       });
     });
   }
