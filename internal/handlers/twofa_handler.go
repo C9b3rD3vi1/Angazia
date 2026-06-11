@@ -30,26 +30,22 @@ func (h *TwoFAHandler) Setup(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	var req struct {
-		Method      string `json:"method" validate:"oneof=app sms email"`
+		Method      string `json:"method"`
 		PhoneNumber string `json:"phone_number"`
 		Email       string `json:"email"`
 	}
-	
+
 	if err := c.BodyParser(&req); err != nil {
-		return utils.BadRequest(c, err.Error())
+		req.Method = "app"
 	}
-	
-	if err := h.validator.Struct(req); err != nil {
-		return utils.BadRequest(c, err.Error())
-	}
-	
+
 	setup, err := h.twoFAService.InitiateSetup(c.Context(), userID.(string), req.Method, req.PhoneNumber, req.Email)
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
-	
+
 	return utils.Success(c, setup)
 }
 

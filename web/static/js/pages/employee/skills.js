@@ -118,7 +118,149 @@
       if (sec.style.display !== 'none' && state.gap) renderGap();
     });
 
+    initResumeSection();
+    initGitHubSection();
+
     loadAll();
+  }
+
+  /* ========== Resume Upload ========== */
+
+  function initResumeSection() {
+    els.resumeInfo = document.getElementById('sk-resume-info');
+    els.resumeEmpty = document.getElementById('sk-resume-empty');
+    els.resumeName = document.getElementById('sk-resume-name');
+    els.resumeSize = document.getElementById('sk-resume-size');
+    els.resumeFile = document.getElementById('sk-resume-file');
+    els.resumeUploadBtn = document.getElementById('sk-resume-upload-btn');
+    els.resumeReplaceBtn = document.getElementById('sk-resume-replace');
+    els.resumeRemoveBtn = document.getElementById('sk-resume-remove');
+    els.resumeProgress = document.getElementById('sk-resume-progress');
+    els.resumeProgressBar = document.getElementById('sk-resume-progress-bar');
+    els.resumeProgressText = document.getElementById('sk-resume-progress-text');
+
+    if (!els.resumeUploadBtn) return;
+
+    els.resumeUploadBtn.addEventListener('click', function () { els.resumeFile.click(); });
+    if (els.resumeReplaceBtn) els.resumeReplaceBtn.addEventListener('click', function () { els.resumeFile.click(); });
+    if (els.resumeRemoveBtn) {
+      els.resumeRemoveBtn.addEventListener('click', function () {
+        AngaziaAPI.profile.update({ resume_url: '' }).then(function () {
+          state.profile.resume_url = '';
+          showResumeState(false);
+          showToast('Resume removed');
+        }).catch(function (err) {
+          showToast(err && err.message ? err.message : 'Failed to remove resume', true);
+        });
+      });
+    }
+    els.resumeFile.addEventListener('change', function () {
+      var file = els.resumeFile.files[0];
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) {
+        showToast('File must be under 10MB', true);
+        return;
+      }
+      var fd = new FormData();
+      fd.append('resume', file);
+      els.resumeProgress.style.display = '';
+      els.resumeProgressBar.style.width = '0%';
+      els.resumeProgressText.textContent = 'Uploading...';
+      AngaziaAPI.profile.uploadResume(fd, function (pct) {
+        els.resumeProgressBar.style.width = pct + '%';
+        els.resumeProgressText.textContent = pct + '%';
+      }).then(function (data) {
+        els.resumeProgress.style.display = 'none';
+        var url = data && data.url ? data.url : (data && data.resume_url ? data.resume_url : '');
+        if (url) {
+          state.profile.resume_url = url;
+          showResumeState(true, file.name, file.size);
+          showToast('Resume uploaded');
+        }
+      }).catch(function (err) {
+        els.resumeProgress.style.display = 'none';
+        showToast(err && err.message ? err.message : 'Upload failed', true);
+      });
+    });
+  }
+
+  function showResumeState(hasResume, name, size) {
+    if (!els.resumeInfo || !els.resumeEmpty) return;
+    if (hasResume) {
+      els.resumeInfo.style.display = '';
+      els.resumeEmpty.style.display = 'none';
+      if (els.resumeName) els.resumeName.textContent = name || 'Resume';
+      if (els.resumeSize) els.resumeSize.textContent = size ? formatFileSize(size) : '';
+    } else {
+      els.resumeInfo.style.display = 'none';
+      els.resumeEmpty.style.display = '';
+    }
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  }
+
+  /* ========== GitHub Integration ========== */
+
+  function initGitHubSection() {
+    els.ghNotConnected = document.getElementById('sk-github-not-connected');
+    els.ghConnected = document.getElementById('sk-github-connected');
+    els.ghLoading = document.getElementById('sk-github-loading');
+    els.ghUsername = document.getElementById('sk-github-username');
+    els.ghConnectBtn = document.getElementById('sk-github-connect-btn');
+    els.ghDisconnectBtn = document.getElementById('sk-github-disconnect-btn');
+    els.ghSyncBtn = document.getElementById('sk-github-sync-btn');
+
+    if (!els.ghConnectBtn) return;
+
+    els.ghConnectBtn.addEventListener('click', function () {
+      AngaziaAPI.github.connect().then(function (data) {
+        if (data && data.auth_url) {
+          window.location.href = data.auth_url;
+        }
+      }).catch(function (err) {
+        showToast(err && err.message ? err.message : 'Failed to connect GitHub', true);
+      });
+    });
+
+    if (els.ghDisconnectBtn) {
+      els.ghDisconnectBtn.addEventListener('click', function () {
+        if (!confirm('Disconnect your GitHub account? This will remove your GitHub data from your profile.')) return;
+        AngaziaAPI.github.disconnect().then(function () {
+          state.profile.github_connected = false;
+          state.profile.github_username = '';
+          showGitHubState(false);
+          showToast('GitHub disconnected');
+        }).catch(function (err) {
+          showToast(err && err.message ? err.message : 'Failed to disconnect', true);
+        });
+      });
+    }
+
+    if (els.ghSyncBtn) {
+      els.ghSyncBtn.addEventListener('click', function () {
+        els.ghSyncBtn.disabled = true;
+        els.ghSyncBtn.textContent = 'Syncing...';
+        AngaziaAPI.github.sync().then(function () {
+          showToast('GitHub sync started');
+          els.ghSyncBtn.disabled = false;
+          els.ghSyncBtn.textContent = '\u21BB Sync';
+        }).catch(function (err) {
+          showToast(err && err.message ? err.message : 'Sync failed', true);
+          els.ghSyncBtn.disabled = false;
+          els.ghSyncBtn.textContent = '\u21BB Sync';
+        });
+      });
+    }
+  }
+
+  function showGitHubState(connected) {
+    if (!els.ghNotConnected || !els.ghConnected) return;
+    els.ghNotConnected.style.display = connected ? 'none' : '';
+    els.ghConnected.style.display = connected ? '' : 'none';
   }
 
   /* ========== Loading ========== */
@@ -139,6 +281,11 @@
       state.suggestions = (suggestedData && suggestedData.skills) || (suggestedData && suggestedData.data) || [];
       state.profile = employee;
       renderAll();
+      showResumeState(!!employee.resume_url);
+      showGitHubState(!!employee.github_connected);
+      if (employee.github_connected && els.ghUsername) {
+        els.ghUsername.textContent = employee.github_username || 'GitHub Connected';
+      }
       showLoading(false);
       showContent();
       loadGap();
@@ -361,9 +508,9 @@
     if (!els.strength) return;
     var p = state.profile || {};
     var score = p.profile_strength || 0;
-    var skillsPct = p.skills_match_percent || 0;
-    var expPct = p.experience_match_percent || 0;
-    var locPct = p.location_match_percent || 0;
+    var skillsPct = p.skills_match_percent || calcSimplePct(p.skills && p.skills.length, 5);
+    var expPct = p.experience_match_percent || (p.years_of_experience > 0 || (p.experience && p.experience.length > 0) ? 80 : 0);
+    var locPct = p.location_match_percent || (p.location ? 100 : 0);
     var breakdown = [
       { label: 'Skills', pct: skillsPct, fill: '#00e5a0' },
       { label: 'Experience', pct: expPct, fill: '#3b82f6' },
@@ -384,6 +531,12 @@
         return '<div class="sk-str-row"><span class="sk-str-label">' + b.label + '</span><span class="sk-str-bar"><span style="width:' + b.pct + '%;background:' + b.fill + '"></span></span><span class="sk-str-val">' + b.pct + '%</span></div>';
       }).join('') +
       '</div>';
+  }
+
+  function calcSimplePct(val, max) {
+    if (!val) return 0;
+    var pct = Math.round((val / max) * 100);
+    return pct > 100 ? 100 : pct;
   }
 
   /* ========== Skills Gap ========== */
@@ -540,11 +693,15 @@
     if (state.saving) return;
     state.saving = true;
     updateCounts();
-    AngaziaAPI.profile.update({
+    var updateData = {
       skills: state.skills,
       experience: state.experience,
       certifications: state.certifications,
-    }).then(function () {
+    };
+    if (state.profile && state.profile.resume_url) {
+      updateData.resume_url = state.profile.resume_url;
+    }
+    AngaziaAPI.profile.update(updateData).then(function () {
       state.saving = false;
       showToast('Saved');
     }).catch(function (err) {

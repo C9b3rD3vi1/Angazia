@@ -111,6 +111,72 @@
           </div>
         </section>
 
+        {{/* ── Resume Upload ── */}}
+        <section class="emp-card">
+          <div class="emp-card-head">
+            <h2 class="emp-card-title">&#x1F4C4; Resume</h2>
+          </div>
+          <div class="emp-card-body">
+            <div id="sk-resume-section">
+              <div id="sk-resume-info" style="display:none">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                  <span style="font-size:24px">&#x1F4C4;</span>
+                  <div style="flex:1;min-width:0">
+                    <div id="sk-resume-name" style="font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+                    <div id="sk-resume-size" style="font-size:10px;color:var(--muted2);margin-top:2px"></div>
+                  </div>
+                  <button class="emp-btn emp-btn-sm emp-btn-ghost" id="sk-resume-remove" title="Remove">&times;</button>
+                </div>
+                <button class="emp-btn emp-btn-sm emp-btn-outline emp-btn-block" id="sk-resume-replace">Replace Resume</button>
+              </div>
+              <div id="sk-resume-empty">
+                <p style="font-size:12px;color:var(--muted);margin:0 0 12px">Upload your resume to improve AI matching and let employers find you.</p>
+                <div style="display:flex;gap:8px">
+                  <input type="file" id="sk-resume-file" accept=".pdf,.doc,.docx" style="display:none">
+                  <button class="emp-btn emp-btn-primary emp-btn-sm" id="sk-resume-upload-btn">&#x1F4C1; Upload Resume</button>
+                </div>
+                <div id="sk-resume-progress" style="display:none;margin-top:10px">
+                  <div style="height:4px;background:var(--s3);border-radius:2px;overflow:hidden">
+                    <div id="sk-resume-progress-bar" style="height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width 0.3s"></div>
+                  </div>
+                  <span id="sk-resume-progress-text" style="font-size:10px;color:var(--muted2);margin-top:4px;display:block">Uploading...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {{/* ── GitHub Integration ── */}}
+        <section class="emp-card">
+          <div class="emp-card-head">
+            <h2 class="emp-card-title">&#x1F433; GitHub</h2>
+          </div>
+          <div class="emp-card-body">
+            <div id="sk-github-section">
+              <div id="sk-github-not-connected" style="display:none">
+                <p style="font-size:12px;color:var(--muted);margin:0 0 12px">Connect your GitHub to showcase repositories and boost your profile strength.</p>
+                <button class="emp-btn emp-btn-primary emp-btn-sm" id="sk-github-connect-btn">&#x1F517; Connect GitHub</button>
+              </div>
+              <div id="sk-github-connected" style="display:none">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                  <span style="font-size:20px">&#x2705;</span>
+                  <div style="flex:1;min-width:0">
+                    <div id="sk-github-username" style="font-size:12px;font-weight:600;color:var(--text)"></div>
+                    <div id="sk-github-status" style="font-size:10px;color:var(--accent);margin-top:2px">Connected</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button class="emp-btn emp-btn-sm emp-btn-outline" id="sk-github-sync-btn">&#x21BB; Sync</button>
+                  <button class="emp-btn emp-btn-sm emp-btn-ghost emp-text-danger" id="sk-github-disconnect-btn" style="color:var(--danger)">Disconnect</button>
+                </div>
+              </div>
+              <div id="sk-github-loading" style="display:none">
+                <p style="font-size:12px;color:var(--muted);margin:0">Connecting to GitHub...</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {{/* ── Skills Gap Analysis ── */}}
         <section class="emp-card" id="sk-gap-section" style="display:none">
           <div class="emp-card-head">

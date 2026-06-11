@@ -683,6 +683,7 @@ func (s *AuthServiceImpl) GetProfile(ctx context.Context, userID string) (*Profi
 			return nil, fmt.Errorf("failed to get employee profile: %w", err)
 		}
 		if profile != nil {
+			computeProfileStrength(profile)
 			response.EmployeeProfile = profile
 			response.User.FullName = profile.FullName
 		}
@@ -698,6 +699,72 @@ func (s *AuthServiceImpl) GetProfile(ctx context.Context, userID string) (*Profi
 	}
 	
 	return response, nil
+}
+
+func computeProfileStrength(p *models.EmployeeProfile) {
+	score := 0
+
+	// Full name (10)
+	if p.FullName != "" && len(p.FullName) > 2 {
+		score += 10
+	}
+
+	// Headline (10)
+	if p.Headline != "" {
+		score += 10
+	}
+
+	// Skills (max 20)
+	if len(p.Skills) >= 3 {
+		score += 15
+		if len(p.Skills) >= 5 {
+			score += 5
+		}
+	}
+
+	// Experience (15)
+	if p.YearsOfExperience > 0 || len(p.Experience) > 0 {
+		score += 15
+	}
+
+	// Location (10)
+	if p.Location != "" {
+		score += 10
+	}
+
+	// GitHub (15)
+	if p.GithubConnected {
+		score += 15
+	}
+
+	// Portfolio or LinkedIn (10)
+	if p.PortfolioURL != "" || p.LinkedInURL != "" {
+		score += 10
+	}
+
+	// Resume (10)
+	if p.ResumeURL != "" {
+		score += 10
+	}
+
+	p.ProfileStrength = score
+
+	// Individual match percentages (simplified — based on collected data)
+	if len(p.Skills) > 0 {
+		p.SkillsMatchPercent = len(p.Skills) * 20
+		if p.SkillsMatchPercent > 100 {
+			p.SkillsMatchPercent = 100
+		}
+	}
+	if p.YearsOfExperience > 0 || len(p.Experience) > 0 {
+		p.ExperienceMatchPercent = 80
+		if p.YearsOfExperience >= 3 {
+			p.ExperienceMatchPercent = 100
+		}
+	}
+	if p.Location != "" {
+		p.LocationMatchPercent = 100
+	}
 }
 
 func (s *AuthServiceImpl) UpdateProfile(ctx context.Context, userID string, req *UpdateProfileRequest) error {

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"strings"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -632,7 +633,7 @@ func (h *AuthHandler) GetSessions(c *fiber.Ctx) error {
 		return utils.InternalServerError(c, "Failed to get sessions")
 	}
 
-	// Get current session ID from token
+	// Get current session from token
 	currentToken := ""
 	if authHeader := c.Get("Authorization"); authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
 		currentToken = strings.TrimPrefix(authHeader, "Bearer ")
@@ -649,7 +650,29 @@ func (h *AuthHandler) GetSessions(c *fiber.Ctx) error {
 		LastActive string `json:"last_active"`
 		CreatedAt  string `json:"created_at"`
 	}
-	result := make([]sessionResp, 0, len(sessions))
+	result := make([]sessionResp, 0, len(sessions)+1)
+
+	// Always include current session derived from token
+	if currentToken != "" {
+		claims, err := utils.ValidateJWT(currentToken)
+		if err == nil {
+			createdAt := time.Now().Format("Jan 2, 2006 15:04")
+			if claims.IssuedAt != nil {
+				createdAt = claims.IssuedAt.Time.Format("Jan 2, 2006 15:04")
+			}
+			result = append(result, sessionResp{
+				ID:         "current",
+				Device:     "Current device",
+				Browser:    "Active browser session",
+				OS:         "",
+				IP:         c.IP(),
+				IsCurrent:  true,
+				LastActive: "Now",
+				CreatedAt:  createdAt,
+			})
+		}
+	}
+
 	for _, s := range sessions {
 		result = append(result, sessionResp{
 			ID:         s.ID,

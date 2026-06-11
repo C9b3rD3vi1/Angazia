@@ -412,6 +412,12 @@ var AngaziaAPI = (function () {
 
     github: {
       auth: function () { window.location.href = BASE_URL + '/github/auth'; },
+      connect: function () { return apiPost('/github/connect'); },
+      disconnect: function () { return apiPost('/github/disconnect'); },
+      sync: function () { return apiPost('/github/sync'); },
+      profile: function () { return apiGet('/github/profile'); },
+      repos: function (params) { return apiGet('/github/repos', params); },
+      contributions: function (days) { return apiGet('/github/contributions', days ? { days: days } : undefined); },
     },
 
     preferences: {

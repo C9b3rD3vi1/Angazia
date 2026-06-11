@@ -18,7 +18,7 @@ type ApplicationHandler struct {
 
 type ApplyRequest struct {
 	JobID       string `json:"job_id" validate:"required"`
-	CoverLetter string `json:"cover_letter" validate:"required,min=50"`
+	CoverLetter string `json:"cover_letter"`
 	ResumeURL   string `json:"resume_url"`
 	PortfolioURL string `json:"portfolio_url"`
 }

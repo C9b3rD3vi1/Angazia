@@ -266,7 +266,7 @@ func (s *ProfileServiceImpl) calculateCompletion(profile *models.EmployeeProfile
 		completion.MissingFields = append(completion.MissingFields, "resume")
 	}
 	
-	completion.Percentage = (score * 100) / 100
+	completion.Percentage = score
 	completion.Score = score
 	
 	return completion

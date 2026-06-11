@@ -347,42 +347,7 @@
 .emp-table td:first-child { padding-left: 0; }
 .emp-table th:first-child { padding-left: 0; }
 
-.emp-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px 20px;
-  font-family: var(--fm);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  border-radius: var(--radius);
-  white-space: nowrap;
-  transition: all 0.15s;
-  cursor: pointer;
-  border: none;
-}
-.emp-btn:active { transform: scale(0.97); }
-.emp-btn-primary {
-  color: #fff;
-  background: linear-gradient(135deg, var(--purple) 0%, #ec4899 100%);
-}
-.emp-btn-primary:hover { opacity: 0.85; }
-.emp-btn-outline {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.emp-btn-outline:hover { border-color: var(--purple); color: var(--purple); }
-.emp-btn-danger {
-  border-color: rgba(239,68,68,0.3);
-  color: #ef4444;
-}
-.emp-btn-danger:hover { border-color: #ef4444; }
-.emp-btn-full { width: 100%; text-align: center; }
-.emp-btn-sm { padding: 6px 14px; font-size: 10px; }
-.emp-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 
 @media (max-width: 860px) {
   .emp-page-head { flex-direction: column; align-items: flex-start; }

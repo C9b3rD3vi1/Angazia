@@ -1,6 +1,8 @@
 package models
 
 import (
+	"database/sql/driver"
+	"encoding/json"
 	"time"
 )
 
@@ -51,6 +53,26 @@ type SearchFilters struct {
 	// Sorting
 	SortBy          string   `json:"sort_by,omitempty"`  // relevance, date, salary, match_score
 	SortOrder       string   `json:"sort_order,omitempty"` // asc, desc
+}
+
+func (f *SearchFilters) Scan(src interface{}) error {
+	if src == nil {
+		return nil
+	}
+	var source []byte
+	switch v := src.(type) {
+	case []byte:
+		source = v
+	case string:
+		source = []byte(v)
+	default:
+		return nil
+	}
+	return json.Unmarshal(source, f)
+}
+
+func (f SearchFilters) Value() (driver.Value, error) {
+	return json.Marshal(f)
 }
 
 // SavedSearch represents a user's saved search

@@ -244,10 +244,7 @@
   font-size: 11px;
   color: var(--muted2);
 }
-.emp-btn-sm {
-  padding: 8px 16px;
-  font-size: 11px;
-}
+
 
 .emp-toast {
   padding: 12px 18px;
@@ -272,6 +269,7 @@
 </style>
 
 <script>
+document.addEventListener('DOMContentLoaded', function () {
 (function () {
   function toast(msg, type) {
     if (window.AngaziaApp && AngaziaApp.showToast) {
@@ -524,4 +522,5 @@
     });
   }
 })();
+});
 </script>

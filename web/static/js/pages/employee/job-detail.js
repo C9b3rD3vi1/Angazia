@@ -129,6 +129,7 @@
       await checkSavedStatus();
       await loadSkillsMatch();
       await loadSimilarJobs();
+      await loadProfileResume();
       
       showLoading(false);
       showContent();
@@ -318,6 +319,23 @@
     }
   }
 
+  // Load user profile resume URL
+  let profileResumeUrl = '';
+  async function loadProfileResume() {
+    if (!isLoggedIn || userRole !== 'employee') return;
+    try {
+      var profileData = await AngaziaAPI.profile.get();
+      var profile = profileData && profileData.data ? profileData.data : profileData;
+      var employee = profile.employee_profile || profile;
+      if (employee.resume_url) {
+        profileResumeUrl = employee.resume_url;
+        if (elements.resumeUrl && !elements.resumeUrl.value) {
+          elements.resumeUrl.value = employee.resume_url;
+        }
+      }
+    } catch (_) {}
+  }
+
   // Submit application
   async function submitApplication() {
     const coverLetter = elements.coverLetter?.value.trim();
@@ -332,10 +350,11 @@
     submitBtn.textContent = 'Submitting...';
     
     try {
+      var resumeUrl = elements.resumeUrl?.value.trim() || profileResumeUrl || '';
       const applicationData = {
         job_id: jobId,
         cover_letter: coverLetter,
-        resume_url: elements.resumeUrl?.value.trim() || ''
+        resume_url: resumeUrl,
       };
       
       await AngaziaAPI.applications.apply(applicationData);

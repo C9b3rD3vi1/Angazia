@@ -232,7 +232,7 @@ func (h *DashboardHandler) EmployeeDashboardPage(c *fiber.Ctx) error {
 		}
 	}
 
-	// ── 2. Profile Views ──
+	// ── 2. Fallback data from middleware page data ──
 	if pd := c.Locals("_pageData"); pd != nil {
 		if m, ok := pd.(fiber.Map); ok {
 			if pv, ok := m["ProfileViews"]; ok {
@@ -241,6 +241,17 @@ func (h *DashboardHandler) EmployeeDashboardPage(c *fiber.Ctx) error {
 					stats["ProfileViews"] = v
 				case float64:
 					stats["ProfileViews"] = int(v)
+				}
+			}
+			// Fallback ProfileCompletion from middleware's ProfileStrength
+			if pc, ok := data["ProfileCompletion"].(int); !ok || pc == 0 {
+				if ps, ok := m["ProfileStrength"]; ok {
+					switch v := ps.(type) {
+					case int:
+						data["ProfileCompletion"] = v
+					case float64:
+						data["ProfileCompletion"] = int(v)
+					}
 				}
 			}
 		}

@@ -1,118 +1,91 @@
-<div class="notif-page">
-  <div class="notif-page-head">
+<div class="emp-page">
+  <div class="emp-page-head">
     <div>
-      <h1 class="notif-page-title">Notifications</h1>
-      <p class="notif-page-sub">Stay updated on your applications, messages, and opportunities</p>
+      <h1 class="emp-page-title">Notifications</h1>
+      <p class="emp-page-sub">Stay updated on your applications, messages, and opportunities</p>
     </div>
-    <div class="notif-page-actions">
-      <button class="notif-btn notif-btn-outline" id="notif-mark-all-btn" style="display:none">Mark All as Read</button>
-    </div>
-  </div>
-
-  <div class="notif-tabs">
-    <button class="notif-tab active" data-filter="all">All</button>
-    <button class="notif-tab" data-filter="unread">Unread</button>
-    <button class="notif-tab" data-filter="application">Applications</button>
-    <button class="notif-tab" data-filter="interview">Interviews</button>
-    <button class="notif-tab" data-filter="message">Messages</button>
-    <button class="notif-tab" data-filter="alert">Alerts</button>
-  </div>
-
-  <div class="notif-toolbar">
-    <div class="notif-search-wrap">
-      <input type="text" class="notif-search" id="notif-search" placeholder="Search notifications...">
-    </div>
-    <div class="notif-toolbar-actions">
-      <button class="notif-btn notif-btn-ghost" id="notif-refresh-btn">&#x21BB; Refresh</button>
-      <button class="notif-btn notif-btn-ghost notif-btn-danger" id="notif-clear-btn">Clear All</button>
+    <div class="emp-actions">
+      <button class="emp-btn emp-btn-outline emp-btn-sm" id="notif-mark-all-btn" style="display:none">Mark All as Read</button>
     </div>
   </div>
 
-  <div class="notif-loading" id="notif-loading">
-    <div class="notif-loading-spinner"></div>
+  <div class="emp-tabs">
+    <button class="emp-tab active" data-filter="all">All</button>
+    <button class="emp-tab" data-filter="unread">Unread</button>
+    <button class="emp-tab" data-filter="application">Applications</button>
+    <button class="emp-tab" data-filter="interview">Interviews</button>
+    <button class="emp-tab" data-filter="message">Messages</button>
+    <button class="emp-tab" data-filter="alert">Alerts</button>
+  </div>
+
+  <div class="emp-toolbar">
+    <div class="emp-search-wrap">
+      <input type="text" class="emp-search" id="notif-search" placeholder="Search notifications...">
+    </div>
+    <div class="emp-toolbar-actions">
+      <button class="emp-btn emp-btn-ghost emp-btn-sm" id="notif-refresh-btn">&#x21BB; Refresh</button>
+      <button class="emp-btn emp-btn-ghost emp-btn-sm emp-text-danger" id="notif-clear-btn">Clear All</button>
+    </div>
+  </div>
+
+  <div class="emp-loading" id="notif-loading">
+    <div class="emp-loading-spinner"></div>
     <span>Loading notifications...</span>
   </div>
 
-  <div class="notif-empty-state" id="notif-empty" style="display:none">
-    <div class="notif-empty-icon">&#x1F514;</div>
-    <h3 class="notif-empty-title">No notifications yet</h3>
-    <p class="notif-empty-desc">You're all caught up! When you get notifications, they'll show up here.</p>
+  <div class="emp-empty-state" id="notif-empty" style="display:none">
+    <div class="emp-empty-icon">&#x1F514;</div>
+    <h3 class="emp-empty-title">No notifications yet</h3>
+    <p class="emp-empty-desc">You're all caught up! When you get notifications, they'll show up here.</p>
   </div>
 
-  <div class="notif-list-page" id="notif-list"></div>
+  <div class="emp-notif-list" id="notif-list"></div>
 
-  <div class="notif-pagination" id="notif-pagination" style="display:none">
-    <button class="notif-btn notif-btn-outline" id="notif-prev-btn" disabled>&larr; Previous</button>
-    <span class="notif-page-info" id="notif-page-info">Page 1</span>
-    <button class="notif-btn notif-btn-outline" id="notif-next-btn">Next &rarr;</button>
+  <div class="emp-pagination" id="notif-pagination" style="display:none">
+    <button class="emp-btn emp-btn-outline emp-btn-sm" id="notif-prev-btn" disabled>&larr; Previous</button>
+    <span class="emp-page-info" id="notif-page-info">Page 1</span>
+    <button class="emp-btn emp-btn-outline emp-btn-sm" id="notif-next-btn">Next &rarr;</button>
   </div>
 </div>
 
 <style>
-.notif-page {
+.emp-page {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
-.notif-page-head {
+.emp-page-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
 }
-.notif-page-title {
+.emp-page-title {
   font-family: var(--fh);
   font-size: 22px;
   font-weight: 700;
   color: var(--text);
   margin: 0;
 }
-.notif-page-sub {
+.emp-page-sub {
   font-size: 12px;
   color: var(--muted);
   margin: 4px 0 0;
 }
-.notif-page-actions {
+.emp-actions {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
 }
-.notif-btn {
-  padding: 8px 16px;
-  font-family: var(--fm);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: opacity 0.15s;
-  border: none;
-}
-.notif-btn:hover { opacity: 0.85; }
-.notif-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.notif-btn-primary { background: var(--accent); color: var(--bg); }
-.notif-btn-outline {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.notif-btn-ghost {
-  background: none;
-  color: var(--muted);
-  padding: 6px 12px;
-  font-size: 10px;
-}
-.notif-btn-ghost:hover { background: var(--s2); color: var(--text); }
-.notif-btn-danger { color: var(--danger); }
-.notif-btn-danger:hover { background: rgba(255,79,79,0.08); }
+.emp-text-danger { color: var(--danger); }
+.emp-text-danger:hover { background: rgba(255,79,79,0.08); }
 
-.notif-tabs {
+.emp-tabs {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
 }
-.notif-tab {
+.emp-tab {
   padding: 7px 16px;
   font-family: var(--fm);
   font-size: 10px;
@@ -126,21 +99,21 @@
   cursor: pointer;
   transition: all 0.12s;
 }
-.notif-tab:hover { color: var(--text); border-color: var(--text); }
-.notif-tab.active {
+.emp-tab:hover { color: var(--text); border-color: var(--text); }
+.emp-tab.active {
   color: var(--accent);
   border-color: var(--accent);
   background: rgba(0,229,160,0.06);
 }
 
-.notif-toolbar {
+.emp-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
-.notif-search-wrap { flex: 1; max-width: 320px; }
-.notif-search {
+.emp-search-wrap { flex: 1; max-width: 320px; }
+.emp-search {
   width: 100%;
   padding: 9px 14px;
   font-family: var(--fm);
@@ -152,11 +125,11 @@
   outline: none;
   transition: border-color 0.15s;
 }
-.notif-search:focus { border-color: var(--accent); }
-.notif-search::placeholder { color: var(--muted2); }
-.notif-toolbar-actions { display: flex; gap: 4px; }
+.emp-search:focus { border-color: var(--accent); }
+.emp-search::placeholder { color: var(--muted2); }
+.emp-toolbar-actions { display: flex; gap: 4px; }
 
-.notif-loading {
+.emp-loading {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -165,7 +138,7 @@
   font-size: 12px;
   color: var(--muted);
 }
-.notif-loading-spinner {
+.emp-loading-spinner {
   width: 20px; height: 20px;
   border: 2px solid var(--border);
   border-top-color: var(--accent);
@@ -174,21 +147,21 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.notif-empty-state {
+.emp-empty-state {
   text-align: center;
   padding: 60px 20px;
 }
-.notif-empty-icon { font-size: 48px; margin-bottom: 16px; }
-.notif-empty-title {
+.emp-empty-icon { font-size: 48px; margin-bottom: 16px; }
+.emp-empty-title {
   font-family: var(--fh);
   font-size: 18px;
   font-weight: 600;
   color: var(--text);
   margin: 0 0 8px;
 }
-.notif-empty-desc { font-size: 12px; color: var(--muted); line-height: 1.5; max-width: 380px; margin: 0 auto; }
+.emp-empty-desc { font-size: 12px; color: var(--muted); line-height: 1.5; max-width: 380px; margin: 0 auto; }
 
-.notif-list-page {
+.emp-notif-list {
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -197,7 +170,7 @@
   border-radius: var(--radius);
   overflow: hidden;
 }
-.notif-card {
+.emp-notif-card {
   display: flex;
   align-items: flex-start;
   gap: 14px;
@@ -206,28 +179,28 @@
   cursor: pointer;
   transition: background 0.1s;
 }
-.notif-card:last-child { border-bottom: none; }
-.notif-card:hover { background: var(--s2); }
-.notif-card.unread {
+.emp-notif-card:last-child { border-bottom: none; }
+.emp-notif-card:hover { background: var(--s2); }
+.emp-notif-card.unread {
   background: rgba(0,229,160,0.03);
   border-left: 3px solid var(--accent);
 }
-.notif-card-icon {
+.emp-notif-card-icon {
   width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
   background: var(--s2); border-radius: 50%;
   font-size: 16px;
   flex-shrink: 0;
 }
-.notif-card-body { flex: 1; min-width: 0; }
-.notif-card-title {
+.emp-notif-card-body { flex: 1; min-width: 0; }
+.emp-notif-card-title {
   font-size: 13px;
   font-weight: 500;
   color: var(--text);
   line-height: 1.4;
   margin-bottom: 2px;
 }
-.notif-card-content {
+.emp-notif-card-content {
   font-size: 11px;
   color: var(--muted);
   line-height: 1.5;
@@ -236,17 +209,17 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.notif-card-meta {
+.emp-notif-card-meta {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-top: 6px;
 }
-.notif-card-time {
+.emp-notif-card-time {
   font-size: 10px;
   color: var(--muted2);
 }
-.notif-card-badge {
+.emp-notif-card-badge {
   font-size: 8px;
   padding: 2px 8px;
   border-radius: 10px;
@@ -254,15 +227,15 @@
   letter-spacing: 0.3px;
   text-transform: uppercase;
 }
-.notif-card-badge.high { background: rgba(255,79,79,0.1); color: var(--danger); }
-.notif-card-badge.normal { background: rgba(0,229,160,0.1); color: var(--accent); }
-.notif-card-badge.low { background: rgba(245,166,35,0.1); color: var(--warn); }
-.notif-card-actions {
+.emp-notif-card-badge.high { background: rgba(255,79,79,0.1); color: var(--danger); }
+.emp-notif-card-badge.normal { background: rgba(0,229,160,0.1); color: var(--accent); }
+.emp-notif-card-badge.low { background: rgba(245,166,35,0.1); color: var(--warn); }
+.emp-notif-card-actions {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
 }
-.notif-card-btn {
+.emp-notif-card-btn {
   padding: 4px 8px;
   font-family: var(--fm);
   font-size: 9px;
@@ -273,28 +246,28 @@
   cursor: pointer;
   transition: all 0.1s;
 }
-.notif-card-btn:hover { border-color: var(--accent); color: var(--accent); }
-.notif-card-btn-danger:hover { border-color: var(--danger); color: var(--danger); }
+.emp-notif-card-btn:hover { border-color: var(--accent); color: var(--accent); }
+.emp-notif-card-btn-danger:hover { border-color: var(--danger); color: var(--danger); }
 
-.notif-pagination {
+.emp-pagination {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 16px;
   padding: 16px 0;
 }
-.notif-page-info {
+.emp-page-info {
   font-family: var(--fm);
   font-size: 11px;
   color: var(--muted);
 }
 
 @media (max-width: 640px) {
-  .notif-page-head { flex-direction: column; }
-  .notif-toolbar { flex-direction: column; align-items: stretch; }
-  .notif-search-wrap { max-width: none; }
-  .notif-card { padding: 12px 14px; }
-  .notif-card-actions { flex-direction: column; }
+  .emp-page-head { flex-direction: column; }
+  .emp-toolbar { flex-direction: column; align-items: stretch; }
+  .emp-search-wrap { max-width: none; }
+  .emp-notif-card { padding: 12px 14px; }
+  .emp-notif-card-actions { flex-direction: column; }
 }
 </style>
 
@@ -321,7 +294,7 @@
   var refreshBtn = document.getElementById('notif-refresh-btn');
   var clearBtn = document.getElementById('notif-clear-btn');
   var searchInput = document.getElementById('notif-search');
-  var tabBtns = document.querySelectorAll('.notif-tab');
+  var tabBtns = document.querySelectorAll('.emp-tab');
 
   function getFilterParams() {
     var params = { page: state.page, limit: state.limit };
@@ -392,7 +365,7 @@
     }).catch(function(err) {
       state.loading = false;
       loadingEl.style.display = 'none';
-      listEl.innerHTML = '<div class="notif-empty-state" style="display:block;padding:40px 20px"><div class="notif-empty-icon">&#x26A0;&#xFE0F;</div><h3 class="notif-empty-title">Failed to load notifications</h3><p class="notif-empty-desc">' + (err.message || 'Please try again later.') + '</p></div>';
+      listEl.innerHTML = '<div class="emp-empty-state" style="display:block;padding:40px 20px"><div class="emp-empty-icon">&#x26A0;&#xFE0F;</div><h3 class="emp-empty-title">Failed to load notifications</h3><p class="emp-empty-desc">' + (err.message || 'Please try again later.') + '</p></div>';
     });
   }
 
@@ -400,7 +373,7 @@
     listEl.innerHTML = '';
     notifications.forEach(function(n) {
       var card = document.createElement('div');
-      card.className = 'notif-card' + (n.is_read ? '' : ' unread');
+      card.className = 'emp-notif-card' + (n.is_read ? '' : ' unread');
       card.setAttribute('data-id', n.id);
 
       var iconMap = {
@@ -416,26 +389,26 @@
 
       var priorityBadge = '';
       if (n.priority && n.priority !== 'normal') {
-        priorityBadge = '<span class="notif-card-badge ' + n.priority + '">' + n.priority + '</span>';
+        priorityBadge = '<span class="emp-notif-card-badge ' + n.priority + '">' + n.priority + '</span>';
       }
 
-      card.innerHTML = '<div class="notif-card-icon">' + icon + '</div>'
-        + '<div class="notif-card-body">'
-        + '<div class="notif-card-title">' + escapeHtml(n.title) + '</div>'
-        + (n.content ? '<div class="notif-card-content">' + escapeHtml(n.content) + '</div>' : '')
-        + '<div class="notif-card-meta">'
-        + '<span class="notif-card-time">' + timeAgo(n.created_at) + '</span>'
+      card.innerHTML = '<div class="emp-notif-card-icon">' + icon + '</div>'
+        + '<div class="emp-notif-card-body">'
+        + '<div class="emp-notif-card-title">' + escapeHtml(n.title) + '</div>'
+        + (n.content ? '<div class="emp-notif-card-content">' + escapeHtml(n.content) + '</div>' : '')
+        + '<div class="emp-notif-card-meta">'
+        + '<span class="emp-notif-card-time">' + timeAgo(n.created_at) + '</span>'
         + priorityBadge
         + '</div>'
         + '</div>'
-        + '<div class="notif-card-actions">'
-        + (n.is_read ? '' : '<button class="notif-card-btn mark-read" data-id="' + n.id + '">Read</button>')
-        + '<button class="notif-card-btn notif-card-btn-danger delete-notif" data-id="' + n.id + '">&#x2716;</button>'
+        + '<div class="emp-notif-card-actions">'
+        + (n.is_read ? '' : '<button class="emp-notif-card-btn mark-read" data-id="' + n.id + '">Read</button>')
+        + '<button class="emp-notif-card-btn emp-notif-card-btn-danger delete-notif" data-id="' + n.id + '">&#x2716;</button>'
         + '</div>';
 
       if (n.action_url) {
         card.addEventListener('click', function(e) {
-          if (e.target.closest('.notif-card-actions')) return;
+          if (e.target.closest('.emp-notif-card-actions')) return;
           if (!n.is_read && window.AngaziaNotifications) AngaziaNotifications.markAsRead(n.id);
           window.location.href = n.action_url;
         });
@@ -491,7 +464,7 @@
   if (markAllBtn) {
     markAllBtn.addEventListener('click', function() {
       if (window.AngaziaNotifications) AngaziaNotifications.markAllAsRead();
-      document.querySelectorAll('.notif-card.unread').forEach(function(el) { el.classList.remove('unread'); });
+      document.querySelectorAll('.emp-notif-card.unread').forEach(function(el) { el.classList.remove('unread'); });
       document.querySelectorAll('.mark-read').forEach(function(el) { el.remove(); });
       markAllBtn.style.display = 'none';
     });

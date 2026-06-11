@@ -27,7 +27,7 @@ type TwoFASecret struct {
 // TwoFASetup represents the setup response for 2FA
 type TwoFASetup struct {
 	Secret        string   `json:"secret"`
-	QRCodeURL     string   `json:"qr_code_url"`
+	QRCodeURL     string   `json:"qr_code"`
 	BackupCodes   []string `json:"backup_codes"`
 	Method        string   `json:"method"`
 }

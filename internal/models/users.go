@@ -125,6 +125,12 @@ type EmployeeProfile struct {
 	ApplicationCount  int        `json:"application_count" gorm:"default:0"`
 	ResponseRate      float64    `json:"response_rate" gorm:"default:0"`
 	
+	// Computed fields (not persisted)
+	ProfileStrength        int `json:"profile_strength" gorm:"-:all"`
+	SkillsMatchPercent     int `json:"skills_match_percent" gorm:"-:all"`
+	ExperienceMatchPercent int `json:"experience_match_percent" gorm:"-:all"`
+	LocationMatchPercent   int `json:"location_match_percent" gorm:"-:all"`
+	
 	CreatedAt         time.Time  `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt         time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
 	

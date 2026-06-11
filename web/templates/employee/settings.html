@@ -387,28 +387,6 @@
   gap: 16px;
   padding: 12px 0;
 }
-.emp-btn-danger {
-  background: var(--danger);
-  color: #fff;
-  border: none;
-  padding: 10px 20px;
-  font-family: var(--fm);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: opacity 0.15s;
-  white-space: nowrap;
-}
-.emp-btn-danger:hover { opacity: 0.85; }
-.emp-btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }
-.emp-btn-block { width: 100%; }
-.emp-btn-xs {
-  font-size: 8px;
-  padding: 6px 12px;
-}
 .emp-settings-content .emp-section {
   margin-bottom: 0;
 }
@@ -450,10 +428,6 @@
 .emp-avatar-actions .emp-hint {
   font-size: 11px;
   color: var(--muted2);
-}
-.emp-btn-sm {
-  padding: 8px 16px;
-  font-size: 11px;
 }
 .emp-form {
   display: flex;
@@ -673,6 +647,7 @@
 </style>
 
 <script>
+document.addEventListener('DOMContentLoaded', function () {
 (function () {
   function toast(msg, type) {
     if (window.AngaziaApp && AngaziaApp.showToast) {
@@ -1112,4 +1087,5 @@
     }
   })();
 })();
+});
 </script>

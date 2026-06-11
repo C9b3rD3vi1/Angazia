@@ -27,6 +27,12 @@ go.work.sum
 # env file
 .env
 
+# Compiled binary
+api
+
+# Uploaded files (avatars, etc.)
+web/uploads/
+
 # Editor/IDE
 # .idea/
 # .vscode/

@@ -138,7 +138,29 @@ func (h *GitHubHandler) Connect(c *fiber.Ctx) error {
 	}
 
 	state := utils.GenerateRandomString(32)
-	authURL := h.githubService.GetAuthURL(state, "/employee/dashboard")
+	redirectTo := c.Query("redirect_to", "/employee/skills")
+
+	// Store state in cookie (required for callback validation)
+	c.Cookie(&fiber.Cookie{
+		Name:     "github_oauth_state",
+		Value:    state,
+		HTTPOnly: true,
+		Secure:   utils.IsProduction(),
+		SameSite: "Lax",
+		MaxAge:   600,
+		Path:     "/",
+	})
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "github_oauth_redirect",
+		Value:    redirectTo,
+		HTTPOnly: true,
+		Secure:   utils.IsProduction(),
+		MaxAge:   600,
+		Path:     "/",
+	})
+
+	authURL := h.githubService.GetAuthURL(state, redirectTo)
 
 	return utils.Success(c, fiber.Map{
 		"auth_url": authURL,
@@ -167,8 +189,8 @@ func (h *GitHubHandler) Sync(c *fiber.Ctx) error {
 		return utils.Unauthorized(c, "Please log in first")
 	}
 
-	// Start async sync
-	go h.githubService.SyncGitHubData(c.Context(), userID)
+	// Start async sync with background context (request context cancelled after response)
+	go h.githubService.SyncGitHubData(context.Background(), userID)
 
 	return utils.SuccessWithMessage(c, "GitHub sync started in background", fiber.Map{
 		"status": "processing",
