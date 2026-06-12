@@ -44,7 +44,7 @@ type LocalLLMResponse struct {
 
 func NewLocalLLMProvider(config *Config) (*LocalLLMProvider, error) {
 	if config.BaseURL == "" {
-		return nil, fmt.Errorf("Local LLM base URL is required")
+		config.BaseURL = "http://localhost:11434/api/generate"
 	}
 	
 	return &LocalLLMProvider{

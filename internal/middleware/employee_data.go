@@ -9,7 +9,7 @@ import (
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
 
-func EmployeePageData(authService services.AuthService, notificationService services.NotificationService) fiber.Handler {
+func EmployeePageData(authService services.AuthService, notificationService services.NotificationService, matchingService services.MatchingService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userID, _ := c.Locals("user_id").(string)
 		if userID == "" {
@@ -125,7 +125,9 @@ func EmployeePageData(authService services.AuthService, notificationService serv
 			} else {
 				data["SkillsLabel"] = fmt.Sprintf("%d skills listed", len(ep.Skills))
 			}
-			data["MatchCount"] = len(ep.Skills)
+			if cnt, err := matchingService.CountJobMatches(c.Context(), userID); err == nil {
+				data["MatchCount"] = cnt
+			}
 			data["ApplicationCount"] = ep.ApplicationCount
 		}
 

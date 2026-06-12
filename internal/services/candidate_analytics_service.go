@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/C9b3rD3vi1/Angazia/internal/config"
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
@@ -382,7 +383,7 @@ func (s *CandidateAnalyticsServiceImpl) GetSkillGapAnalysis(ctx context.Context,
 		}
 		analysis.RecommendedSkills = append(analysis.RecommendedSkills, models.RecommendedSkill{
 			Name:            ms.Name,
-			Reason:          "In high demand with " + string(rune(ms.JobCount)) + " job opportunities",
+			Reason:          "In high demand with " + strconv.Itoa(ms.JobCount) + " job opportunities",
 			Priority:        "high",
 			TimeToLearn:     "2-4 weeks",
 			JobOpportunities: ms.JobCount,
@@ -494,7 +495,7 @@ func (s *CandidateAnalyticsServiceImpl) GetRecommendations(ctx context.Context, 
 				recommendations = append(recommendations, models.Recommendation{
 					Type:        "job",
 					Title:       "Apply to " + match.JobTitle,
-					Description: "This job matches your profile with " + string(rune(match.OverallScore)) + "% match score",
+					Description: "This job matches your profile with " + strconv.Itoa(match.OverallScore) + "% match score",
 					ActionURL:   "/jobs/" + match.JobID,
 					Priority:    "high",
 				})
@@ -513,11 +514,4 @@ func (s *CandidateAnalyticsServiceImpl) GetRecommendations(ctx context.Context, 
 
 func (s *CandidateAnalyticsServiceImpl) GetRecentActivity(ctx context.Context, employeeID string, limit int) ([]models.RecentActivity, error) {
 	return s.candidateRepo.GetRecentActivity(ctx, employeeID, limit)
-}
-
-// Helper method to get employee profile from candidate repo
-func (r *CandidateAnalyticsServiceImpl) getEmployeeProfile(ctx context.Context, employeeID string) (*models.EmployeeProfile, error) {
-	// This would need to be implemented in the candidate repo
-	// For now, we'll return a placeholder
-	return &models.EmployeeProfile{}, nil
 }

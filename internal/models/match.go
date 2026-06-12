@@ -1,6 +1,7 @@
 package models
 
 import (
+	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -215,10 +216,46 @@ func CalculateSkillMatchScore(employeeSkills, requiredSkills []string) int {
 }
 
 func normalizeSkill(skill string) string {
-	// Convert to lowercase and trim spaces
-	skill = string(skill)
-	// Simple normalization - can be enhanced with synonyms
-	return skill
+	normalized := strings.ToLower(strings.TrimSpace(skill))
+
+	variations := map[string]string{
+		"react.js":     "react",
+		"reactjs":      "react",
+		"node.js":      "nodejs",
+		"nodejs":       "nodejs",
+		"postgresql":   "postgres",
+		"postgres":     "postgres",
+		"typescript":   "typescript",
+		"javascript":   "javascript",
+		"golang":       "go",
+		"golanglang":   "go",
+		"kubernetes":   "kubernetes",
+		"k8s":          "kubernetes",
+		"aws":          "aws",
+		"amazon web services": "aws",
+		"gcp":          "gcp",
+		"google cloud": "gcp",
+		"react native": "react native",
+		"vue.js":       "vue",
+		"vuejs":        "vue",
+		"angular.js":   "angular",
+		"angularjs":    "angular",
+		"express.js":   "express",
+		"expressjs":    "express",
+	}
+
+	if val, ok := variations[normalized]; ok {
+		return val
+	}
+
+	suffixes := []string{".js", ".jsx", ".ts", ".tsx", ".py", ".rb", ".go", ".rs"}
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(normalized, suffix) {
+			return strings.TrimSuffix(normalized, suffix)
+		}
+	}
+
+	return normalized
 }
 
 // Batch match results for API responses

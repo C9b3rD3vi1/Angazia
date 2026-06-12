@@ -146,7 +146,7 @@ type Config struct {
 // DefaultConfig returns default AI configuration
 func DefaultConfig() *Config {
 	return &Config{
-		Provider:      "openai",
+		Provider:      "local",
 		Model:         "gpt-4-turbo-preview",
 		Timeout:       30 * time.Second,
 		MaxTokens:     2000,

@@ -234,12 +234,10 @@
   function handleRefreshRecommendations(btn) {
     btn.disabled = true;
     btn.textContent = '⟳ Refreshing...';
-    AngaziaAPI.analytics.candidateDashboard()
-      .then(function (data) {
+    AngaziaAPI.matches.jobMatches({ limit: 6 })
+      .then(function (matches) {
         showToast('Recommendations refreshed!', 'success');
-        if (data && data.recommendations) {
-          updateRecommendations(data.recommendations);
-        }
+        updateRecommendations(matches || []);
       })
       .catch(function (err) {
         console.error('Refresh error:', err);
@@ -251,28 +249,42 @@
       });
   }
 
-  function updateRecommendations(recommendations) {
+  function updateRecommendations(matches) {
     var container = document.getElementById('recommendations-list');
     if (!container) return;
-    if (!recommendations || recommendations.length === 0) {
+    if (!matches || matches.length === 0) {
       container.innerHTML =
-        '<div class="emp-empty-state"><span class="emp-empty-icon">🔍</span><p>No recommendations yet</p>' +
-        '<button class="emp-btn-sm emp-btn-outline" data-action="refresh-recommendations">Refresh</button></div>';
+        '<div class="emp-empty-state"><span class="emp-empty-icon">🔍</span><p>No recommendations yet. Complete your profile to get AI-powered job matches.</p>' +
+        '<a href="/employee/settings" class="emp-btn-sm emp-btn-outline">Complete Profile →</a></div>';
       return;
     }
     var html = '';
-    recommendations.forEach(function (r) {
-      var ci = (r.company || '').split(' ').map(function (w) { return w.charAt(0); }).join('').toUpperCase().slice(0, 2);
-      html += '<div class="emp-rec-item" data-job-id="' + (r.job_id || '') + '">' +
+    matches.forEach(function (m) {
+      var jobId = m.job_id || m.JobID || '';
+      var title = m.job_title || m.JobTitle || 'Position';
+      var company = m.company_name || m.CompanyName || '';
+      var logo = m.company_logo || m.CompanyLogo || '';
+      var score = m.overall_score || m.OverallScore || 0;
+      var mSkills = m.matching_skills || m.MatchingSkills || [];
+      var posted = m.analyzed_at || m.AnalyzedAt || '';
+      if (posted && typeof posted === 'string') {
+        posted = new Date(posted).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' });
+      }
+      var ci = company.split(' ').map(function (w) { return w.charAt(0); }).join('').toUpperCase().slice(0, 2);
+      html += '<div class="emp-rec-item" data-job-id="' + jobId + '">' +
         '<div class="emp-rec-header">' +
-        '<div class="emp-rec-logo-placeholder">' + ci + '</div>' +
-        '<div class="emp-rec-info"><h4 class="emp-rec-title">' + (r.title || 'Job') + '</h4>' +
-        '<p class="emp-rec-company">' + (r.company || '') + '</p></div>' +
+        (logo ? '<img class="emp-rec-logo" src="' + logo + '" alt="' + company + '">' : '<div class="emp-rec-logo-placeholder">' + ci + '</div>') +
+        '<div class="emp-rec-info"><h4 class="emp-rec-title">' + title + '</h4>' +
+        '<p class="emp-rec-company">' + company + '</p></div>' +
         '<div class="emp-rec-match-score">' +
         '<svg class="emp-score-ring" viewBox="0 0 36 36"><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#2a3a3a" stroke-width="3"/>' +
-        '<path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#00e5a0" stroke-width="3" stroke-dasharray="' + (r.match_score || 0) + ', 100"/></svg>' +
-        '<span class="emp-score-text">' + (r.match_score || 0) + '%</span></div></div>' +
-        '<div class="emp-rec-footer"><button class="emp-btn-sm emp-btn-primary" data-action="apply-job" data-id="' + (r.job_id || '') + '">Apply Now →</button></div></div>';
+        '<path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#00e5a0" stroke-width="3" stroke-dasharray="' + score + ', 100"/></svg>' +
+        '<span class="emp-score-text">' + score + '%</span></div></div>' +
+        '<div class="emp-rec-skills">' +
+        mSkills.map(function (s) { return '<span class="emp-skill-match">✓ ' + s + '</span>'; }).join('') +
+        '</div>' +
+        (posted ? '<div class="emp-rec-date">📅 ' + posted + '</div>' : '') +
+        '<div class="emp-rec-footer"><button class="emp-btn-sm emp-btn-primary" data-action="apply-job" data-id="' + jobId + '">Apply Now →</button></div></div>';
     });
     container.innerHTML = html;
   }

@@ -87,7 +87,7 @@ func (f *ProviderFactory) GetProvider() (AIProvider, error) {
 			baseURL = os.Getenv("LOCAL_LLM_URL")
 		}
 		if baseURL == "" {
-			return nil, fmt.Errorf("LOCAL_LLM_URL environment variable is required for local provider")
+			baseURL = "http://localhost:11434/api/generate"
 		}
 		config := &Config{
 			Provider:      "local",
@@ -102,13 +102,14 @@ func (f *ProviderFactory) GetProvider() (AIProvider, error) {
 		return NewLocalLLMProvider(config)
 		
 	default:
-		// Default to OpenAI with mock mode if no API key
-		if apiKey == "" {
-			apiKey = os.Getenv("OPENAI_API_KEY")
+		// Fall back to local LLM provider
+		baseURL = os.Getenv("LOCAL_LLM_URL")
+		if baseURL == "" {
+			baseURL = "http://localhost:11434/api/generate"
 		}
 		config := &Config{
-			Provider:      "openai",
-			APIKey:        apiKey,
+			Provider:      "local",
+			BaseURL:       baseURL,
 			Model:         f.config.Model,
 			Timeout:       f.config.Timeout,
 			MaxTokens:     f.config.MaxTokens,
@@ -116,7 +117,7 @@ func (f *ProviderFactory) GetProvider() (AIProvider, error) {
 			RetryAttempts: f.config.RetryAttempts,
 			RetryDelay:    f.config.RetryDelay,
 		}
-		return NewOpenAIProvider(config)
+		return NewLocalLLMProvider(config)
 	}
 }
 
@@ -137,9 +138,9 @@ func (f *ProviderFactory) GetAvailableProviders() []string {
 		providers = append(providers, "local")
 	}
 	
-	// Always add openai as fallback (will use mock mode)
+	// Fall back to local LLM
 	if len(providers) == 0 {
-		providers = append(providers, "openai (mock mode)")
+		providers = append(providers, "local (Ollama default)")
 	}
 	
 	return providers

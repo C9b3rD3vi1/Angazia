@@ -136,9 +136,14 @@ type JobListResponse struct {
 }
 
 type JobServiceImpl struct {
-	cfg      *config.Config
-	jobRepo  repository.JobRepository
-	userRepo repository.UserRepository
+	cfg         *config.Config
+	jobRepo     repository.JobRepository
+	userRepo    repository.UserRepository
+	matchingSvc MatchingService
+}
+
+func (s *JobServiceImpl) SetMatchingService(m MatchingService) {
+	s.matchingSvc = m
 }
 
 func NewJobService(cfg *config.Config, jobRepo repository.JobRepository, userRepo repository.UserRepository) JobService {
@@ -222,6 +227,16 @@ func (s *JobServiceImpl) CreateJob(ctx context.Context, employerID string, req *
 	
 	// Update employer's job count
 	s.userRepo.IncrementJobPostedCount(ctx, employerID)
+	
+	// Auto-batch match this new job against all active candidates in background
+	if s.matchingSvc != nil {
+		go func(jobID string) {
+			bgCtx := context.Background()
+			if err := s.matchingSvc.BatchMatchJobs(bgCtx, jobID); err != nil {
+				// Logged internally by matching service
+			}
+		}(job.ID)
+	}
 	
 	return job, nil
 }

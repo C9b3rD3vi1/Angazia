@@ -69,12 +69,16 @@
       const response = await AngaziaAPI.alerts.list();
       
       let alertsData = [];
-      if (response && response.data) {
+      if (response && response.data && response.data.searches) {
+        alertsData = response.data.searches;
+      } else if (response && response.data && Array.isArray(response.data)) {
         alertsData = response.data;
       } else if (Array.isArray(response)) {
         alertsData = response;
       } else if (response && response.alerts) {
         alertsData = response.alerts;
+      } else if (response && response.searches) {
+        alertsData = response.searches;
       }
       
       alerts = alertsData.map(formatAlert);

@@ -17,6 +17,7 @@ func SetupWebRoutes(
 	jobService services.JobService,
 	jobHandler *handlers.JobHandler,
 	dashboardHandler *handlers.DashboardHandler,
+	matchingService services.MatchingService,
 ) {
 	// Public pages
 	app.Get("/", webHandler.HomePage)
@@ -40,7 +41,7 @@ func SetupWebRoutes(
 	employee := app.Group("/employee",
 		middleware.WebAuthMiddleware(),
 		middleware.WebRequireRole("employee"),
-		middleware.EmployeePageData(authService, notificationService),
+		middleware.EmployeePageData(authService, notificationService, matchingService),
 	)
 	employee.Get("/dashboard", dashboardHandler.EmployeeDashboardPage)
 	employee.Get("/jobs", jobHandler.EmployeeJobsPage)
@@ -50,6 +51,8 @@ func SetupWebRoutes(
 	employee.Get("/alerts", jobHandler.EmployeeJobAlertsPage)
 	employee.Get("/skills", webHandler.EmployeeSkillsPage)
 	employee.Get("/settings", webHandler.EmployeeSettingsPage)
+	employee.Get("/matches", dashboardHandler.EmployeeMatchesPage)
+	employee.Get("/notifications", webHandler.NotificationsPage)
 
 	// Employer pages
 	employer := app.Group("/employer",
@@ -75,9 +78,16 @@ func SetupWebRoutes(
 	employer.Get("/billing/invoices", webHandler.EmployerBillingInvoicesPage)
 	employer.Get("/billing/upgrade/:plan", webHandler.EmployerBillingUpgradePage)
 	employer.Get("/settings", webHandler.EmployerSettingsPage)
+	employer.Get("/notifications", webHandler.NotificationsPage)
 
-	// Notifications page (authenticated users of any role)
-	app.Get("/notifications", middleware.WebAuthMiddleware(), webHandler.NotificationsPage)
+	// Role-aware notifications redirect (works with notification-bell partial shared by both roles)
+	app.Get("/notifications", middleware.WebAuthMiddleware(), func(c *fiber.Ctx) error {
+		role, _ := c.Locals("user_role").(string)
+		if role == "employer" {
+			return c.Redirect("/employer/notifications")
+		}
+		return c.Redirect("/employee/notifications")
+	})
 
 	// 2FA pages (authenticated users of any role)
 	app.Get("/auth/2fa/setup", middleware.WebAuthMiddleware(), webHandler.TwoFASetupPage)

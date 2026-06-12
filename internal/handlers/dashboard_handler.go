@@ -284,7 +284,7 @@ func (h *DashboardHandler) EmployeeDashboardPage(c *fiber.Ctx) error {
 				"ID":              m.JobID,
 				"Title":           m.JobTitle,
 				"Company":         m.CompanyName,
-				"CompanyLogo":     "",
+				"CompanyLogo":     m.CompanyLogo,
 				"CompanyInitials": ci,
 				"MatchScore":      m.OverallScore,
 				"MatchingSkills":  m.MatchingSkills,
@@ -349,6 +349,75 @@ func (h *DashboardHandler) EmployeeDashboardPage(c *fiber.Ctx) error {
 	data["CurrentTime"] = time.Now().Format("3:04 PM")
 
 	return c.Render("employee/dashboard", mergePageData(c, data), "layouts/employee")
+}
+
+// EmployeeMatchesPage renders the AI-powered job matches page
+func (h *DashboardHandler) EmployeeMatchesPage(c *fiber.Ctx) error {
+	ctx := c.Context()
+	employeeID, _ := c.Locals("user_id").(string)
+
+	data := fiber.Map{
+		"Title":      "AI Job Matches - Angazia",
+		"ActivePage": "matches",
+	}
+
+	// Get top job matches
+	matches, err := h.matchingService.GetJobMatches(ctx, employeeID, 20)
+	if err == nil && len(matches) > 0 {
+		recJobs := make([]fiber.Map, 0, len(matches))
+		for _, m := range matches {
+			ci := ""
+			for _, w := range strings.Fields(m.CompanyName) {
+				if len(w) > 0 {
+					ci += strings.ToUpper(w[:1])
+				}
+			}
+			recJobs = append(recJobs, fiber.Map{
+				"JobID":           m.JobID,
+				"EmployeeID":      m.EmployeeID,
+				"Title":           m.JobTitle,
+				"Company":         m.CompanyName,
+				"CompanyLogo":     m.CompanyLogo,
+				"CompanyInitials": ci,
+				"MatchScore":      m.OverallScore,
+				"SkillsScore":     m.SkillsScore,
+				"ExperienceScore": m.ExperienceScore,
+				"CultureScore":    m.CultureScore,
+				"LocationScore":   m.LocationScore,
+				"Summary":         m.Summary,
+				"Recommendation":  m.Recommendation,
+				"MatchingSkills":  m.MatchingSkills,
+				"MissingSkills":   m.MissingSkills,
+				"MatchID":         m.MatchID,
+				"AnalyzedAt":      friendlyDate(m.AnalyzedAt),
+			})
+		}
+		data["Matches"] = recJobs
+		data["MatchCount"] = len(recJobs)
+	}
+
+	// Get dashboard for profile strength and recommendations context
+	dashboard, dashErr := h.candidateAnalyticsService.GetDashboard(ctx, employeeID)
+	if dashErr == nil && dashboard != nil {
+		if dashboard.ProfileStrength != nil {
+			data["ProfileCompletion"] = dashboard.ProfileStrength.OverallScore
+		}
+		if len(dashboard.Recommendations) > 0 {
+			recs := make([]fiber.Map, 0, len(dashboard.Recommendations))
+			for _, r := range dashboard.Recommendations {
+				recs = append(recs, fiber.Map{
+					"Type":        r.Type,
+					"Title":       r.Title,
+					"Description": r.Description,
+					"ActionURL":   r.ActionURL,
+					"Priority":    r.Priority,
+				})
+			}
+			data["Recommendations"] = recs
+		}
+	}
+
+	return c.Render("employee/matches", mergePageData(c, data), "layouts/employee")
 }
 
 func greeting() string {

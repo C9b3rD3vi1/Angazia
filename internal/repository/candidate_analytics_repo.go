@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -108,19 +109,19 @@ func (r *CandidateAnalyticsRepositoryImpl) GetApplicationStats(ctx context.Conte
 func (r *CandidateAnalyticsRepositoryImpl) GetMonthlyApplicationStats(ctx context.Context, employeeID string, months int) ([]models.MonthlyStats, error) {
 	var stats []models.MonthlyStats
 	
-	query := `
+	query := fmt.Sprintf(`
 		SELECT 
 			TO_CHAR(DATE_TRUNC('month', applied_at), 'YYYY-MM') as month,
 			COUNT(*) as applications,
 			SUM(CASE WHEN reviewed_at IS NOT NULL THEN 1 ELSE 0 END) as responses,
 			ROUND(CAST(SUM(CASE WHEN reviewed_at IS NOT NULL THEN 1 ELSE 0 END) AS DECIMAL) / COUNT(*) * 100, 2) as response_rate
 		FROM applications
-		WHERE employee_id = ? AND applied_at >= NOW() - INTERVAL '? months'
+		WHERE employee_id = ? AND applied_at >= NOW() - INTERVAL '%d months'
 		GROUP BY DATE_TRUNC('month', applied_at)
 		ORDER BY month ASC
-	`
-	
-	err := r.db.WithContext(ctx).Raw(query, employeeID, months).Scan(&stats).Error
+	`, months)
+
+	err := r.db.WithContext(ctx).Raw(query, employeeID).Scan(&stats).Error
 	return stats, err
 }
 

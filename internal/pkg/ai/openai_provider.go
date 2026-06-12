@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -44,15 +43,8 @@ type OpenAIChatResponse struct {
 }
 
 func NewOpenAIProvider(config *Config) (*OpenAIProvider, error) {
-	// Allow empty API key for development (will use mock responses)
 	if config.APIKey == "" {
-		// Return a provider that uses mock responses
-		return &OpenAIProvider{
-			config:      config,
-			httpClient:  &http.Client{Timeout: config.Timeout},
-			prompts:     NewPromptTemplates(), // Initialize prompts!
-			apiURL:      "https://api.openai.com/v1/chat/completions",
-		}, nil
+		return nil, fmt.Errorf("OPENAI_API_KEY is required for OpenAI provider")
 	}
 	
 	if config.Model == "" {
@@ -62,7 +54,7 @@ func NewOpenAIProvider(config *Config) (*OpenAIProvider, error) {
 	return &OpenAIProvider{
 		config:      config,
 		httpClient:  &http.Client{Timeout: config.Timeout},
-		prompts:     NewPromptTemplates(), // Initialize prompts!
+		prompts:     NewPromptTemplates(),
 		apiURL:      "https://api.openai.com/v1/chat/completions",
 	}, nil
 }
@@ -72,10 +64,6 @@ func (p *OpenAIProvider) GetProviderName() string {
 }
 
 func (p *OpenAIProvider) HealthCheck(ctx context.Context) error {
-	// Skip health check if no API key
-	if p.config.APIKey == "" {
-		return nil
-	}
 	_, err := p.makeRequest(ctx, []Message{{Role: "user", Content: "test"}})
 	return err
 }
@@ -83,12 +71,6 @@ func (p *OpenAIProvider) HealthCheck(ctx context.Context) error {
 func (p *OpenAIProvider) GenerateMatchAnalysis(ctx context.Context, job JobDescription, candidate CandidateProfile) (*MatchAnalysis, error) {
 	startTime := time.Now()
 	
-	// Use mock response if no API key
-	if p.config.APIKey == "" {
-		return p.generateMockMatchAnalysis(job, candidate, startTime), nil
-	}
-	
-	// Ensure prompts is initialized
 	if p.prompts == nil {
 		p.prompts = NewPromptTemplates()
 	}
@@ -100,14 +82,12 @@ func (p *OpenAIProvider) GenerateMatchAnalysis(ctx context.Context, job JobDescr
 		{Role: "user", Content: prompt},
 	})
 	if err != nil {
-		// Fall back to mock response on error
-		return p.generateMockMatchAnalysis(job, candidate, startTime), nil
+		return nil, fmt.Errorf("OpenAI match analysis failed: %w", err)
 	}
 	
 	analysis, err := p.prompts.ParseMatchAnalysisResponse(response.Content)
 	if err != nil {
-		// Fall back to mock response on parse error
-		return p.generateMockMatchAnalysis(job, candidate, startTime), nil
+		return nil, fmt.Errorf("failed to parse OpenAI response: %w", err)
 	}
 	
 	analysis.AnalysisMetadata = AnalysisMetadata{
@@ -121,12 +101,6 @@ func (p *OpenAIProvider) GenerateMatchAnalysis(ctx context.Context, job JobDescr
 }
 
 func (p *OpenAIProvider) GenerateCoverLetter(ctx context.Context, job JobDescription, candidate CandidateProfile) (string, error) {
-	// Use mock response if no API key
-	if p.config.APIKey == "" {
-		return p.generateMockCoverLetter(job, candidate), nil
-	}
-	
-	// Ensure prompts is initialized
 	if p.prompts == nil {
 		p.prompts = NewPromptTemplates()
 	}
@@ -138,19 +112,13 @@ func (p *OpenAIProvider) GenerateCoverLetter(ctx context.Context, job JobDescrip
 		{Role: "user", Content: prompt},
 	})
 	if err != nil {
-		return p.generateMockCoverLetter(job, candidate), nil
+		return "", fmt.Errorf("OpenAI cover letter failed: %w", err)
 	}
 	
 	return response.Content, nil
 }
 
 func (p *OpenAIProvider) AnalyzeSkillsGap(ctx context.Context, job JobDescription, candidate CandidateProfile) (*SkillsGapAnalysis, error) {
-	// Use mock response if no API key
-	if p.config.APIKey == "" {
-		return p.generateMockSkillsGapAnalysis(job, candidate), nil
-	}
-	
-	// Ensure prompts is initialized
 	if p.prompts == nil {
 		p.prompts = NewPromptTemplates()
 	}
@@ -162,24 +130,18 @@ func (p *OpenAIProvider) AnalyzeSkillsGap(ctx context.Context, job JobDescriptio
 		{Role: "user", Content: prompt},
 	})
 	if err != nil {
-		return p.generateMockSkillsGapAnalysis(job, candidate), nil
+		return nil, fmt.Errorf("OpenAI skills gap analysis failed: %w", err)
 	}
 	
 	var analysis SkillsGapAnalysis
 	if err := json.Unmarshal([]byte(response.Content), &analysis); err != nil {
-		return p.generateMockSkillsGapAnalysis(job, candidate), nil
+		return nil, fmt.Errorf("failed to parse skills gap analysis: %w", err)
 	}
 	
 	return &analysis, nil
 }
 
 func (p *OpenAIProvider) GenerateInterviewQuestions(ctx context.Context, job JobDescription) ([]string, error) {
-	// Use mock response if no API key
-	if p.config.APIKey == "" {
-		return p.generateMockInterviewQuestions(job), nil
-	}
-	
-	// Ensure prompts is initialized
 	if p.prompts == nil {
 		p.prompts = NewPromptTemplates()
 	}
@@ -191,25 +153,19 @@ func (p *OpenAIProvider) GenerateInterviewQuestions(ctx context.Context, job Job
 		{Role: "user", Content: prompt},
 	})
 	if err != nil {
-		return p.generateMockInterviewQuestions(job), nil
+		return nil, fmt.Errorf("OpenAI interview questions failed: %w", err)
 	}
 	
 	var questions []string
 	if err := json.Unmarshal([]byte(response.Content), &questions); err != nil {
-		return p.generateMockInterviewQuestions(job), nil
+		return nil, fmt.Errorf("failed to parse interview questions: %w", err)
 	}
 	
 	return questions, nil
 }
 
 func (p *OpenAIProvider) makeRequest(ctx context.Context, messages []Message) (*Message, error) {
-	// Skip if no API key
-	if p.config.APIKey == "" {
-		return &Message{
-			Role:    "assistant",
-			Content: `{"overall_score":75,"skills_score":80,"experience_score":70,"culture_score":65,"location_score":85,"matching_skills":["Go","React"],"missing_skills":["Kubernetes"],"strong_points":["Good technical foundation","Relevant experience"],"weak_points":["Missing some advanced skills"],"summary":"Good match for the position","recommendation":"interview","interview_tips":["Review system design","Practice coding challenges"]}`,
-		}, nil
-	}
+	var lastErr error
 	
 	for attempt := 0; attempt < p.config.RetryAttempts; attempt++ {
 		if attempt > 0 {
@@ -225,11 +181,13 @@ func (p *OpenAIProvider) makeRequest(ctx context.Context, messages []Message) (*
 		
 		jsonBody, err := json.Marshal(reqBody)
 		if err != nil {
+			lastErr = err
 			continue
 		}
 		
 		req, err := http.NewRequestWithContext(ctx, "POST", p.apiURL, bytes.NewBuffer(jsonBody))
 		if err != nil {
+			lastErr = err
 			continue
 		}
 		
@@ -238,184 +196,36 @@ func (p *OpenAIProvider) makeRequest(ctx context.Context, messages []Message) (*
 		
 		resp, err := p.httpClient.Do(req)
 		if err != nil {
+			lastErr = err
 			continue
 		}
 		
 		body, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
+			lastErr = err
 			continue
 		}
 		
 		var chatResp OpenAIChatResponse
 		if err := json.Unmarshal(body, &chatResp); err != nil {
+			lastErr = err
 			continue
 		}
 		
 		if chatResp.Error != nil {
+			lastErr = fmt.Errorf("OpenAI API error: %s", chatResp.Error.Message)
 			continue
 		}
 		
 		if len(chatResp.Choices) == 0 {
+			lastErr = fmt.Errorf("OpenAI returned no choices")
 			continue
 		}
 		
 		return &chatResp.Choices[0].Message, nil
 	}
 	
-	// Return mock response on failure
-	return &Message{
-		Role:    "assistant",
-		Content: `{"overall_score":75,"skills_score":80,"experience_score":70,"culture_score":65,"location_score":85,"matching_skills":["Go","React"],"missing_skills":["Kubernetes"],"strong_points":["Good technical foundation","Relevant experience"],"weak_points":["Missing some advanced skills"],"summary":"Good match for the position","recommendation":"interview","interview_tips":["Review system design","Practice coding challenges"]}`,
-	}, nil
+	return nil, fmt.Errorf("OpenAI request failed after %d attempts: %w", p.config.RetryAttempts, lastErr)
 }
 
-// Mock response generators
-func (p *OpenAIProvider) generateMockMatchAnalysis(job JobDescription, candidate CandidateProfile, startTime time.Time) *MatchAnalysis {
-	// Calculate simple match based on skills overlap
-	matchingSkills, missingSkills, skillsScore := p.calculateSimpleSkillMatch(job.RequiredSkills, candidate.Skills)
-	
-	// Calculate experience score
-	experienceScore := 50
-	if candidate.YearsOfExperience >= job.MinExperience {
-		experienceScore = 80
-		if candidate.YearsOfExperience >= 5 {
-			experienceScore = 100
-		}
-	}
-	
-	// Calculate location score
-	locationScore := 50
-	if job.IsRemote && candidate.IsRemoteOnly {
-		locationScore = 100
-	} else if !job.IsRemote && job.Location == candidate.Location {
-		locationScore = 100
-	} else if job.IsRemote {
-		locationScore = 80
-	}
-	
-	overallScore := (skillsScore*50 + experienceScore*25 + locationScore*25) / 100
-	
-	recommendation := "consider"
-	if overallScore >= 80 {
-		recommendation = "hire"
-	} else if overallScore >= 65 {
-		recommendation = "interview"
-	} else if overallScore >= 50 {
-		recommendation = "consider"
-	} else {
-		recommendation = "reject"
-	}
-	
-	return &MatchAnalysis{
-		OverallScore:    overallScore,
-		SkillsScore:     skillsScore,
-		ExperienceScore: experienceScore,
-		CultureScore:    70,
-		LocationScore:   locationScore,
-		MatchingSkills:  matchingSkills,
-		MissingSkills:   missingSkills,
-		StrongPoints:    []string{"Relevant technical skills", "Good experience level"},
-		WeakPoints:      []string{"Some skill gaps identified"},
-		Summary:         fmt.Sprintf("Candidate matches the %s position with a %d%% compatibility score.", job.Title, overallScore),
-		Recommendation:  recommendation,
-		InterviewTips:   []string{"Review their GitHub portfolio", "Ask about specific projects", "Discuss team collaboration experience"},
-		AnalysisMetadata: AnalysisMetadata{
-			Provider:         p.GetProviderName(),
-			Model:            "mock",
-			ProcessingTimeMs: time.Since(startTime).Milliseconds(),
-			AnalyzedAt:       time.Now(),
-		},
-	}
-}
-
-func (p *OpenAIProvider) generateMockCoverLetter(job JobDescription, candidate CandidateProfile) string {
-	skillsStr := ""
-	if len(candidate.Skills) > 0 {
-		skillsStr = strings.Join(candidate.Skills[:min(3, len(candidate.Skills))], ", ")
-	}
-	
-	skillsListStr := ""
-	if len(candidate.Skills) > 0 {
-		skillsListStr = strings.Join(candidate.Skills[:min(5, len(candidate.Skills))], ", ")
-	}
-	
-	return fmt.Sprintf(`Dear Hiring Team,
-
-I am writing to express my strong interest in the %s position at your company. With %d years of experience in software development and expertise in %s, I am confident in my ability to contribute effectively to your team.
-
-Throughout my career, I have developed strong skills in %s, delivering high-quality solutions that meet business objectives. My background includes experience with modern technologies and best practices in software development.
-
-I am particularly drawn to this opportunity because of your company's reputation in the Kenyan tech industry. I am eager to bring my technical expertise and collaborative approach to help drive innovation and achieve your team's goals.
-
-Thank you for considering my application. I look forward to discussing how I can contribute to your organization.
-
-Best regards,
-%s`, job.Title, candidate.YearsOfExperience, skillsStr, skillsListStr, candidate.FullName)
-}
-
-func (p *OpenAIProvider) generateMockSkillsGapAnalysis(job JobDescription, candidate CandidateProfile) *SkillsGapAnalysis {
-	_, missingSkills, _ := p.calculateSimpleSkillMatch(job.RequiredSkills, candidate.Skills)
-	
-	skillGaps := []SkillGap{}
-	for _, skill := range missingSkills {
-		skillGaps = append(skillGaps, SkillGap{
-			SkillName:   skill,
-			Importance:  "important",
-			Description: fmt.Sprintf("This skill is required for the %s position", job.Title),
-			LearningResources: []string{
-				fmt.Sprintf("https://www.coursera.org/search?query=%s", skill),
-				fmt.Sprintf("https://www.udemy.com/courses/search/?q=%s", skill),
-			},
-		})
-	}
-	
-	return &SkillsGapAnalysis{
-		MissingSkills:       skillGaps,
-		RecommendedCourses:  []CourseRecommendation{},
-		ImprovementPlan:     "Focus on acquiring the missing skills through online courses and practical projects. Set aside 5-10 hours per week for learning.",
-		EstimatedTimeToFill: "2-4 months",
-		TransferableSkills:  candidate.Skills,
-		PriorityLevel:       "medium",
-	}
-}
-
-func (p *OpenAIProvider) generateMockInterviewQuestions(job JobDescription) []string {
-	skillsSample := ""
-	if len(job.RequiredSkills) > 0 {
-		skillsSample = strings.Join(job.RequiredSkills[:min(2, len(job.RequiredSkills))], " and ")
-	}
-	
-	return []string{
-		fmt.Sprintf("Tell me about your experience with %s?", skillsSample),
-		"Describe a challenging technical problem you solved recently.",
-		"How do you stay updated with the latest technologies?",
-		"Tell me about a time you worked in a team to deliver a project.",
-		"What's your approach to writing clean, maintainable code?",
-		"How do you handle tight deadlines and pressure?",
-		"Where do you see yourself in 2-3 years?",
-		"Do you have any questions for us?",
-	}
-}
-
-func (p *OpenAIProvider) calculateSimpleSkillMatch(requiredSkills, candidateSkills []string) (matching, missing []string, score int) {
-	candidateSkillSet := make(map[string]bool)
-	for _, s := range candidateSkills {
-		candidateSkillSet[strings.ToLower(strings.TrimSpace(s))] = true
-	}
-	
-	for _, reqSkill := range requiredSkills {
-		normalized := strings.ToLower(strings.TrimSpace(reqSkill))
-		if candidateSkillSet[normalized] {
-			matching = append(matching, reqSkill)
-		} else {
-			missing = append(missing, reqSkill)
-		}
-	}
-	
-	if len(requiredSkills) > 0 {
-		score = (len(matching) * 100) / len(requiredSkills)
-	}
-	
-	return matching, missing, score
-}

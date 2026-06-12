@@ -131,6 +131,9 @@ func main() {
 	notificationSvc := services.NewNotificationService(cfg, notificationRepo, userRepo, emailSvc)
 	applicationSvc.SetNotificationService(notificationSvc)
 	matchingSvc := services.NewMatchingService(cfg, aiProvider, jobRepo, userRepo, githubRepo, matchRepo)
+	if js, ok := jobSvc.(*services.JobServiceImpl); ok {
+		js.SetMatchingService(matchingSvc)
+	}
 	alertSvc := services.NewAlertService(cfg, alertRepo, jobRepo, emailSvc)
 	searchSvc := services.NewSearchService(cfg, searchRepo, jobRepo, userRepo)
 	adminSvc := services.NewAdminService(cfg, adminRepo)
@@ -381,7 +384,7 @@ func main() {
 	
 	// Web routes (HTML pages)
 	adminWebHandler := handlers.NewAdminWebHandler(adminSvc, jobSvc, subscriptionSvc, companyService, authSvc)
-	routes.SetupWebRoutes(app, webHandler, authHandler, authSvc, adminWebHandler, notificationSvc, jobSvc, jobHandler, dashboardHandler)
+	routes.SetupWebRoutes(app, webHandler, authHandler, authSvc, adminWebHandler, notificationSvc, jobSvc, jobHandler, dashboardHandler, matchingSvc)
 	
 	// WebSocket routes
 	routes.SetupWebSocketRoutes(app, websocketHandler)

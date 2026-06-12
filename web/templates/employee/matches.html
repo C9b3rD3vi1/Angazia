@@ -1,0 +1,265 @@
+{{define "title"}}AI Job Matches{{end}}
+{{define "contentClass"}}main-content-wide{{end}}
+
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">🤖 AI-Powered Job Matches</h1>
+      <p class="emp-page-sub">Smart matching based on your skills, experience, and preferences</p>
+    </div>
+    <div class="emp-actions">
+      <button class="emp-btn emp-btn-primary" id="refresh-matches">🔄 Refresh Matches</button>
+      <a href="/employee/analytics" class="emp-btn emp-btn-outline">📊 View Analytics</a>
+    </div>
+  </div>
+
+  <div id="mm-loading" class="mm-loading" style="display:none;">
+    <div class="mm-loading-spinner"></div>
+    <span>Generating AI recommendations...</span>
+  </div>
+
+  <div id="mm-content">
+    <section class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">🎯 Matched Jobs</h2>
+        {{if .Matches}}
+        <span class="emp-result-hint">{{.MatchCount}} matches found</span>
+        {{end}}
+      </div>
+      <div id="matches-container" class="emp-rec-list">
+        {{if .Matches}}
+        {{range .Matches}}
+        <div class="emp-rec-item" data-job-id="{{.JobID}}" data-match-id="{{.MatchID}}">
+          <div class="emp-rec-header">
+            {{if .CompanyLogo}}<img class="emp-rec-logo" src="{{.CompanyLogo}}" alt="{{.Company}}">{{else}}<div class="emp-rec-logo-placeholder">{{.CompanyInitials}}</div>{{end}}
+            <div class="emp-rec-info">
+              <h4 class="emp-rec-title">{{.Title}}</h4>
+              <p class="emp-rec-company">{{.Company}}</p>
+            </div>
+            <div class="emp-rec-match-score">
+              <svg class="emp-score-ring" viewBox="0 0 36 36">
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#2a3a3a" stroke-width="3"/>
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#00e5a0" stroke-width="3" stroke-dasharray="{{.MatchScore}}, 100"/>
+              </svg>
+              <span class="emp-score-text">{{.MatchScore}}%</span>
+            </div>
+          </div>
+          <div class="emp-rec-scores">
+            <span class="emp-score-chip skills" title="Skills Match">🛠️ {{.SkillsScore}}%</span>
+            <span class="emp-score-chip experience" title="Experience Match">💼 {{.ExperienceScore}}%</span>
+            <span class="emp-score-chip culture" title="Culture Match">🤝 {{.CultureScore}}%</span>
+            <span class="emp-score-chip location" title="Location Match">📍 {{.LocationScore}}%</span>
+          </div>
+          <div class="emp-rec-skills">
+            {{range .MatchingSkills}}
+            <span class="emp-skill-match">✓ {{.}}</span>
+            {{end}}
+            {{range .MissingSkills}}
+            <span class="emp-skill-missing">+ {{.}}</span>
+            {{end}}
+          </div>
+          <p class="emp-rec-summary">{{.Summary}}</p>
+          <div class="emp-rec-tag-row">
+            <span class="emp-rec-badge {{.Recommendation}}">
+              {{if eq .Recommendation "hire"}}🏆 Excellent Match
+              {{else if eq .Recommendation "interview"}}✅ Strong Match
+              {{else if eq .Recommendation "consider"}}💭 Potential Match
+              {{else}}📋 Needs Review{{end}}
+            </span>
+            <span class="emp-rec-date">Analyzed {{.AnalyzedAt}}</span>
+          </div>
+          <div class="emp-rec-actions">
+            <button class="emp-btn-sm emp-btn-primary" data-action="apply-job" data-id="{{.JobID}}">Apply Now →</button>
+            <button class="emp-btn-sm emp-btn-outline" data-action="view-job" data-id="{{.JobID}}">View Job</button>
+            <button class="emp-btn-sm emp-btn-ghost" data-action="analyze-match" data-job="{{.JobID}}" data-employee="{{.EmployeeID}}">🔍 Detailed Analysis</button>
+            <button class="emp-btn-sm emp-btn-ghost" data-action="skills-gap" data-job="{{.JobID}}">📚 Skills Gap</button>
+            <button class="emp-btn-sm emp-btn-ghost" data-action="cover-letter" data-job="{{.JobID}}">✉️ Cover Letter</button>
+          </div>
+        </div>
+        {{end}}
+        {{else}}
+        <div class="emp-empty-state">
+          <span class="emp-empty-icon">🔍</span>
+          <h3>No matches found yet</h3>
+          <p>Complete your profile and connect GitHub to get AI-powered job recommendations.</p>
+          <div class="emp-empty-actions">
+            <a href="/employee/settings" class="emp-btn emp-btn-primary">Complete Profile</a>
+            <a href="/employee/skills" class="emp-btn emp-btn-outline">Add Skills</a>
+          </div>
+        </div>
+        {{end}}
+      </div>
+    </section>
+
+    {{if .Recommendations}}
+    <section class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">💡 Personalized Recommendations</h2>
+      </div>
+      <div class="emp-tips-list">
+        {{range .Recommendations}}
+        <div class="emp-tip-item">
+          <span class="emp-tip-icon">
+            {{if eq .Type "urgent"}}⚠️{{else if eq .Type "skill"}}📚{{else if eq .Type "job"}}🎯{{else}}💡{{end}}
+          </span>
+          <div class="emp-tip-content">
+            <p class="emp-tip-text"><strong>{{.Title}}</strong> — {{.Description}}</p>
+            <a href="{{.ActionURL}}" class="emp-tip-action">Take Action →</a>
+          </div>
+        </div>
+        {{end}}
+      </div>
+    </section>
+    {{end}}
+
+    {{if .ProfileCompletion}}
+    <section class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">📈 Profile Strength</h2>
+      </div>
+      <div class="emp-profile-progress">
+        <div class="emp-progress-bar">
+          <div class="emp-progress-fill" style="width: {{.ProfileCompletion}}%"></div>
+        </div>
+        <p class="emp-progress-text">{{.ProfileCompletion}}% Complete — Higher scores mean better matches</p>
+      </div>
+    </section>
+    {{end}}
+  </div>
+</div>
+
+{{/* ── Analysis Modal ── */}}
+<div id="mm-modal-overlay" class="mm-modal-overlay" style="display:none">
+  <div class="mm-modal">
+    <div class="mm-modal-head">
+      <h3 class="mm-modal-title" id="mm-modal-title">Match Analysis</h3>
+      <button class="mm-modal-close" id="mm-modal-close">&times;</button>
+    </div>
+    <div class="mm-modal-loading" id="mm-modal-loading" style="display:none">
+      <div class="mm-loading-spinner"></div>
+      <span>Loading...</span>
+    </div>
+    <div class="mm-modal-body" id="mm-modal-body"></div>
+  </div>
+</div>
+
+<style>
+.mm-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: var(--muted2);
+  font-size: 13px;
+}
+.mm-loading-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--border);
+  border-top: 3px solid var(--accent);
+  border-radius: 50%;
+  animation: mm-spin 0.8s linear infinite;
+}
+@keyframes mm-spin { to { transform: rotate(360deg); } }
+.mm-modal-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.mm-modal {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  max-width: 640px; width: 100%;
+  max-height: 80vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+}
+.mm-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.mm-modal-title { font-family: var(--fh); font-size: 16px; font-weight: 600; color: var(--text); }
+.mm-modal-close {
+  background: none; border: none; font-size: 24px;
+  color: var(--muted); cursor: pointer;
+}
+.mm-modal-close:hover { color: var(--text); }
+.mm-modal-body { padding: 24px; overflow-y: auto; flex: 1; font-size: 13px; line-height: 1.6; color: var(--text); }
+.mm-modal-loading {
+  padding: 40px 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  color: var(--muted2); font-size: 13px;
+}
+.mm-analysis-section {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.mm-analysis-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.mm-analysis-scores {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.mm-score-item {
+  flex: 1; min-width: 90px;
+  background: var(--s2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 8px; text-align: center;
+}
+.mm-score-value { font-size: 22px; font-weight: 700; color: var(--text); }
+.mm-score-value[style*="var(--accent)"] { color: var(--accent) !important; }
+.mm-score-value[style*="#3b82f6"] { color: #3b82f6 !important; }
+.mm-score-value[style*="var(--warn)"] { color: var(--warn) !important; }
+.mm-score-value[style*="#ef4444"] { color: #ef4444 !important; }
+.mm-score-label { font-size: 10px; color: var(--muted2); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.mm-analysis-label {
+  font-family: var(--fh); font-size: 13px; font-weight: 600; color: var(--text);
+  margin-bottom: 8px;
+}
+.mm-analysis-section p { margin: 0 0 6px; color: var(--text); font-size: 13px; line-height: 1.5; }
+.mm-analysis-section ul { margin: 4px 0; padding-left: 20px; }
+.mm-analysis-section li { margin-bottom: 4px; font-size: 13px; line-height: 1.5; color: var(--text); }
+.mm-tag-list { display: flex; gap: 6px; flex-wrap: wrap; }
+.mm-gap-item {
+  background: var(--s2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 8px;
+}
+.mm-gap-skill { font-weight: 600; font-size: 13px; color: var(--text); margin-bottom: 4px; }
+.mm-gap-importance {
+  display: inline-block;
+  font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 4px;
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
+}
+.mm-gap-importance.critical { background: rgba(239,68,68,0.12); color: #ef4444; }
+.mm-gap-importance.important { background: rgba(245,166,35,0.12); color: var(--warn); }
+.mm-gap-importance.nice-to-have { background: rgba(59,130,246,0.12); color: #3b82f6; }
+.mm-gap-desc { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 4px 0; }
+.mm-gap-resources { font-size: 11px; color: var(--muted2); margin-top: 6px; }
+.mm-gap-resources a { color: var(--accent); text-decoration: none; }
+.mm-gap-resources a:hover { text-decoration: underline; }
+.mm-alert {
+  padding: 12px 16px; border-radius: 8px;
+  font-size: 13px; line-height: 1.5;
+}
+.mm-alert-error { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #ef4444; }
+.emp-rec-scores { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.emp-score-chip {
+  font-size: 10px; padding: 2px 8px; border-radius: 4px;
+  background: var(--s2); border: 1px solid var(--border); color: var(--muted);
+}
+.emp-rec-summary { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 8px 0; }
+.emp-rec-tag-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; flex-wrap: wrap; }
+.emp-rec-badge {
+  font-size: 10px; font-weight: 600; padding: 3px 10px; border-radius: 6px;
+}
+.emp-rec-badge.hire { background: rgba(0,229,160,0.12); color: var(--accent); }
+.emp-rec-badge.interview { background: rgba(59,130,246,0.12); color: #3b82f6; }
+.emp-rec-badge.consider { background: rgba(245,166,35,0.12); color: var(--warn); }
+.emp-rec-badge.reject { background: rgba(239,68,68,0.1); color: #ef4444; }
+.emp-rec-date { font-size: 10px; color: var(--muted2); }
+.emp-rec-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.emp-empty-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: center; }
+</style>
+
+<script src="/static/js/pages/employee/matches.js"></script>

@@ -35,6 +35,9 @@ type MatchingService interface {
 	// Batch Processing
 	BatchMatchJobs(ctx context.Context, jobID string) error
 	BatchMatchCandidates(ctx context.Context, employeeID string) error
+	
+	// Counts
+	CountJobMatches(ctx context.Context, employeeID string) (int, error)
 }
 
 type MatchResult struct {
@@ -42,6 +45,7 @@ type MatchResult struct {
 	EmployeeID        string    `json:"employee_id"`
 	JobTitle          string    `json:"job_title"`
 	CompanyName       string    `json:"company_name"`
+	CompanyLogo       string    `json:"company_logo"`
 	OverallScore      int       `json:"overall_score"`
 	SkillsScore       int       `json:"skills_score"`
 	ExperienceScore   int       `json:"experience_score"`
@@ -122,11 +126,16 @@ func (s *MatchingServiceImpl) GetJobMatches(ctx context.Context, employeeID stri
 				return
 			}
 			
+			companyLogo := ""
+			if j.Employer != nil {
+				companyLogo = j.Employer.CompanyLogo
+			}
 			match := &MatchResult{
 				JobID:           j.ID,
 				EmployeeID:      employeeID,
 				JobTitle:        j.Title,
 				CompanyName:     j.Employer.CompanyName,
+				CompanyLogo:     companyLogo,
 				OverallScore:    analysis.OverallScore,
 				SkillsScore:     analysis.SkillsScore,
 				ExperienceScore: analysis.ExperienceScore,
@@ -375,6 +384,14 @@ func (s *MatchingServiceImpl) BatchMatchJobs(ctx context.Context, jobID string) 
 	
 	fmt.Printf("Batch matching completed for job %s: processed %d candidates\n", jobID, total)
 	return nil
+}
+
+func (s *MatchingServiceImpl) CountJobMatches(ctx context.Context, employeeID string) (int, error) {
+	_, total, err := s.matchRepo.ListByEmployee(ctx, employeeID, 1, 1)
+	if err != nil {
+		return 0, err
+	}
+	return int(total), nil
 }
 
 func (s *MatchingServiceImpl) BatchMatchCandidates(ctx context.Context, employeeID string) error {

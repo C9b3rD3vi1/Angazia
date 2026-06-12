@@ -1,6 +1,7 @@
 package github
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -204,16 +205,51 @@ func (c *Client) GetRepositories() ([]*GitHubRepository, error) {
 	return allRepos, nil
 }
 
+type graphQLRequest struct {
+	Query     string `json:"query"`
+	Variables map[string]interface{} `json:"variables,omitempty"`
+}
+
+type graphQLResponse struct {
+	Data   graphQLData `json:"data"`
+	Errors []struct {
+		Message string `json:"message"`
+	} `json:"errors,omitempty"`
+}
+
+type graphQLData struct {
+	Viewer viewerData `json:"viewer"`
+}
+
+type viewerData struct {
+	ContributionsCollection contributionsCollection `json:"contributionsCollection"`
+}
+
+type contributionsCollection struct {
+	ContributionCalendar contributionCalendar `json:"contributionCalendar"`
+}
+
+type contributionCalendar struct {
+	Weeks []weekData `json:"weeks"`
+}
+
+type weekData struct {
+	ContributionDays []contributionDay `json:"contributionDays"`
+}
+
+type contributionDay struct {
+	Date              string `json:"date"`
+	ContributionCount int    `json:"contributionCount"`
+}
+
 func (c *Client) GetContributions(days int) ([]*GitHubContribution, error) {
-	// GitHub's contribution graph requires GraphQL API
-	// This is a simplified implementation
-	// For production, use GitHub's GraphQL API with proper query
-	
-	// Placeholder - in production, implement GraphQL query:
-	/*
-	query {
-	  user(login: "username") {
-	    contributionsCollection(from: "2024-01-01T00:00:00Z", to: "2024-12-31T00:00:00Z") {
+	now := time.Now()
+	from := now.AddDate(0, 0, -days)
+	to := now
+
+	query := `query($from: DateTime!, $to: DateTime!) {
+	  viewer {
+	    contributionsCollection(from: $from, to: $to) {
 	      contributionCalendar {
 	        weeks {
 	          contributionDays {
@@ -224,15 +260,68 @@ func (c *Client) GetContributions(days int) ([]*GitHubContribution, error) {
 	      }
 	    }
 	  }
+	}`
+
+	reqBody := graphQLRequest{
+		Query: query,
+		Variables: map[string]interface{}{
+			"from": from.Format(time.RFC3339),
+			"to":   to.Format(time.RFC3339),
+		},
 	}
-	*/
-	
-	// For now, return empty slice - will be populated by actual implementation
+
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", "https://api.github.com/graphql", bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	c.setHeaders(req)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch contributions: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("GitHub GraphQL API error: %d - %s", resp.StatusCode, string(respBytes))
+	}
+
+	var gqlResp graphQLResponse
+	if err := json.Unmarshal(respBytes, &gqlResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	if len(gqlResp.Errors) > 0 {
+		return nil, fmt.Errorf("GitHub GraphQL error: %s", gqlResp.Errors[0].Message)
+	}
+
+	calendar := gqlResp.Data.Viewer.ContributionsCollection.ContributionCalendar
 	contributions := make([]*GitHubContribution, 0)
-	
-	// TODO: Implement GraphQL query for contributions
-	// This requires the GitHub username and proper authentication
-	
+
+	for _, week := range calendar.Weeks {
+		for _, day := range week.ContributionDays {
+			date, err := time.Parse("2006-01-02", day.Date)
+			if err != nil {
+				continue
+			}
+			contributions = append(contributions, &GitHubContribution{
+				Date:  date,
+				Count: day.ContributionCount,
+			})
+		}
+	}
+
 	return contributions, nil
 }
 
