@@ -618,7 +618,7 @@ func (h *AuthHandler) WebLogout(c *fiber.Ctx) error {
 	}
 	c.Cookie(&fiber.Cookie{Name: "access_token", Value: "", Path: "/", MaxAge: -1})
 	c.Cookie(&fiber.Cookie{Name: "refresh_token", Value: "", Path: "/api/v1/auth/refresh", MaxAge: -1})
-	return c.Redirect("/login", fiber.StatusFound)
+	return utils.FlashRedirect(c, "/login", "info", "You have been logged out successfully.")
 }
 
 // GetSessions returns active sessions for the authenticated user

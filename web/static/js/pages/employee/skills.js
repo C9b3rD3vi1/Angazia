@@ -148,9 +148,7 @@
         AngaziaAPI.profile.update({ resume_url: '' }).then(function () {
           state.profile.resume_url = '';
           showResumeState(false);
-          showToast('Resume removed');
         }).catch(function (err) {
-          showToast(err && err.message ? err.message : 'Failed to remove resume', true);
         });
       });
     }
@@ -175,11 +173,9 @@
         if (url) {
           state.profile.resume_url = url;
           showResumeState(true, file.name, file.size);
-          showToast('Resume uploaded');
         }
       }).catch(function (err) {
         els.resumeProgress.style.display = 'none';
-        showToast(err && err.message ? err.message : 'Upload failed', true);
       });
     });
   }
@@ -233,9 +229,7 @@
           state.profile.github_connected = false;
           state.profile.github_username = '';
           showGitHubState(false);
-          showToast('GitHub disconnected');
         }).catch(function (err) {
-          showToast(err && err.message ? err.message : 'Failed to disconnect', true);
         });
       });
     }
@@ -245,11 +239,9 @@
         els.ghSyncBtn.disabled = true;
         els.ghSyncBtn.textContent = 'Syncing...';
         AngaziaAPI.github.sync().then(function () {
-          showToast('GitHub sync started');
           els.ghSyncBtn.disabled = false;
           els.ghSyncBtn.textContent = '\u21BB Sync';
         }).catch(function (err) {
-          showToast(err && err.message ? err.message : 'Sync failed', true);
           els.ghSyncBtn.disabled = false;
           els.ghSyncBtn.textContent = '\u21BB Sync';
         });
@@ -703,22 +695,17 @@
     }
     AngaziaAPI.profile.update(updateData).then(function () {
       state.saving = false;
-      showToast('Saved');
     }).catch(function (err) {
       state.saving = false;
-      showToast(err && err.message ? err.message : 'Failed to save', true);
     });
   }
 
   /* ========== Toast ========== */
 
-  var toastTimer;
-
   function showToast(msg, isError) {
-    if (toastTimer) clearTimeout(toastTimer);
-    els.toast.textContent = msg;
-    els.toast.className = 'sk-toast' + (isError ? ' error' : '') + ' show';
-    toastTimer = setTimeout(function () { els.toast.className = 'sk-toast'; }, 2000);
+    if (window.AngaziaApp && AngaziaApp.showToast) {
+      AngaziaApp.showToast(msg, isError ? 'error' : 'success');
+    }
   }
 
   /* ========== Helpers ========== */

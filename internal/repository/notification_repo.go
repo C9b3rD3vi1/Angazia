@@ -21,6 +21,7 @@ type NotificationRepository interface {
 	// List notifications
 	ListByUser(ctx context.Context, userID string, page, limit int) ([]*models.Notification, int64, error)
 	ListUnread(ctx context.Context, userID string, limit int) ([]*models.Notification, error)
+	ListUnreadFiltered(ctx context.Context, userID string, params *models.NotificationListParams) ([]*models.Notification, int64, error)
 	ListByType(ctx context.Context, userID, notifType string, page, limit int) ([]*models.Notification, int64, error)
 	ListByPriority(ctx context.Context, userID, priority string, page, limit int) ([]*models.Notification, int64, error)
 	
@@ -33,6 +34,7 @@ type NotificationRepository interface {
 	// Counts
 	GetUnreadCount(ctx context.Context, userID string) (int, error)
 	GetUnreadCountByType(ctx context.Context, userID string) (map[string]int, error)
+	GetHighPriorityUnreadCount(ctx context.Context, userID string) (int, error)
 	
 	// Preferences
 	GetPreferences(ctx context.Context, userID string) (*models.NotificationPreferences, error)
@@ -114,6 +116,39 @@ func (r *NotificationRepositoryImpl) ListUnread(ctx context.Context, userID stri
 		Limit(limit).
 		Find(&notifications).Error
 	return notifications, err
+}
+
+func (r *NotificationRepositoryImpl) ListUnreadFiltered(ctx context.Context, userID string, params *models.NotificationListParams) ([]*models.Notification, int64, error) {
+	var notifications []*models.Notification
+	var total int64
+
+	query := r.db.WithContext(ctx).Model(&models.Notification{}).
+		Where("user_id = ? AND is_read = ? AND is_archived = ?", userID, false, false)
+
+	if params.Type != "" {
+		query = query.Where("type = ?", params.Type)
+	}
+	if params.Search != "" {
+		like := "%" + params.Search + "%"
+		query = query.Where("title ILIKE ? OR content ILIKE ?", like, like)
+	}
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	order := "created_at DESC"
+	if params.Sort != "" {
+		order = params.Sort
+	}
+	offset := (params.Page - 1) * params.Limit
+	err := query.
+		Order(order).
+		Offset(offset).
+		Limit(params.Limit).
+		Find(&notifications).Error
+
+	return notifications, total, err
 }
 
 func (r *NotificationRepositoryImpl) ListByType(ctx context.Context, userID, notifType string, page, limit int) ([]*models.Notification, int64, error) {
@@ -229,6 +264,15 @@ func (r *NotificationRepositoryImpl) GetUnreadCountByType(ctx context.Context, u
 	}
 	
 	return counts, nil
+}
+
+func (r *NotificationRepositoryImpl) GetHighPriorityUnreadCount(ctx context.Context, userID string) (int, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&models.Notification{}).
+		Where("user_id = ? AND is_read = ? AND is_archived = ? AND priority = ?", userID, false, false, "high").
+		Count(&count).Error
+	return int(count), err
 }
 
 func (r *NotificationRepositoryImpl) GetPreferences(ctx context.Context, userID string) (*models.NotificationPreferences, error) {

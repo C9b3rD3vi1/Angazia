@@ -84,10 +84,9 @@
   async function unsaveJob(jobId) {
     try {
       await AngaziaAPI.jobs.unsave(jobId);
-      showToast('Job removed from saved', 'success');
       await loadSavedJobs();
     } catch (err) {
-      showToast(err.message || 'Failed to remove job', 'error');
+      console.error(err);
     }
   }
 

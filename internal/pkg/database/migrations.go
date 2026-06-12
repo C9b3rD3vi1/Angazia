@@ -218,6 +218,109 @@ func getAllMigrations() []Migration {
 			},
 		},
 		{
+			ID:   "20250101000006",
+			Name: "Add digest_frequency column to notification_preferences",
+			Up: func(tx *gorm.DB) error {
+				queries := []string{
+					`ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS digest_frequency VARCHAR(20) DEFAULT 'never'`,
+					`CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC)`,
+					`CREATE INDEX IF NOT EXISTS idx_notifications_user_unread_priority ON notifications(user_id, is_read, priority DESC) WHERE is_archived = false`,
+				}
+				for _, q := range queries {
+					if err := tx.Exec(q).Error; err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+			Down: func(tx *gorm.DB) error {
+				queries := []string{
+					`ALTER TABLE notification_preferences DROP COLUMN IF EXISTS digest_frequency`,
+					`DROP INDEX IF EXISTS idx_notifications_user_created`,
+					`DROP INDEX IF EXISTS idx_notifications_user_unread_priority`,
+				}
+				for _, q := range queries {
+					if err := tx.Exec(q).Error; err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+		},
+		{
+			ID:   "20250101000007",
+			Name: "Create conversations and messages tables",
+			Up: func(tx *gorm.DB) error {
+				queries := []string{
+					`CREATE TABLE IF NOT EXISTS conversations (
+						id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+						subject VARCHAR(255) NOT NULL DEFAULT '',
+						job_id UUID,
+						created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+						updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+					)`,
+					`CREATE TABLE IF NOT EXISTS conversation_participants (
+						id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+						conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+						user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+						last_read_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+						is_archived BOOLEAN DEFAULT FALSE,
+						created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+						UNIQUE(conversation_id, user_id)
+					)`,
+					`CREATE TABLE IF NOT EXISTS messages (
+						id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+						conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+						sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+						content TEXT NOT NULL,
+						is_read BOOLEAN DEFAULT FALSE,
+						created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+					)`,
+					`CREATE INDEX IF NOT EXISTS idx_conv_participant_user ON conversation_participants(user_id)`,
+					`CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id)`,
+					`CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id)`,
+					`CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at DESC)`,
+				}
+				for _, q := range queries {
+					if err := tx.Exec(q).Error; err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+			Down: func(tx *gorm.DB) error {
+				queries := []string{
+					`DROP TABLE IF EXISTS messages CASCADE`,
+					`DROP TABLE IF EXISTS conversation_participants CASCADE`,
+					`DROP TABLE IF EXISTS conversations CASCADE`,
+				}
+				for _, q := range queries {
+					if err := tx.Exec(q).Error; err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+		},
+		{
+			ID:   "20250101000008",
+			Name: "Add updated_at column to applications table",
+			Up: func(tx *gorm.DB) error {
+				queries := []string{
+					`ALTER TABLE applications ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()`,
+				}
+				for _, q := range queries {
+					if err := tx.Exec(q).Error; err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+			Down: func(tx *gorm.DB) error {
+				return tx.Exec(`ALTER TABLE applications DROP COLUMN IF EXISTS updated_at`).Error
+			},
+		},
+		{
 			ID:   "20250101000005",
 			Name: "Add composite indexes for common queries",
 			Up: func(tx *gorm.DB) error {

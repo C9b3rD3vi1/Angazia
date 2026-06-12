@@ -359,7 +359,6 @@
       
       await AngaziaAPI.applications.apply(applicationData);
       
-      showToast('Application submitted successfully!', 'success');
       hasApplied = true;
       
       // Update UI
@@ -372,7 +371,6 @@
       
     } catch (error) {
       console.error('Application failed:', error);
-      showToast(error.message || 'Failed to submit application', 'error');
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Submit Application';
@@ -394,17 +392,14 @@
         isSaved = false;
         btn.classList.remove('saved');
         btn.innerHTML = '<span>☆</span> Save this job';
-        showToast('Job removed from saved', 'success');
       } else {
         await AngaziaAPI.jobs.save(jobId);
         isSaved = true;
         btn.classList.add('saved');
         btn.innerHTML = '<span>★</span> Saved';
-        showToast('Job saved successfully', 'success');
       }
     } catch (error) {
       console.error('Failed to toggle save:', error);
-      showToast(error.message || 'Action failed', 'error');
     }
   }
 

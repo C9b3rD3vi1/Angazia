@@ -192,9 +192,11 @@ func (h *JobHandler) EmployerJobEditPage(c *fiber.Ctx) error {
 
 // EmployerJobApplicationsPage renders the applications for a job
 func (h *JobHandler) EmployerJobApplicationsPage(c *fiber.Ctx) error {
+	jobID := c.Params("id")
 	return c.Render("employer/job-applications", mergePageData(c, fiber.Map{
 		"Title":      "Job Applications - Angazia",
 		"ActivePage": "jobs",
+		"JobID":      jobID,
 	}), "layouts/employer")
 }
 

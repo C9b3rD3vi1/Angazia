@@ -232,10 +232,9 @@
     if (!confirmed) return;
     try {
       await AngaziaAPI.applications.withdraw(appId);
-      showToast('Application withdrawn successfully', 'success');
       await Promise.all([loadApplications(), loadStats()]);
     } catch (error) {
-      showToast(error.message || 'Failed to withdraw application', 'error');
+      console.error(error);
     }
   }
 

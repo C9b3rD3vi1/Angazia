@@ -152,12 +152,11 @@
 
     AngaziaAPI.github.sync()
       .then(function () {
-        showToast('GitHub sync started', 'success');
         // Reload GitHub data after a short delay
         setTimeout(loadGitHubData, 3000);
       })
       .catch(function (err) {
-        showToast(err && err.message ? err.message : 'Sync failed', 'error');
+        console.error('Sync failed:', err);
       })
       .finally(function () {
         btn.disabled = false;
@@ -173,10 +172,9 @@
       window.applyToJob(jobId);
     } else {
       AngaziaAPI.applications.apply({ job_id: jobId })
-        .then(function () { showToast('Application submitted successfully!', 'success'); })
+        .then(function () { })
         .catch(function (err) {
           console.error('Apply error:', err);
-          showToast(err.body && err.body.error ? err.body.error : 'Failed to submit application', 'error');
         });
     }
   }
@@ -185,10 +183,9 @@
     if (!interviewId) return;
     if (!confirm('Confirm your attendance for this interview?')) return;
     AngaziaAPI.applications.interview(interviewId, { status: 'confirmed' })
-      .then(function () { showToast('Interview confirmed!', 'success'); })
+      .then(function () { })
       .catch(function (err) {
         console.error('Confirm error:', err);
-        showToast('Failed to confirm interview', 'error');
       });
   }
 
@@ -297,10 +294,9 @@
   window.applyToJob = function (jobId) {
     if (!jobId) return;
     AngaziaAPI.applications.apply({ job_id: jobId })
-      .then(function () { showToast('Application submitted successfully!', 'success'); })
+      .then(function () { })
       .catch(function (err) {
         console.error('Apply error:', err);
-        showToast(err.body && err.body.error ? err.body.error : 'Failed to submit application', 'error');
       });
   };
 })();

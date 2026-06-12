@@ -1,0 +1,22 @@
+{{define "content"}}
+<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+    <div style="text-align: center; margin-bottom: 24px;">
+        <span style="display: inline-block; padding: 12px 24px; border-radius: 50px; background: {{.StatusColor}}; color: white; font-size: 14px; font-weight: 600;">
+            {{.HeaderTitle}}
+        </span>
+    </div>
+
+    <div style="background: #f9fafb; border-radius: 12px; padding: 24px; margin: 20px 0; border: 1px solid #e5e7eb;">
+        <h2 style="margin: 0 0 12px; font-size: 20px; color: #111827;">{{.JobTitle}}</h2>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4b5563;">{{.Company}}</p>
+    </div>
+
+    {{if .VerificationURL}}
+    <div style="text-align: center; margin: 24px 0;">
+        <a href="{{.VerificationURL}}" style="display: inline-block; padding: 14px 28px; background: {{.ButtonColor}}; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+            View Details
+        </a>
+    </div>
+    {{end}}
+</div>
+{{end}}

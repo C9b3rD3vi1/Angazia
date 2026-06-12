@@ -88,6 +88,16 @@ type NotificationListResponse struct {
 	TotalPages    int             `json:"total_pages"`
 }
 
+// NotificationListParams represents filter parameters for listing notifications
+type NotificationListParams struct {
+	Page       int
+	Limit      int
+	Type       string
+	Search     string
+	Sort       string
+	UnreadOnly bool
+}
+
 // MarkReadRequest represents request to mark notifications as read
 type MarkReadRequest struct {
 	NotificationIDs []string `json:"notification_ids"`

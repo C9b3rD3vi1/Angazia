@@ -183,7 +183,7 @@ func (h *MatchingHandler) SubmitMatchFeedback(c *fiber.Ctx) error {
 		return utils.InternalServerError(c, err.Error())
 	}
 
-	return utils.Success(c, fiber.Map{"message": "Feedback submitted"})
+	return utils.SuccessWithMessage(c, "Feedback submitted successfully", nil)
 }
 
 // GenerateInterviewQuestions generates interview questions for a job

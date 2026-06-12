@@ -462,13 +462,11 @@
         savedJobs.delete(jobId);
         btn.classList.remove('saved');
         btn.textContent = '☆ Save';
-        showToast('Job removed from saved', 'success');
       } else {
         await AngaziaAPI.jobs.save(jobId);
         savedJobs.add(jobId);
         btn.classList.add('saved');
         btn.textContent = '★ Saved';
-        showToast('Job saved successfully', 'success');
       }
       
       // Update in allJobs
@@ -478,7 +476,6 @@
       
     } catch (error) {
       console.error('Failed to toggle save:', error);
-      showToast(error.message || 'Action failed', 'error');
     }
   }
 

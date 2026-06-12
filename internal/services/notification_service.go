@@ -1,9 +1,13 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/C9b3rD3vi1/Angazia/internal/config"
@@ -17,7 +21,7 @@ type NotificationService interface {
 	SendBulkNotifications(ctx context.Context, userIDs []string, notif *NotificationInput) error
 	
 	// Get notifications
-	GetNotifications(ctx context.Context, userID string, page, limit int) (*models.NotificationListResponse, error)
+	GetNotifications(ctx context.Context, userID string, params *models.NotificationListParams) (*models.NotificationListResponse, error)
 	GetUnreadNotifications(ctx context.Context, userID string, limit int) ([]*models.Notification, error)
 	GetNotification(ctx context.Context, id, userID string) (*models.Notification, error)
 	
@@ -36,6 +40,10 @@ type NotificationService interface {
 	GetPreferences(ctx context.Context, userID string) (*models.NotificationPreferences, error)
 	UpdatePreferences(ctx context.Context, userID string, req *UpdatePreferencesRequest) (*models.NotificationPreferences, error)
 	
+	// Cleanup
+	DeleteOldNotifications(ctx context.Context, days int) error
+	StartCleanupRoutine(ctx context.Context, interval time.Duration, retentionDays int)
+
 	// Event triggers (called by other services)
 	NotifyApplicationStatusChange(ctx context.Context, applicationID, employeeID, employerID, status string) error
 	NotifyNewApplication(ctx context.Context, jobID, employerID, employeeID string) error
@@ -141,6 +149,10 @@ func (s *NotificationServiceImpl) SendNotification(ctx context.Context, userID s
 		CreatedAt: time.Now(),
 	}
 	
+	now := time.Now()
+	notification.CreatedAt = now
+	notification.DeliveredAt = &now
+
 	if notification.Priority == "" {
 		notification.Priority = "normal"
 	}
@@ -170,44 +182,67 @@ func (s *NotificationServiceImpl) SendNotification(ctx context.Context, userID s
 }
 
 func (s *NotificationServiceImpl) SendBulkNotifications(ctx context.Context, userIDs []string, input *NotificationInput) error {
+	sem := make(chan struct{}, 20)
+	var wg sync.WaitGroup
 	for _, userID := range userIDs {
-		go s.SendNotification(context.Background(), userID, input)
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(uid string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			s.SendNotification(context.Background(), uid, input)
+		}(userID)
 	}
+	wg.Wait()
 	return nil
 }
 
-func (s *NotificationServiceImpl) GetNotifications(ctx context.Context, userID string, page, limit int) (*models.NotificationListResponse, error) {
-	if page < 1 {
-		page = 1
+func (s *NotificationServiceImpl) GetNotifications(ctx context.Context, userID string, params *models.NotificationListParams) (*models.NotificationListResponse, error) {
+	if params == nil {
+		params = &models.NotificationListParams{}
 	}
-	if limit < 1 {
-		limit = 20
+	if params.Page < 1 {
+		params.Page = 1
 	}
-	if limit > 100 {
-		limit = 100
+	if params.Limit < 1 {
+		params.Limit = 20
 	}
-	
-	notifications, total, err := s.notificationRepo.ListByUser(ctx, userID, page, limit)
+	if params.Limit > 100 {
+		params.Limit = 100
+	}
+
+	var notifications []*models.Notification
+	var total int64
+	var err error
+
+	switch {
+	case params.UnreadOnly:
+		notifications, total, err = s.notificationRepo.ListUnreadFiltered(ctx, userID, params)
+	case params.Type != "":
+		notifications, total, err = s.notificationRepo.ListByType(ctx, userID, params.Type, params.Page, params.Limit)
+	default:
+		notifications, total, err = s.notificationRepo.ListByUser(ctx, userID, params.Page, params.Limit)
+	}
 	if err != nil {
 		return nil, err
 	}
-	
+
 	unreadCount, err := s.notificationRepo.GetUnreadCount(ctx, userID)
 	if err != nil {
 		unreadCount = 0
 	}
-	
-	totalPages := int(total) / limit
-	if int(total)%limit > 0 {
+
+	totalPages := int(total) / params.Limit
+	if int(total)%params.Limit > 0 {
 		totalPages++
 	}
-	
+
 	return &models.NotificationListResponse{
 		Notifications: notifications,
 		Total:         total,
 		UnreadCount:   unreadCount,
-		Page:          page,
-		Limit:         limit,
+		Page:          params.Page,
+		Limit:         params.Limit,
 		TotalPages:    totalPages,
 	}, nil
 }
@@ -244,26 +279,43 @@ func (s *NotificationServiceImpl) DeleteAll(ctx context.Context, userID string) 
 	return s.notificationRepo.DeleteAll(ctx, userID)
 }
 
+func (s *NotificationServiceImpl) DeleteOldNotifications(ctx context.Context, days int) error {
+	return s.notificationRepo.DeleteOldNotifications(ctx, days)
+}
+
+func (s *NotificationServiceImpl) StartCleanupRoutine(ctx context.Context, interval time.Duration, retentionDays int) {
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if err := s.DeleteOldNotifications(ctx, retentionDays); err != nil {
+					fmt.Printf("[NotificationService] Cleanup error: %v\n", err)
+				}
+			}
+		}
+	}()
+}
+
 func (s *NotificationServiceImpl) GetUnreadCount(ctx context.Context, userID string) (*models.NotificationCounts, error) {
 	total, err := s.notificationRepo.GetUnreadCount(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	byType, err := s.notificationRepo.GetUnreadCountByType(ctx, userID)
 	if err != nil {
 		byType = make(map[string]int)
 	}
-	
-	// Count high priority unread
-	var highPriority int
-	unread, _ := s.notificationRepo.ListUnread(ctx, userID, 100)
-	for _, n := range unread {
-		if n.Priority == "high" {
-			highPriority++
-		}
+
+	highPriority, err := s.notificationRepo.GetHighPriorityUnreadCount(ctx, userID)
+	if err != nil {
+		highPriority = 0
 	}
-	
+
 	return &models.NotificationCounts{
 		TotalUnread:       total,
 		ByType:            byType,
@@ -480,15 +532,21 @@ func (s *NotificationServiceImpl) isInQuietHours(prefs *models.NotificationPrefe
 	if !prefs.QuietHoursEnabled {
 		return false
 	}
-	
-	now := time.Now()
+
+	loc := time.Local
+	if prefs.QuietTimezone != "" {
+		if l, err := time.LoadLocation(prefs.QuietTimezone); err == nil {
+			loc = l
+		}
+	}
+
+	now := time.Now().In(loc)
 	currentHour := now.Hour()
-	
+
 	if prefs.QuietStartHour > prefs.QuietEndHour {
-		// Overnight quiet hours (e.g., 22:00 to 08:00)
 		return currentHour >= prefs.QuietStartHour || currentHour < prefs.QuietEndHour
 	}
-	
+
 	return currentHour >= prefs.QuietStartHour && currentHour < prefs.QuietEndHour
 }
 
@@ -513,8 +571,36 @@ func (s *NotificationServiceImpl) sendEmailNotification(notification *models.Not
 	if err != nil || user == nil {
 		return
 	}
-	subject := notification.Title
-	textBody := notification.Content
-	htmlBody := fmt.Sprintf("<div style=\"font-family:sans-serif;padding:20px;max-width:600px;margin:0 auto\"><h2>%s</h2><p>%s</p><hr style=\"border:none;border-top:1px solid #eee;margin:20px 0\"><p style=\"color:#888;font-size:12px\">You received this because notifications are enabled on your account.</p></div>", notification.Title, notification.Content)
-	s.emailService.SendNotificationEmail(user.Email, subject, htmlBody, textBody, user.Email)
+
+	actionURL := notification.ActionURL
+	if actionURL != "" && !strings.HasPrefix(actionURL, "http") {
+		actionURL = s.cfg.AppURL + actionURL
+	}
+
+	tmpl := template.Must(template.New("email").Parse(`
+		<div style="font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
+			<div style="background: #f9fafb; border-radius: 12px; padding: 24px; margin: 20px 0; border: 1px solid #e5e7eb;">
+				<h2 style="margin: 0 0 12px; font-size: 20px; color: #111827;">{{.Title}}</h2>
+				<p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4b5563;">{{.Content}}</p>
+			</div>
+			{{if .ActionURL}}
+			<div style="text-align: center; margin: 24px 0;">
+				<a href="{{.ActionURL}}" style="display: inline-block; padding: 14px 28px; background: #667eea; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600;">View Details</a>
+			</div>
+			{{end}}
+			<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+			<p style="color: #6b7280; font-size: 12px;">You received this because notifications are enabled on your account.</p>
+		</div>
+	`))
+
+	var htmlBuf bytes.Buffer
+	tmpl.Execute(&htmlBuf, map[string]string{
+		"Title":     notification.Title,
+		"Content":   notification.Content,
+		"ActionURL": actionURL,
+	})
+	htmlBody := htmlBuf.String()
+	textBody := notification.Title + "\n\n" + notification.Content
+
+	s.emailService.SendNotificationEmail(user.Email, notification.Title, htmlBody, textBody, user.Email)
 }

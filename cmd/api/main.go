@@ -110,6 +110,7 @@ func main() {
 	talentRepo := repository.NewTalentPoolRepository(db)
 	alertRepo := repository.NewAlertRepository(db)
 	candidateAnalyticsRepo := repository.NewCandidateAnalyticsRepository(db)
+	messageRepo := repository.NewMessageRepository(db)
 	
 	// Initialize services
 	tokenService := services.NewTokenService(cfg)
@@ -130,11 +131,11 @@ func main() {
 	applicationSvc := services.NewApplicationService(cfg, applicationRepo, jobRepo, userRepo, emailSvc)
 	notificationSvc := services.NewNotificationService(cfg, notificationRepo, userRepo, emailSvc)
 	applicationSvc.SetNotificationService(notificationSvc)
-	matchingSvc := services.NewMatchingService(cfg, aiProvider, jobRepo, userRepo, githubRepo, matchRepo)
+	matchingSvc := services.NewMatchingService(cfg, aiProvider, jobRepo, userRepo, githubRepo, matchRepo, notificationSvc)
 	if js, ok := jobSvc.(*services.JobServiceImpl); ok {
 		js.SetMatchingService(matchingSvc)
 	}
-	alertSvc := services.NewAlertService(cfg, alertRepo, jobRepo, emailSvc)
+	alertSvc := services.NewAlertService(cfg, alertRepo, jobRepo, emailSvc, notificationSvc)
 	searchSvc := services.NewSearchService(cfg, searchRepo, jobRepo, userRepo)
 	adminSvc := services.NewAdminService(cfg, adminRepo)
 	analyticsSvc := services.NewAnalyticsService(cfg, analyticsRepo)
@@ -142,6 +143,7 @@ func main() {
 	talentPoolSvc := services.NewTalentPoolService(cfg, talentRepo, userRepo, jobRepo, matchingSvc)
 	subscriptionSvc := services.NewSubscriptionService(cfg, subscriptionRepo, paymentRepo, userRepo, jobRepo)
 	profileSvc := services.NewProfileService(cfg, userRepo, githubRepo, db)
+	messageSvc := services.NewMessageService(messageRepo, notificationSvc)
 	
 	// Initialize ES-based services
 	var (
@@ -206,6 +208,7 @@ func main() {
 	dashboardHandler := handlers.NewDashboardHandler(analyticsSvc, subscriptionSvc, candidateAnalyticsSvc, matchingSvc, jobSvc, applicationSvc)
 	companyHandler := handlers.NewCompanyHandler(companyService)
 	resumeHandler := handlers.NewResumeHandler(profileSvc)
+	messageHandler := handlers.NewMessageHandler(messageSvc)
 	websocketHandler := handlers.NewWebSocketHandler()
 	
 	// Create Fiber app with Go html/template engine
@@ -384,8 +387,11 @@ func main() {
 	
 	// Web routes (HTML pages)
 	adminWebHandler := handlers.NewAdminWebHandler(adminSvc, jobSvc, subscriptionSvc, companyService, authSvc)
-	routes.SetupWebRoutes(app, webHandler, authHandler, authSvc, adminWebHandler, notificationSvc, jobSvc, jobHandler, dashboardHandler, matchingSvc)
+	routes.SetupWebRoutes(app, webHandler, authHandler, authSvc, adminWebHandler, notificationSvc, jobSvc, jobHandler, dashboardHandler, matchingSvc, messageHandler)
 	
+	// Message routes
+	routes.SetupMessageRoutes(api, messageHandler)
+
 	// WebSocket routes
 	routes.SetupWebSocketRoutes(app, websocketHandler)
 	

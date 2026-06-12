@@ -53,7 +53,7 @@
         {{end}}
     </div>
 </nav>
-{{if .Flash}}<div class="flash flash-{{.Flash.Type}}">{{.Flash.Message}}<button class="flash-close" onclick="this.parentElement.remove()">&times;</button></div>{{end}}
+{{if .Flash}}<div id="flash-message" class="flash flash-{{.Flash.Type}}">{{.Flash.Message}}<button class="flash-close" onclick="this.parentElement.remove()">&times;</button></div>{{end}}
 <main class="main-content">{{embed}}</main>
 <footer class="site-footer">
     <div class="footer-inner">
@@ -106,7 +106,7 @@
 document.addEventListener('DOMContentLoaded',function(){initNavbar();initAvatarDropdown();initFlashMessages();});
 function initNavbar(){var h=document.getElementById('hamburger'),m=document.getElementById('mobile-menu'),n=document.getElementById('navbar');if(h&&m){h.addEventListener('click',function(){this.classList.toggle('is-open');m.classList.toggle('is-open');document.body.classList.toggle('menu-open');});}if(n){window.addEventListener('scroll',function(){if(window.scrollY>50)n.classList.add('scrolled');else n.classList.remove('scrolled');});}}
 function initAvatarDropdown(){var a=document.getElementById('avatar-btn'),d=document.getElementById('avatar-dropdown');if(a&&d){a.addEventListener('click',function(e){e.stopPropagation();d.classList.toggle('open');});document.addEventListener('click',function(){d.classList.remove('open');});}}
-function initFlashMessages(){var f=document.getElementById('flash-message');if(f){setTimeout(function(){f.classList.add('flash-fade');setTimeout(function(){if(f.parentNode)f.parentNode.removeChild(f);},400);},5000);}}
+function initFlashMessages(){var f=document.querySelector('#flash-message');if(f){setTimeout(function(){f.classList.add('flash-fade');setTimeout(function(){if(f.parentNode)f.parentNode.removeChild(f);},400);},5000);}}
 </script>
 {{if .Scripts}}<script>{{.Scripts}}</script>{{end}}
 </body>

@@ -18,6 +18,7 @@ func SetupWebRoutes(
 	jobHandler *handlers.JobHandler,
 	dashboardHandler *handlers.DashboardHandler,
 	matchingService services.MatchingService,
+	messageHandler *handlers.MessageHandler,
 ) {
 	// Public pages
 	app.Get("/", webHandler.HomePage)
@@ -53,6 +54,7 @@ func SetupWebRoutes(
 	employee.Get("/settings", webHandler.EmployeeSettingsPage)
 	employee.Get("/matches", dashboardHandler.EmployeeMatchesPage)
 	employee.Get("/notifications", webHandler.NotificationsPage)
+	employee.Get("/messages", messageHandler.MessagesPage)
 
 	// Employer pages
 	employer := app.Group("/employer",
@@ -66,6 +68,7 @@ func SetupWebRoutes(
 	employer.Get("/candidates", webHandler.EmployerCandidatesPage)
 	employer.Get("/candidates/:id", webHandler.EmployerCandidateDetailPage)
 	employer.Get("/applications", webHandler.EmployerApplicationsPage)
+	employer.Get("/applications/:id", webHandler.EmployerApplicationDetailPage)
 	employer.Get("/talent-pool", webHandler.EmployerTalentPoolPage)
 	employer.Get("/analytics", webHandler.EmployerAnalyticsPage)
 	employer.Get("/company", webHandler.EmployerCompanyPage)
@@ -79,6 +82,7 @@ func SetupWebRoutes(
 	employer.Get("/billing/upgrade/:plan", webHandler.EmployerBillingUpgradePage)
 	employer.Get("/settings", webHandler.EmployerSettingsPage)
 	employer.Get("/notifications", webHandler.NotificationsPage)
+	employer.Get("/messages", messageHandler.MessagesPage)
 
 	// Role-aware notifications redirect (works with notification-bell partial shared by both roles)
 	app.Get("/notifications", middleware.WebAuthMiddleware(), func(c *fiber.Ctx) error {

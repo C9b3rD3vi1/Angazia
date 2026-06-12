@@ -55,11 +55,9 @@
   }
 
   function showToast(msg, type) {
-    if (!toastEl) return;
-    toastEl.innerText = msg;
-    toastEl.className = 'emp-toast ' + (type || 'success');
-    toastEl.style.display = '';
-    setTimeout(function () { toastEl.style.display = 'none'; }, 3500);
+    if (window.AngaziaApp && AngaziaApp.showToast) {
+      AngaziaApp.showToast(msg, type);
+    }
   }
 
   function getInitials(name) {
@@ -86,11 +84,12 @@
           var name = c.employee_name || c.employee?.full_name || 'Unknown';
           var headline = c.employee_headline || c.employee?.headline || '';
           var initials = getInitials(name);
+          var avatarUrl = c.employee?.user?.avatar_url || '';
           var addedAt = formatDate(c.added_at || c.AddedAt);
           var candId = c.employee_id || c.EmployeeID || '';
           return '<div class="tp-candidate">' +
             '<div class="tp-candidate-main">' +
-              '<div class="tp-candidate-avatar"><span class="tp-candidate-initials">' + initials + '</span></div>' +
+              '<div class="tp-candidate-avatar">' + (avatarUrl ? '<img src="' + avatarUrl + '" alt="' + name.replace(/"/g, '&quot;') + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">' : '<span class="tp-candidate-initials">' + initials + '</span>') + '</div>' +
               '<div class="tp-candidate-info">' +
                 '<div class="tp-candidate-name">' + name + '</div>' +
                 '<span class="tp-candidate-headline">' + headline + '</span>' +
@@ -110,11 +109,10 @@
             var cid = this.getAttribute('data-cand-id');
             AngaziaAPI.talentPools.removeCandidate(pid, cid)
               .then(function () {
-                showToast('Candidate removed from pool.', 'success');
                 loadAllPools();
               })
               .catch(function (err) {
-                showToast(err.body && err.body.error ? err.body.error : 'Failed to remove candidate.', 'error');
+                console.error(err);
               });
           });
         });
@@ -224,7 +222,6 @@
     AngaziaAPI.talentPools.create({ name: name, description: desc })
       .then(function () {
         closeCreateModal();
-        showToast('Pool "' + name + '" created.', 'success');
         loadAllPools();
       })
       .catch(function (err) {
@@ -243,7 +240,6 @@
     AngaziaAPI.talentPools.delete(deletePoolId)
       .then(function () {
         closeDeleteModal();
-        showToast('Pool deleted.', 'success');
         loadAllPools();
       })
       .catch(function (err) {

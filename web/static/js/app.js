@@ -20,6 +20,8 @@ var AngaziaApp = (function () {
       AngaziaNotifications.fetchUnreadCount();
     }
 
+    initFlashFromQuery();
+
     emit('ready');
   }
 
@@ -293,6 +295,19 @@ var AngaziaApp = (function () {
     }
   }
 
+  function initFlashFromQuery() {
+    var params = new URLSearchParams(window.location.search);
+    var msg = params.get('flash');
+    var type = params.get('type') || 'success';
+    if (msg) {
+      showToast(decodeURIComponent(msg), type);
+      var url = new URL(window.location);
+      url.searchParams.delete('flash');
+      url.searchParams.delete('type');
+      window.history.replaceState({}, '', url);
+    }
+  }
+
   function emit(evt) {
     document.dispatchEvent(new CustomEvent('angazia:' + evt));
   }
@@ -312,22 +327,21 @@ var AngaziaApp = (function () {
     if (!container) {
       container = document.createElement('div');
       container.id = 'toast-container';
-      container.className = 'fixed bottom-4 right-4 z-50 flex flex-col gap-2';
+      container.className = 'toast-container';
       document.body.appendChild(container);
     }
-    var colors = {
-      success: 'bg-green-500',
-      error: 'bg-red-500',
-      warning: 'bg-yellow-500',
-      info: 'bg-blue-500',
+    var icons = {
+      success: '\u2713',
+      error: '\u2717',
+      warning: '\u26A0',
+      info: '\u2139',
     };
     var toast = document.createElement('div');
-    toast.className = (colors[type] || colors.info) + ' text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 min-w-[280px] max-w-sm transform transition-all duration-300';
-    toast.innerHTML = '<span class="flex-1 text-sm">' + message + '</span><button onclick="this.parentElement.remove()" class="text-white/80 hover:text-white">&times;</button>';
+    toast.className = 'toast toast-' + type;
+    toast.innerHTML = '<span class="toast-icon">' + (icons[type] || icons.info) + '</span><span class="toast-message">' + escapeHtml(message) + '</span><button class="toast-close" onclick="this.parentElement.remove()">&times;</button>';
     container.appendChild(toast);
     setTimeout(function () {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateX(100%)';
+      toast.classList.add('toast-exit');
       setTimeout(function () { if (toast.parentNode) toast.remove(); }, 300);
     }, 4000);
   }

@@ -26,15 +26,21 @@ func (h *NotificationHandler) GetNotifications(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
-	page, _ := strconv.Atoi(c.Query("page", "1"))
-	limit, _ := strconv.Atoi(c.Query("limit", "20"))
-	
-	notifications, err := h.notificationService.GetNotifications(c.Context(), userID.(string), page, limit)
+
+	params := &models.NotificationListParams{
+		Page:       c.QueryInt("page", 1),
+		Limit:      c.QueryInt("limit", 20),
+		Type:       c.Query("type"),
+		Search:     c.Query("search"),
+		Sort:       c.Query("sort"),
+		UnreadOnly: c.Query("unread_only") == "true",
+	}
+
+	notifications, err := h.notificationService.GetNotifications(c.Context(), userID.(string), params)
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
-	
+
 	return utils.Success(c, notifications)
 }
 

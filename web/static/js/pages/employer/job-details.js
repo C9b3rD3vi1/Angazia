@@ -227,13 +227,11 @@
     
     try {
       await AngaziaAPI.jobs.close(jobId);
-      showToast('Job closed successfully', 'success');
       // Update UI
       jobData.is_active = false;
       renderJobDetails(jobData);
     } catch (error) {
       console.error('Failed to close job:', error);
-      showToast(error.message || 'Failed to close job', 'error');
     }
   }
 
@@ -247,14 +245,12 @@
     
     try {
       await AngaziaAPI.jobs.delete(jobId);
-      showToast('Job deleted successfully', 'success');
       // Redirect to jobs list
       setTimeout(() => {
         window.location.href = '/employer/jobs';
       }, 1500);
     } catch (error) {
       console.error('Failed to delete job:', error);
-      showToast(error.message || 'Failed to delete job', 'error');
     }
   }
 

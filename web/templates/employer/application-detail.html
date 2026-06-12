@@ -1,0 +1,221 @@
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title" id="ad-name">Application Detail</h1>
+      <p class="emp-page-sub" id="ad-sub">Loading...</p>
+    </div>
+    <div class="emp-page-actions">
+      <a href="/employer/applications" class="emp-btn emp-btn-secondary">&larr; Back to Applications</a>
+    </div>
+  </div>
+
+  <div id="ad-loading" class="emp-loading">
+    <div class="emp-spinner"></div>
+    <p>Loading application...</p>
+  </div>
+
+  <div id="ad-error" class="emp-error" style="display:none;">
+    <div class="emp-error-icon">&#x26A0;&#xFE0F;</div>
+    <h3>Failed to load application</h3>
+    <p id="ad-error-msg"></p>
+    <button class="emp-btn emp-btn-primary" onclick="location.reload()">Retry</button>
+  </div>
+
+  <div id="ad-content" style="display:none;">
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <div class="emp-card-header-left emp-cd-profile-row">
+          <div class="emp-cd-avatar" id="ad-avatar">
+            <span class="emp-cd-initials" id="ad-initials">--</span>
+          </div>
+          <div>
+            <h2 class="emp-card-title" id="ad-candidate-name">--</h2>
+            <span class="emp-text-muted" id="ad-candidate-email"></span>
+          </div>
+        </div>
+        <div>
+          <span class="emp-status-badge" id="ad-status">--</span>
+        </div>
+      </div>
+      <div class="emp-card-body">
+        <div class="emp-stats-grid emp-cd-stats">
+          <div class="emp-stat-card">
+            <div class="emp-stat-value" id="ad-match-score">0%</div>
+            <div class="emp-stat-label">Match Score</div>
+          </div>
+          <div class="emp-stat-card">
+            <div class="emp-stat-value" id="ad-skill-match">0%</div>
+            <div class="emp-stat-label">Skill Match</div>
+          </div>
+          <div class="emp-stat-card">
+            <div class="emp-stat-value" id="ad-exp-match">0%</div>
+            <div class="emp-stat-label">Experience Match</div>
+          </div>
+          <div class="emp-stat-card">
+            <div class="emp-stat-value" id="ad-applied-date">--</div>
+            <div class="emp-stat-label">Applied</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">Job Details</h2>
+      </div>
+      <div class="emp-card-body">
+        <div class="emp-detail-grid">
+          <div><strong>Title:</strong> <span id="ad-job-title">--</span></div>
+          <div><strong>Location:</strong> <span id="ad-job-location">--</span></div>
+          <div><strong>Type:</strong> <span id="ad-job-type">--</span></div>
+          <div><strong>Posted:</strong> <span id="ad-job-posted">--</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="emp-card" id="ad-cover-letter-card" style="display:none;">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">Cover Letter</h2>
+      </div>
+      <div class="emp-card-body">
+        <p id="ad-cover-letter" class="emp-text-muted" style="white-space:pre-wrap;"></p>
+      </div>
+    </div>
+
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">Actions</h2>
+      </div>
+      <div class="emp-card-body">
+        <div class="emp-flex">
+          <button class="emp-btn emp-btn-success" data-action="shortlist" id="ad-shortlist-btn">&#x2B50; Shortlist</button>
+          <button class="emp-btn emp-btn-primary" data-action="interview" id="ad-interview-btn">&#x1F4C5; Schedule Interview</button>
+          <button class="emp-btn emp-btn-danger" data-action="reject" id="ad-reject-btn">&#x274C; Reject</button>
+          <button class="emp-btn emp-btn-outline" data-action="hire" id="ad-hire-btn">&#x2705; Hire</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">Employer Notes</h2>
+      </div>
+      <div class="emp-card-body">
+        <textarea id="ad-notes" class="emp-textarea" rows="4" placeholder="Add private notes about this candidate..."></textarea>
+      </div>
+    </div>
+
+    <div id="ad-ai-insights-card" class="emp-card" style="display:none;">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">AI Insights</h2>
+      </div>
+      <div class="emp-card-body">
+        <p id="ad-ai-insights" class="emp-text-muted"></p>
+      </div>
+    </div>
+
+    {{/* Interview Modal */}}
+    <div class="emp-modal-overlay" id="ad-interview-modal" style="display:none;">
+      <div class="emp-modal">
+        <div class="emp-modal-head">
+          <h3 class="emp-modal-title">Schedule Interview</h3>
+          <button class="emp-modal-close" id="ad-interview-modal-close">&times;</button>
+        </div>
+        <div class="emp-modal-body">
+          <div class="emp-field">
+            <label class="emp-label">Date & Time</label>
+            <input type="datetime-local" id="ad-interview-datetime" class="emp-input">
+          </div>
+          <div class="emp-field">
+            <label class="emp-label">Type</label>
+            <select id="ad-interview-type" class="emp-input">
+              <option value="phone">Phone Screening</option>
+              <option value="technical">Technical Interview</option>
+              <option value="onsite">On-site Interview</option>
+              <option value="final">Final Interview</option>
+            </select>
+          </div>
+          <div class="emp-field">
+            <label class="emp-label">Notes</label>
+            <textarea id="ad-interview-notes" class="emp-textarea" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="emp-modal-foot">
+          <button class="emp-btn emp-btn-ghost" id="ad-interview-cancel">Cancel</button>
+          <button class="emp-btn emp-btn-primary" id="ad-interview-confirm">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.emp-dash { display: flex; flex-direction: column; gap: 20px; }
+.emp-page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.emp-page-title { font-family: var(--fh); font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
+.emp-page-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.emp-page-actions { display: flex; gap: 8px; }
+
+.emp-loading, .emp-error { text-align: center; padding: 60px 20px; background: var(--s1); border: 1px solid var(--border); border-radius: 12px; margin-top: 20px; }
+.emp-spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--purple); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.emp-error-icon { font-size: 32px; margin-bottom: 8px; }
+
+.emp-card { background: var(--s1); border: 1px solid var(--border); border-radius: 12px; }
+.emp-card-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
+.emp-card-header-left { display: flex; align-items: center; gap: 14px; }
+.emp-card-title { font-family: var(--fh); font-size: 16px; font-weight: 600; color: var(--text); margin: 0; }
+
+.emp-cd-profile-row { display: flex; align-items: center; gap: 14px; }
+.emp-cd-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--purple), #ec4899); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.emp-cd-initials { font-family: var(--fh); font-size: 16px; font-weight: 700; color: #fff; }
+
+.emp-text-muted { font-size: 12px; color: var(--muted); }
+
+.emp-status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+.emp-status-badge.pending { background: rgba(245,166,35,0.12); color: var(--warn); }
+.emp-status-badge.viewed { background: rgba(59,130,246,0.12); color: #3b82f6; }
+.emp-status-badge.shortlisted { background: rgba(0,229,160,0.12); color: var(--accent); }
+.emp-status-badge.interview { background: rgba(139,92,246,0.12); color: var(--purple); }
+.emp-status-badge.rejected { background: rgba(239,68,68,0.12); color: var(--danger); }
+.emp-status-badge.hired { background: rgba(0,229,160,0.2); color: var(--accent); }
+.emp-status-badge.withdrawn { background: rgba(156,163,175,0.12); color: var(--muted2); }
+
+.emp-card-body { padding: 20px 24px; }
+.emp-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; }
+.emp-stat-card { background: var(--s2); border-radius: 10px; padding: 16px; text-align: center; }
+.emp-stat-value { font-family: var(--fh); font-size: 22px; font-weight: 700; color: var(--purple); }
+.emp-stat-label { font-size: 10px; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+.emp-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px; color: var(--text); }
+.emp-detail-grid strong { color: var(--muted); font-weight: 500; }
+
+.emp-flex { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.emp-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.emp-modal { background: var(--s1); border: 1px solid var(--border); border-radius: 16px; width: 90%; max-width: 500px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); }
+.emp-modal-head { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+.emp-modal-title { font-family: var(--fh); font-size: 18px; font-weight: 600; margin: 0; }
+.emp-modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted); }
+.emp-modal-body { padding: 24px; }
+.emp-modal-foot { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid var(--border); }
+.emp-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.emp-label { font-family: var(--fm); font-size: 11px; letter-spacing: 0.5px; color: var(--muted); text-transform: uppercase; }
+.emp-input { padding: 10px 12px; background: var(--s2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; outline: none; }
+.emp-input:focus { border-color: var(--purple); }
+.emp-textarea { padding: 10px 12px; background: var(--s2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; resize: vertical; font-family: inherit; outline: none; }
+.emp-textarea:focus { border-color: var(--purple); }
+
+/* Employer Notes */
+.emp-card:has(#ad-notes) { border-left: 3px solid var(--purple); }
+.emp-card:has(#ad-notes) .emp-card-title::before { content: '\1F512'; margin-right: 6px; font-size: 13px; }
+#ad-notes { min-height: 80px; transition: border-color 0.15s, box-shadow 0.15s; }
+#ad-notes:focus { box-shadow: 0 0 0 3px rgba(139,92,246,0.15); }
+
+@media (max-width: 860px) {
+  .emp-detail-grid { grid-template-columns: 1fr; }
+  .emp-stats-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+
+<script src="/static/js/pages/employer/application-detail.js"></script>

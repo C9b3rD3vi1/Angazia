@@ -297,9 +297,10 @@
       return;
     }
     els.recentTbody.innerHTML = apps.map(function (app) {
+      var avatarHtml = app.candidate_avatar ? '<img src="' + app.candidate_avatar + '" alt="' + escapeHtml(app.candidate_name) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">' : getInitials(app.candidate_name);
       return '<tr data-href="/employer/applications/' + escapeHtml(app.id) + '">'
         + '<td><div style="display:flex;align-items:center;gap:10px;">'
-        + '<div class="emp-avatar">' + getInitials(app.candidate_name) + '</div>'
+        + '<div class="emp-avatar">' + avatarHtml + '</div>'
         + '<div><div style="font-weight:500">' + escapeHtml(app.candidate_name || 'Unknown') + '</div>'
         + '<div style="font-size:11px;color:var(--muted)">' + escapeHtml(app.candidate_email || '') + '</div></div></div></td>'
         + '<td>' + escapeHtml(app.job_title || 'Unknown') + '</td>'

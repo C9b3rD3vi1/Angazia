@@ -525,9 +525,11 @@
 
       els.recentApps.innerHTML = '<table class="emp-recent-table">' +
         apps.map(function (a) {
-          var name = a.candidate_name || a.name || 'Unknown';
+          var name = a.candidate_name || a.employee?.full_name || a.name || 'Unknown';
+          var avatarUrl = a.candidate_avatar || a.employee?.user?.avatar_url || '';
+          var avatarHtml = avatarUrl ? '<img src="' + avatarUrl + '" alt="' + escapeHtml(name) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">' : getInitials(name);
           return '<tr onclick="window.location.href=\'/employer/applications/' + (a.id || a.ID || '') + '\'" style="cursor:pointer">' +
-            '<td style="width:36px"><div class="emp-avatar-sm">' + getInitials(name) + '</div></td>' +
+            '<td style="width:36px"><div class="emp-avatar-sm">' + avatarHtml + '</div></td>' +
             '<td><div style="font-weight:500;font-size:12px">' + escapeHtml(name) + '</div></td>' +
             '<td><div style="font-size:11px;color:var(--muted)">' + escapeHtml(a.job_title || '') + '</div></td>' +
             '<td style="text-align:right"><span class="emp-status-badge ' + (a.status || 'pending') + '">' + (a.status || 'pending') + '</span></td>' +

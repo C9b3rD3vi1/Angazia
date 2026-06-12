@@ -80,6 +80,7 @@ func (r *AnalyticsRepositoryImpl) GetRecentApplications(ctx context.Context, emp
 			a.id,
 			COALESCE(ep.full_name, 'Unknown') as candidate_name,
 			COALESCE(u.email, '') as candidate_email,
+			COALESCE(u.avatar_url, '') as candidate_avatar,
 			j.title as job_title,
 			j.id as job_id,
 			a.status,

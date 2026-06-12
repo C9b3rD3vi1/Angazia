@@ -40,6 +40,7 @@
   </div>
 </nav>
 <main class="main-content-wide">
+{{if .Flash}}<div id="flash-message" class="flash flash-{{.Flash.Type}}">{{.Flash.Message}}<button class="flash-close" onclick="this.parentElement.remove()">&times;</button></div>{{end}}
 <div class="dash-layout">
   <aside class="dash-sidebar">
     <a href="/employer/job-post" class="epr-cta"><span class="epr-cta-icon">+</span><span class="epr-cta-text">Post a Job</span></a>
@@ -61,6 +62,7 @@
       <a href="/employer/analytics" class="epr-link {{if eq .ActivePage "analytics"}}active{{end}}"><span class="epr-link-icon">&#x1F4C8;</span><span class="epr-link-text">Analytics</span></a>
       <a href="/employer/company" class="epr-link {{if eq .ActivePage "company"}}active{{end}}"><span class="epr-link-icon">&#x1F3E2;</span><span class="epr-link-text">Company Profile</span></a>
       <a href="/employer/matches" class="epr-link {{if eq .ActivePage "matches"}}active{{end}}"><span class="epr-link-icon">&#x1F916;</span><span class="epr-link-text">AI Matches</span></a>
+      <a href="/employer/messages" class="epr-link {{if eq .ActivePage "messages"}}active{{end}}"><span class="epr-link-icon">&#x1F4AC;</span><span class="epr-link-text">Messages</span></a>
       <a href="/employer/notifications" class="epr-link {{if eq .ActivePage "notifications"}}active{{end}}"><span class="epr-link-icon">&#x1F514;</span><span class="epr-link-text">Notifications</span>{{if .UnreadCount}}<span class="epr-badge-num">{{.UnreadCount}}</span>{{end}}</a>
     </nav>
     <div class="epr-plan">
@@ -520,10 +522,11 @@
 }
 </style>
 <script>
-document.addEventListener('DOMContentLoaded',function(){initAvatarDropdown();initNotificationDropdown();initHamburger();});
+document.addEventListener('DOMContentLoaded',function(){initAvatarDropdown();initNotificationDropdown();initHamburger();initFlashMessages();});
 function initHamburger(){var h=document.getElementById('hamburger');if(h){h.addEventListener('click',function(){this.classList.toggle('is-open');document.body.classList.toggle('menu-open');});}}
 function initAvatarDropdown(){var a=document.getElementById('avatar-btn'),d=document.getElementById('avatar-dropdown');if(a&&d){a.addEventListener('click',function(e){e.stopPropagation();d.classList.toggle('open');});document.addEventListener('click',function(){d.classList.remove('open');});}}
 function initNotificationDropdown(){var b=document.getElementById('notif-btn'),d=document.getElementById('notif-dropdown');if(b&&d){b.addEventListener('click',function(e){e.stopPropagation();d.classList.toggle('open');});document.addEventListener('click',function(){d.classList.remove('open');});}}
+function initFlashMessages(){var f=document.querySelector('#flash-message');if(f){setTimeout(function(){f.classList.add('flash-fade');setTimeout(function(){if(f.parentNode)f.parentNode.removeChild(f);},400);},5000);}}
 </script>
 {{if .Scripts}}<script>{{.Scripts}}</script>{{end}}
 </body>

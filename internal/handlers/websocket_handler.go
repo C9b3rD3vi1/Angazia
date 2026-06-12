@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
 
+	"github.com/C9b3rD3vi1/Angazia/internal/models"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 )
@@ -161,6 +163,19 @@ func (h *WebSocketHandler) readPump(client *services.Client) {
 		if err != nil {
 			break
 		}
-		_ = message
+
+		var msg models.WebSocketMessage
+		if err := json.Unmarshal(message, &msg); err != nil {
+			continue
+		}
+
+		switch msg.Type {
+		case "ping":
+			client.Conn.WriteMessage(websocket.TextMessage, []byte(`{"type":"pong","timestamp":"`+time.Now().Format(time.RFC3339)+`"}`))
+		case "pong":
+			client.LastPing = time.Now()
+		default:
+			log.Printf("Unhandled WebSocket message type from user %s: %s", client.UserID, msg.Type)
+		}
 	}
 }

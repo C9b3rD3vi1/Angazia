@@ -200,11 +200,12 @@
       const yearsExp = candidateData.years_of_experience || 0;
       const matchScore = candidate.score || candidateData.match_score || 0;
       const githubConnected = candidateData.github_connected || false;
+      const avatarUrl = candidateData.user?.avatar_url || '';
       
       return `
         <div class="emp-candidate-card" data-candidate-id="${candidateId}" onclick="window.location.href='/employer/candidates/${candidateId}'">
           <div class="emp-candidate-avatar">
-            <span class="emp-candidate-initials">${getInitials(fullName)}</span>
+            ${avatarUrl ? '<img src="' + avatarUrl + '" alt="' + escapeHtml(fullName) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">' : '<span class="emp-candidate-initials">' + getInitials(fullName) + '</span>'}
           </div>
           <div class="emp-candidate-info">
             <div class="emp-candidate-top">
@@ -300,8 +301,6 @@
           match_score: 0
         });
         
-        showToast('Candidate saved to talent pool!', 'success');
-        
         if (btn) {
           btn.textContent = '✅ Saved';
           btn.disabled = true;
@@ -310,7 +309,7 @@
       }
     } catch (error) {
       console.error('Failed to save candidate:', error);
-      showToast(error.body && error.body.error ? error.body.error : (error.message || 'Failed to save candidate'), 'error');
+      console.error('Failed to save candidate:', error);
     }
   }
 

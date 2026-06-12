@@ -193,6 +193,7 @@
       var summary = m.summary || m.Summary || '';
       var recommendation = m.recommendation || m.Recommendation || '';
       var matchId = m.match_id || m.MatchID || '';
+      var avatarUrl = m.candidate_avatar || m.CandidateAvatar || '';
 
       if (!initials && name) {
         initials = name.split(' ').map(function (w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
@@ -204,9 +205,10 @@
       card.dataset.matchId = matchId;
 
       var scoreCls = getScoreClass(score);
+      var avatarHtml = avatarUrl ? '<img src="' + avatarUrl + '" alt="' + escapeHtml(name) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">' : '<span class="emp-candidate-initials">' + escapeHtml(initials) + '</span>';
 
       card.innerHTML =
-        '<div class="emp-candidate-avatar"><span class="emp-candidate-initials">' + escapeHtml(initials) + '</span></div>' +
+        '<div class="emp-candidate-avatar">' + avatarHtml + '</div>' +
         '<div class="emp-candidate-info">' +
           '<div class="emp-candidate-top">' +
             '<h3 class="emp-candidate-name">' + escapeHtml(name) + '</h3>' +
@@ -306,12 +308,8 @@
         this.style.opacity = '1';
 
         AngaziaAPI.matches.submitFeedback({ match_id: matchId, rating: rating })
-          .then(function () {
-            showToast('Feedback submitted', 'success');
-          })
-          .catch(function () {
-            showToast('Failed to submit feedback', 'error');
-          });
+          .then(function () { })
+          .catch(function () { });
       });
     });
   }
@@ -327,7 +325,6 @@
         if (pools && pools.length) {
           return AngaziaAPI.talentPools.addCandidate(pools[0].id, { candidate_id: candidateId, job_id: jobId })
             .then(function () {
-              showToast('Candidate added to talent pool', 'success');
               btn.textContent = 'Added';
             });
         }
@@ -335,15 +332,14 @@
           .then(function (p) {
             var poolId = p && (p.id || (p.data && p.data.id));
             if (!poolId) throw new Error('Could not create pool');
-            return AngaziaAPI.talentPools.addCandidate(poolId, { candidate_id: candidateId, job_id: jobId })
-              .then(function () {
-                showToast('Candidate added to new talent pool', 'success');
-                btn.textContent = 'Added';
-              });
+              return AngaziaAPI.talentPools.addCandidate(poolId, { candidate_id: candidateId, job_id: jobId })
+                .then(function () {
+                  btn.textContent = 'Added';
+                });
           });
       })
       .catch(function (err) {
-        showToast(err.message || 'Failed to add to pool', 'error');
+        console.error(err);
         btn.disabled = false;
         btn.textContent = '+ Pool';
       });
@@ -360,12 +356,11 @@
 
     AngaziaAPI.applications.interview(candidateId, { scheduled_at: scheduledAt, job_id: currentJobId })
       .then(function () {
-        showToast('Interview scheduled for ' + date, 'success');
         btn.textContent = '&#x1F4C5; Interview';
         btn.disabled = false;
       })
       .catch(function (err) {
-        showToast(err.message || 'Failed to schedule interview', 'error');
+        console.error(err);
         btn.textContent = '&#x1F4C5; Interview';
         btn.disabled = false;
       });

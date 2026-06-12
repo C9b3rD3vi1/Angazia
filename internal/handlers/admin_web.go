@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
 
@@ -30,14 +31,26 @@ func NewAdminWebHandler(adminService services.AdminService, jobService services.
 }
 
 func (h *AdminWebHandler) LoginPage(c *fiber.Ctx) error {
-	return c.Render("admin/login", fiber.Map{
+	data := fiber.Map{
 		"Title": "Admin Login - Angazia",
-	}, "layouts/auth")
+	}
+	if flash := c.Query("flash"); flash != "" {
+		data["Flash"] = utils.FlashMessage{
+			Type:    c.Query("type", "info"),
+			Message: flash,
+		}
+	}
+	return c.Render("admin/login", data, "layouts/admin")
+}
+
+func (h *AdminWebHandler) render(c *fiber.Ctx, tmpl string, data fiber.Map) error {
+	injectFlash(c, data)
+	return c.Render(tmpl, data, "layouts/admin")
 }
 
 func (h *AdminWebHandler) LogoutPage(c *fiber.Ctx) error {
 	c.ClearCookie("access_token", "refresh_token")
-	return c.Redirect("/admin/login", fiber.StatusFound)
+	return utils.FlashRedirect(c, "/admin/login", "info", "You have been logged out.")
 }
 
 func (h *AdminWebHandler) sidebarData(ctx *fiber.Ctx) fiber.Map {
@@ -231,7 +244,7 @@ func (h *AdminWebHandler) DashboardPage(c *fiber.Ctx) error {
 		data[k] = v
 	}
 
-	return c.Render("admin/dashboard", data, "layouts/admin")
+	return h.render(c, "admin/dashboard", data)
 }
 
 func (h *AdminWebHandler) UsersPage(c *fiber.Ctx) error {
@@ -242,7 +255,7 @@ func (h *AdminWebHandler) UsersPage(c *fiber.Ctx) error {
 	for k, v := range h.sidebarData(c) {
 		data[k] = v
 	}
-	return c.Render("admin/users", data, "layouts/admin")
+	return h.render(c, "admin/users", data)
 }
 
 func (h *AdminWebHandler) UserDetailPage(c *fiber.Ctx) error {
@@ -257,7 +270,7 @@ func (h *AdminWebHandler) UserDetailPage(c *fiber.Ctx) error {
 	for k, v := range h.sidebarData(c) {
 		data[k] = v
 	}
-	return c.Render("admin/user-detail", data, "layouts/admin")
+	return h.render(c, "admin/user-detail", data)
 }
 
 func (h *AdminWebHandler) CompaniesPage(c *fiber.Ctx) error {
@@ -321,7 +334,7 @@ func (h *AdminWebHandler) CompaniesPage(c *fiber.Ctx) error {
 	for k, v := range h.sidebarData(c) {
 		data[k] = v
 	}
-	return c.Render("admin/company", data, "layouts/admin")
+	return h.render(c, "admin/company", data)
 }
 
 func (h *AdminWebHandler) CompanyDetailPage(c *fiber.Ctx) error {
@@ -474,7 +487,7 @@ func (h *AdminWebHandler) CompanyDetailPage(c *fiber.Ctx) error {
 	for k, v := range h.sidebarData(c) {
 		data[k] = v
 	}
-	return c.Render("admin/company-detail", data, "layouts/admin")
+	return h.render(c, "admin/company-detail", data)
 }
 
 func computeInitials(name string) string {
@@ -562,7 +575,7 @@ func (h *AdminWebHandler) JobsPage(c *fiber.Ctx) error {
 	for k, v := range h.sidebarData(c) {
 		data[k] = v
 	}
-	return c.Render("admin/jobs", data, "layouts/admin")
+	return h.render(c, "admin/jobs", data)
 }
 
 func (h *AdminWebHandler) JobDetailPage(c *fiber.Ctx) error {
@@ -631,7 +644,7 @@ func (h *AdminWebHandler) JobDetailPage(c *fiber.Ctx) error {
 	for k, v := range h.sidebarData(c) {
 		data[k] = v
 	}
-	return c.Render("admin/job-detail", data, "layouts/admin")
+	return h.render(c, "admin/job-detail", data)
 }
 
 func (h *AdminWebHandler) ReportsPage(c *fiber.Ctx) error {
@@ -644,7 +657,7 @@ func (h *AdminWebHandler) ReportsPage(c *fiber.Ctx) error {
 	for k, v := range h.sidebarData(c) {
 		data[k] = v
 	}
-	return c.Render("admin/reports", data, "layouts/admin")
+	return h.render(c, "admin/reports", data)
 }
 
 func (h *AdminWebHandler) AuditLogsPage(c *fiber.Ctx) error {
@@ -662,7 +675,7 @@ func (h *AdminWebHandler) AuditLogsPage(c *fiber.Ctx) error {
 	for k, v := range h.sidebarData(c) {
 		data[k] = v
 	}
-	return c.Render("admin/audit-logs", data, "layouts/admin")
+	return h.render(c, "admin/audit-logs", data)
 }
 
 func (h *AdminWebHandler) AnalyticsPage(c *fiber.Ctx) error {
@@ -680,7 +693,7 @@ func (h *AdminWebHandler) AnalyticsPage(c *fiber.Ctx) error {
 	for k, v := range h.sidebarData(c) {
 		data[k] = v
 	}
-	return c.Render("admin/analytics", data, "layouts/admin")
+	return h.render(c, "admin/analytics", data)
 }
 
 func (h *AdminWebHandler) SubscriptionsPage(c *fiber.Ctx) error {
@@ -697,7 +710,7 @@ func (h *AdminWebHandler) SubscriptionsPage(c *fiber.Ctx) error {
 	for k, v := range h.sidebarData(c) {
 		data[k] = v
 	}
-	return c.Render("admin/subscriptions", data, "layouts/admin")
+	return h.render(c, "admin/subscriptions", data)
 }
 
 func (h *AdminWebHandler) NotificationsPage(c *fiber.Ctx) error {
@@ -708,7 +721,7 @@ func (h *AdminWebHandler) NotificationsPage(c *fiber.Ctx) error {
 	for k, v := range h.sidebarData(c) {
 		data[k] = v
 	}
-	return c.Render("admin/notifications", data, "layouts/admin")
+	return h.render(c, "admin/notifications", data)
 }
 
 func (h *AdminWebHandler) ProfilePage(c *fiber.Ctx) error {
@@ -726,7 +739,7 @@ func (h *AdminWebHandler) ProfilePage(c *fiber.Ctx) error {
 	for k, v := range h.sidebarData(c) {
 		data[k] = v
 	}
-	return c.Render("admin/profile", data, "layouts/admin")
+	return h.render(c, "admin/profile", data)
 }
 
 func (h *AdminWebHandler) ProfileUpdatePassword(c *fiber.Ctx) error {
@@ -739,23 +752,23 @@ func (h *AdminWebHandler) ProfileUpdatePassword(c *fiber.Ctx) error {
 	if newPwd != confirm {
 		data := fiber.Map{"Title": "Admin Profile - Angazia", "ActivePage": "profile", "Error": "New passwords do not match", "ProfileUser": fiber.Map{"Email": email, "Role": "admin", "Name": email}}
 		for k, v := range h.sidebarData(c) { data[k] = v }
-		return c.Render("admin/profile", data, "layouts/admin")
+		return h.render(c, "admin/profile", data)
 	}
 	if len(newPwd) < 8 {
 		data := fiber.Map{"Title": "Admin Profile - Angazia", "ActivePage": "profile", "Error": "Password must be at least 8 characters", "ProfileUser": fiber.Map{"Email": email, "Role": "admin", "Name": email}}
 		for k, v := range h.sidebarData(c) { data[k] = v }
-		return c.Render("admin/profile", data, "layouts/admin")
+		return h.render(c, "admin/profile", data)
 	}
 
 	if err := h.authService.ChangePassword(c.Context(), userID, oldPwd, newPwd); err != nil {
 		data := fiber.Map{"Title": "Admin Profile - Angazia", "ActivePage": "profile", "Error": err.Error(), "ProfileUser": fiber.Map{"Email": email, "Role": "admin", "Name": email}}
 		for k, v := range h.sidebarData(c) { data[k] = v }
-		return c.Render("admin/profile", data, "layouts/admin")
+		return h.render(c, "admin/profile", data)
 	}
 
 	data := fiber.Map{"Title": "Admin Profile - Angazia", "ActivePage": "profile", "Success": "Password changed successfully", "ProfileUser": fiber.Map{"Email": email, "Role": "admin", "Name": email}}
 	for k, v := range h.sidebarData(c) { data[k] = v }
-	return c.Render("admin/profile", data, "layouts/admin")
+	return h.render(c, "admin/profile", data)
 }
 
 func (h *AdminWebHandler) SettingsPage(c *fiber.Ctx) error {
@@ -775,5 +788,5 @@ func (h *AdminWebHandler) SettingsPage(c *fiber.Ctx) error {
 	for k, v := range h.sidebarData(c) {
 		data[k] = v
 	}
-	return c.Render("admin/settings", data, "layouts/admin")
+	return h.render(c, "admin/settings", data)
 }

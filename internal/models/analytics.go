@@ -126,9 +126,10 @@ type DashboardResponse struct {
 // RecentApplication is a lightweight application for dashboard lists
 type RecentApplication struct {
 	ID            string `json:"id"`
-	CandidateName string `json:"candidate_name"`
-	CandidateEmail string `json:"candidate_email"`
-	JobTitle      string `json:"job_title"`
+	CandidateName   string `json:"candidate_name"`
+	CandidateEmail  string `json:"candidate_email"`
+	CandidateAvatar string `json:"candidate_avatar"`
+	JobTitle        string `json:"job_title"`
 	JobID         string `json:"job_id"`
 	Status        string `json:"status"`
 	MatchScore    float64 `json:"match_score"`

@@ -43,15 +43,22 @@ var AngaziaAPI = (function () {
     return Object.assign(h, extra || {});
   }
 
-  function handleResponse(resp) {
+  function handleResponse(resp, method) {
     if (resp.status === 204) return null;
     return resp.json().then(function (body) {
       if (!resp.ok) {
-        var err = new Error(body.error || body.message || 'Request failed');
+        var errMsg = body.error || body.message || 'Request failed';
+        var err = new Error(errMsg);
         err.status = resp.status;
         err.body = body;
         if (resp.status === 401 && onUnauthorized) onUnauthorized(err);
+        if (method !== 'GET' && typeof AngaziaApp !== 'undefined' && AngaziaApp.showToast) {
+          AngaziaApp.showToast(errMsg, 'error');
+        }
         throw err;
+      }
+      if (body.message && method !== 'GET' && typeof AngaziaApp !== 'undefined' && AngaziaApp.showToast) {
+        AngaziaApp.showToast(body.message, 'success');
       }
       return body.data !== undefined ? body.data : body;
     });
@@ -89,10 +96,10 @@ var AngaziaAPI = (function () {
         if (resp.status === 401 && getRefreshToken()) {
           return refreshAccessToken().then(function () {
             opts.headers = buildHeaders(extraHeaders);
-            return fetch(url, opts).then(handleResponse);
+            return fetch(url, opts).then(function (r) { return handleResponse(r, method); });
           });
         }
-        return handleResponse(resp);
+        return handleResponse(resp, method);
       });
   }
 
@@ -111,8 +118,18 @@ var AngaziaAPI = (function () {
       xhr.onload = function () {
         try {
           var body = JSON.parse(xhr.responseText);
-          if (xhr.status >= 200 && xhr.status < 300) resolve(body.data || body);
-          else reject({ status: xhr.status, body: body });
+          if (xhr.status >= 200 && xhr.status < 300) {
+            if (body.message && typeof AngaziaApp !== 'undefined' && AngaziaApp.showToast) {
+              AngaziaApp.showToast(body.message, 'success');
+            }
+            resolve(body.data || body);
+          } else {
+            var errMsg = body.error || body.message || 'Upload failed';
+            if (typeof AngaziaApp !== 'undefined' && AngaziaApp.showToast) {
+              AngaziaApp.showToast(errMsg, 'error');
+            }
+            reject({ status: xhr.status, body: body });
+          }
         } catch (e) { reject(e); }
       };
       xhr.onerror = function () { reject(new Error('Network error')); };

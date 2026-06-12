@@ -150,8 +150,8 @@
   function handleApply(jobId) {
     if (!jobId) return;
     AngaziaAPI.applications.apply({ job_id: jobId })
-      .then(function () { showToast('Application submitted successfully!', 'success'); })
-      .catch(function (err) { showToast(err.body && err.body.error ? err.body.error : 'Failed to apply', 'error'); });
+      .then(function () { })
+      .catch(function (err) { console.error(err); });
   }
 
   function handleAnalyze(jobId, employeeId) {

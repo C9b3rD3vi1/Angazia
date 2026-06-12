@@ -32,11 +32,13 @@ func main() {
 	subscriptionRepo := repository.NewSubscriptionRepository(db)
 	paymentRepo := repository.NewPaymentRepository(db)
 	unsubscribeRepo := repository.NewUnsubscribeRepository(db)
+	notificationRepo := repository.NewNotificationRepository(db)
 
 	// Services
 	tokenService := services.NewTokenService(cfg)
 	emailSvc := services.NewEmailService(cfg, unsubscribeRepo, tokenService)
-	alertSvc := services.NewAlertService(cfg, alertRepo, jobRepo, emailSvc)
+	notificationSvc := services.NewNotificationService(cfg, notificationRepo, userRepo, emailSvc)
+	alertSvc := services.NewAlertService(cfg, alertRepo, jobRepo, emailSvc, notificationSvc)
 	billingSvc := services.NewSubscriptionService(cfg, subscriptionRepo, paymentRepo, userRepo, jobRepo)
 
 	ctx := context.Background()

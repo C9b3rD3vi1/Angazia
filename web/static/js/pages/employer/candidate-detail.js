@@ -105,7 +105,19 @@
     if (headline2El) headline2El.innerText = profile.headline || '';
 
     var initialsEl = document.getElementById('cd-initials');
-    if (initialsEl) initialsEl.innerText = getInitials(candidateName);
+    if (initialsEl) {
+      var avatarUrl = profile.user?.avatar_url || '';
+      if (avatarUrl) {
+        initialsEl.style.display = 'none';
+        var img = document.createElement('img');
+        img.src = avatarUrl;
+        img.alt = candidateName;
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%';
+        document.getElementById('cd-avatar').appendChild(img);
+      } else {
+        initialsEl.innerText = getInitials(candidateName);
+      }
+    }
 
     var availEl = document.getElementById('cd-availability');
     if (availEl) {

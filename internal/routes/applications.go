@@ -23,6 +23,7 @@ func SetupApplicationRoutes(
 	// Employer application routes
 	employer := protected.Group("/employer", middleware.RequireRole("employer"))
 	employer.Get("/applications", applicationHandler.ListCompanyApplications)
+	employer.Get("/applications/:id", applicationHandler.GetApplication)
 	employer.Get("/jobs/:jobId/applications", applicationHandler.ListJobApplications)
 	employer.Post("/applications/:id/shortlist", applicationHandler.ShortlistApplication)
 	employer.Post("/applications/:id/reject", applicationHandler.RejectApplication)

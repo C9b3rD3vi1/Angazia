@@ -73,10 +73,11 @@ type AlertResult struct {
 }
 
 type AlertServiceImpl struct {
-	cfg            *config.Config
-	alertRepo      repository.AlertRepository
-	jobRepo        repository.JobRepository
-	emailService   EmailService
+	cfg             *config.Config
+	alertRepo       repository.AlertRepository
+	jobRepo         repository.JobRepository
+	emailService    EmailService
+	notificationSvc NotificationService
 }
 
 func NewAlertService(
@@ -84,12 +85,14 @@ func NewAlertService(
 	alertRepo repository.AlertRepository,
 	jobRepo repository.JobRepository,
 	emailService EmailService,
+	notificationSvc NotificationService,
 ) AlertService {
 	return &AlertServiceImpl{
-		cfg:          cfg,
-		alertRepo:    alertRepo,
-		jobRepo:      jobRepo,
-		emailService: emailService,
+		cfg:             cfg,
+		alertRepo:       alertRepo,
+		jobRepo:         jobRepo,
+		emailService:    emailService,
+		notificationSvc: notificationSvc,
 	}
 }
 
@@ -224,6 +227,11 @@ func (s *AlertServiceImpl) ProcessAlert(ctx context.Context, savedSearch *models
 		}
 	}
 	
+	// Send in-app notification when new jobs found
+	if len(jobs) > 0 && savedSearch.UserID != "" {
+		s.notificationSvc.NotifyJobAlert(ctx, savedSearch.UserID, len(jobs))
+	}
+
 	// Save to history
 	history := &models.AlertHistory{
 		SavedSearchID: savedSearch.ID,

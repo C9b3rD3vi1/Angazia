@@ -60,6 +60,11 @@
     return name.split(' ').map(function (n) { return n[0]; }).join('').toUpperCase().slice(0, 2);
   }
 
+  function renderAvatar(name, url) {
+    if (url) return '<img src="' + url + '" alt="' + escapeHtml(name) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+    return getInitials(name);
+  }
+
   function escapeHtml(text) {
     if (!text) return '';
     var d = document.createElement('div');
@@ -156,8 +161,10 @@
     elements.tbody.innerHTML = apps.map(function (app) {
       var id = app.id;
       var checked = selectedIds[id] ? 'checked' : '';
-      var candidateName = app.employee_name || app.candidate_name || app.name || 'Candidate';
-      var email = app.employee_email || app.candidate_email || '';
+      var emp = app.employee || {};
+      var candidateName = emp.full_name || app.candidate_name || app.name || 'Candidate';
+      var email = (emp.user && emp.user.email) || app.candidate_email || '';
+      var avatarUrl = (emp.user && emp.user.avatar_url) || '';
       var status = app.status || 'pending';
       var match = app.match_score || 0;
       var applied = app.applied_at || app.created_at;
@@ -166,7 +173,7 @@
         '<td style="width:40px;"><input type="checkbox" class="ja-select-item" data-id="' + id + '" ' + checked + '></td>' +
         '<td>' +
           '<div style="display:flex;align-items:center;gap:10px;">' +
-            '<div class="emp-avatar">' + getInitials(candidateName) + '</div>' +
+            '<div class="emp-avatar">' + renderAvatar(candidateName, avatarUrl) + '</div>' +
             '<div>' +
               '<div style="font-weight:500;">' + escapeHtml(candidateName) + '</div>' +
               '<div style="font-size:11px;color:var(--muted);">' + escapeHtml(email) + '</div>' +

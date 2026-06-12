@@ -2,10 +2,35 @@ package utils
 
 import (
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
+
+// FlashMessage represents a one-time server-rendered banner message
+type FlashMessage struct {
+	Type    string `json:"type"`    // success, error, warning, info
+	Message string `json:"message"`
+}
+
+// SetFlash sets a flash message on the given c.Locals for template rendering
+func SetFlash(c *fiber.Ctx, msgType, message string) {
+	c.Locals("_flash", FlashMessage{Type: msgType, Message: message})
+}
+
+// FlashRedirect redirects with flash message as query params (for JS to pick up)
+func FlashRedirect(c *fiber.Ctx, urlStr, msgType, message string) error {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return c.Redirect(urlStr)
+	}
+	q := u.Query()
+	q.Set("flash", message)
+	q.Set("type", msgType)
+	u.RawQuery = q.Encode()
+	return c.Redirect(u.String())
+}
 
 // APIResponse represents the standard API response structure
 type APIResponse struct {

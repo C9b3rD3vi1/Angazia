@@ -270,10 +270,8 @@
     try {
       if (editingAlertId) {
         await AngaziaAPI.alerts.update(editingAlertId, data);
-        showToast('Alert updated successfully', 'success');
       } else {
         await AngaziaAPI.alerts.create(data);
-        showToast('Alert created successfully', 'success');
       }
       
       closeModalWindow();
@@ -281,7 +279,7 @@
       
     } catch (error) {
       console.error('Save alert failed:', error);
-      showToast(error.message || 'Failed to save alert', 'error');
+      console.error(error);
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = originalText;
@@ -295,11 +293,11 @@
     
     try {
       await AngaziaAPI.alerts.update(alertId, { is_active: !alert.isActive });
-      showToast(alert.isActive ? 'Alert paused' : 'Alert resumed', 'success');
+
       await loadAlerts();
     } catch (error) {
       console.error('Toggle alert failed:', error);
-      showToast(error.message || 'Failed to update alert', 'error');
+      console.error(error);
     }
   }
 
@@ -310,11 +308,11 @@
     
     try {
       await AngaziaAPI.alerts.delete(alertId);
-      showToast('Alert deleted successfully', 'success');
+
       await loadAlerts();
     } catch (error) {
       console.error('Delete alert failed:', error);
-      showToast(error.message || 'Failed to delete alert', 'error');
+      console.error(error);
     }
   }
 

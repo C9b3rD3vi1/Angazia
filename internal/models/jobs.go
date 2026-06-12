@@ -91,6 +91,7 @@ type Application struct {
 	
 	// Dates
 	AppliedAt     time.Time  `json:"applied_at" gorm:"autoCreateTime;index"`
+	UpdatedAt     time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
 	ViewedAt      *time.Time `json:"viewed_at,omitempty"`
 	ReviewedAt    *time.Time `json:"reviewed_at,omitempty"`
 	RespondedAt   *time.Time `json:"responded_at,omitempty"`

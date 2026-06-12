@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gofiber/fiber/v2"
 
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
 
@@ -16,7 +17,16 @@ func mergePageData(c *fiber.Ctx, data fiber.Map) fiber.Map {
 			}
 		}
 	}
+	injectFlash(c, data)
 	return data
+}
+
+func injectFlash(c *fiber.Ctx, data fiber.Map) {
+	if flash := c.Locals("_flash"); flash != nil {
+		if _, exists := data["Flash"]; !exists {
+			data["Flash"] = flash
+		}
+	}
 }
 
 type WebHandler struct {
@@ -85,9 +95,16 @@ func (h *WebHandler) PricingPage(c *fiber.Ctx) error {
 
 // LoginPage renders the login page
 func (h *WebHandler) LoginPage(c *fiber.Ctx) error {
-	return c.Render("auth/login", fiber.Map{
+	data := fiber.Map{
 		"Title": "Login to Angazia",
-	}, "layouts/auth")
+	}
+	if flash := c.Query("flash"); flash != "" {
+		data["Flash"] = utils.FlashMessage{
+			Type:    c.Query("type", "info"),
+			Message: flash,
+		}
+	}
+	return c.Render("auth/login", data, "layouts/auth")
 }
 
 // RegisterPage renders the registration page
@@ -178,6 +195,14 @@ func (h *WebHandler) EmployerDashboardPage(c *fiber.Ctx) error {
 func (h *WebHandler) EmployerApplicationsPage(c *fiber.Ctx) error {
 	return c.Render("employer/applications", mergePageData(c, fiber.Map{
 		"Title":      "Applications - Angazia",
+		"ActivePage": "applications",
+	}), "layouts/employer")
+}
+
+// EmployerApplicationDetailPage renders the employer's application detail page
+func (h *WebHandler) EmployerApplicationDetailPage(c *fiber.Ctx) error {
+	return c.Render("employer/application-detail", mergePageData(c, fiber.Map{
+		"Title":      "Application Detail - Angazia",
 		"ActivePage": "applications",
 	}), "layouts/employer")
 }

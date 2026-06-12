@@ -30,6 +30,7 @@
   </div>
 </nav>
 <main class="main-content-wide">
+{{if .Flash}}<div id="flash-message" class="flash flash-{{.Flash.Type}}">{{.Flash.Message}}<button class="flash-close" onclick="this.parentElement.remove()">&times;</button></div>{{end}}
 <div class="dash-layout">
   <aside class="dash-sidebar">
     <div class="dash-profile">
@@ -51,6 +52,7 @@
       <a href="/employee/matches" class="dash-link {{if eq .ActivePage "matches"}}active{{end}}"><span class="dash-link-icon">&#x1F916;</span><span class="dash-link-text">AI Matches</span>{{if .MatchCount}}<span class="dash-badge">{{.MatchCount}}</span>{{end}}</a>
       <a href="/employee/alerts" class="dash-link {{if eq .ActivePage "alerts"}}active{{end}}"><span class="dash-link-icon">&#x1F514;</span><span class="dash-link-text">Alerts</span>{{if .AlertCount}}<span class="dash-badge">{{.AlertCount}}</span>{{end}}</a>
       <a href="/employee/skills" class="dash-link {{if eq .ActivePage "skills"}}active{{end}}"><span class="dash-link-icon">&#x1F9E0;</span><span class="dash-link-text">Skills</span></a>
+      <a href="/employee/messages" class="dash-link {{if eq .ActivePage "messages"}}active{{end}}"><span class="dash-link-icon">&#x1F4AC;</span><span class="dash-link-text">Messages</span></a>
       <a href="/employee/settings" class="dash-link {{if eq .ActivePage "settings"}}active{{end}}"><span class="dash-link-icon">&#x2699;&#xFE0F;</span><span class="dash-link-text">Settings</span></a>
       <a href="/employee/notifications" class="dash-link {{if eq .ActivePage "notifications"}}active{{end}}"><span class="dash-link-icon">&#x1F514;</span><span class="dash-link-text">Notifications</span>{{if .UnreadCount}}<span class="dash-badge">{{.UnreadCount}}</span>{{end}}</a>
     </nav>
@@ -486,7 +488,8 @@
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  width: 320px;
+  width: 380px;
+  max-width: 90vw;
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -495,7 +498,7 @@
   visibility: hidden;
   transform: translateY(-4px);
   transition: all 0.15s;
-  z-index: 100;
+  z-index: 1000;
 }
 .notif-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
 .notif-header {
@@ -557,9 +560,10 @@
 }
 </style>
 <script>
-document.addEventListener('DOMContentLoaded',function(){initAvatarDropdown();initHamburger();});
+document.addEventListener('DOMContentLoaded',function(){initAvatarDropdown();initHamburger();initFlashMessages();});
 function initHamburger(){var h=document.getElementById('hamburger');if(h){h.addEventListener('click',function(){this.classList.toggle('is-open');document.body.classList.toggle('menu-open');});}}
 function initAvatarDropdown(){var a=document.getElementById('avatar-btn'),d=document.getElementById('avatar-dropdown');if(a&&d){a.addEventListener('click',function(e){e.stopPropagation();d.classList.toggle('open');});document.addEventListener('click',function(){d.classList.remove('open');});}}
+function initFlashMessages(){var f=document.querySelector('#flash-message');if(f){setTimeout(function(){f.classList.add('flash-fade');setTimeout(function(){if(f.parentNode)f.parentNode.removeChild(f);},400);},5000);}}
 </script>
 {{if .Scripts}}<script>{{.Scripts}}</script>{{end}}
 </body>

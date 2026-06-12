@@ -10,6 +10,7 @@
         </div>
     </div>
 </nav>
+{{if .Flash}}<div id="flash-message" class="flash flash-{{.Flash.Type}}">{{.Flash.Message}}<button class="flash-close" onclick="this.parentElement.remove()">&times;</button></div>{{end}}
 <main class="main-content-narrow" style="display:grid;place-items:center;min-height:calc(100vh - var(--nav-h) - 80px);padding:40px 20px;">
 {{embed}}
 </main>

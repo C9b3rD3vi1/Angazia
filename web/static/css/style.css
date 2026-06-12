@@ -288,7 +288,7 @@ body.menu-open{overflow:hidden}
 .mobile-divider{height:1px;background:var(--border)}
 
 /* ═══════════════════════════════════════════════
-   FLASH MESSAGES
+   FLASH MESSAGES (server-side banners)
 ═══════════════════════════════════════════════ */
 .flash{
   display:flex;
@@ -314,6 +314,83 @@ body.menu-open{overflow:hidden}
   cursor:pointer;flex-shrink:0;
 }
 .flash-close:hover{opacity:1}
+
+/* ═══════════════════════════════════════════════
+   TOAST NOTIFICATIONS (client-side floating)
+═══════════════════════════════════════════════ */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  font-family: var(--fm);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .3px;
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  pointer-events: auto;
+  min-width: 280px;
+  max-width: 420px;
+  transform: translateX(0);
+  transition: all 0.3s ease;
+}
+.toast-success {
+  background: rgba(0,229,160,0.12);
+  border: 1px solid rgba(0,229,160,0.25);
+  color: #00e5a0;
+}
+.toast-error {
+  background: rgba(255,79,79,0.12);
+  border: 1px solid rgba(255,79,79,0.25);
+  color: var(--danger);
+}
+.toast-warning {
+  background: rgba(245,166,35,0.12);
+  border: 1px solid rgba(245,166,35,0.25);
+  color: var(--warn);
+}
+.toast-info {
+  background: rgba(61,155,233,0.12);
+  border: 1px solid rgba(61,155,233,0.25);
+  color: var(--info);
+}
+.toast-icon {
+  flex-shrink: 0;
+  font-size: 16px;
+  line-height: 1;
+}
+.toast-message {
+  flex: 1;
+  line-height: 1.4;
+}
+.toast-close {
+  flex-shrink: 0;
+  font-size: 16px;
+  line-height: 1;
+  opacity: .5;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px;
+  transition: opacity .15s;
+}
+.toast-close:hover { opacity: 1; }
+.toast-exit {
+  opacity: 0;
+  transform: translateX(100%);
+}
 
 /* ═══════════════════════════════════════════════
    MAIN CONTENT LAYOUT

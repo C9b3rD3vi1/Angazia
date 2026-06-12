@@ -186,13 +186,14 @@
       const matchScore = app.match_score || 0;
       const appliedAt = app.applied_at || app.created_at;
       const initials = getInitials(candidateName);
+      const avatarUrl = app.employee?.user?.avatar_url || '';
       
       return `
         <tr class="emp-app-row" data-id="${app.id}" data-status="${status}">
           <td><input type="checkbox" class="emp-app-cb" value="${app.id}"></td>
           <td>
             <div class="emp-app-candidate">
-              <span class="emp-app-avatar">${initials}</span>
+              <span class="emp-app-avatar">${avatarUrl ? '<img src="' + avatarUrl + '" alt="' + escapeHtml(candidateName) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">' : initials}</span>
               <div>
                 <a href="/employer/applications/${app.id}" class="emp-app-name">${escapeHtml(candidateName)}</a>
                 <span class="emp-app-email">${escapeHtml(candidateEmail)}</span>

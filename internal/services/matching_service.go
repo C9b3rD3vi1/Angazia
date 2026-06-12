@@ -67,13 +67,14 @@ type MatchResult struct {
 }
 
 type MatchingServiceImpl struct {
-	cfg            *config.Config
-	aiProvider     ai.AIProvider
-	jobRepo        repository.JobRepository
-	userRepo       repository.UserRepository
-	githubRepo     repository.GitHubRepository
-	matchRepo      repository.MatchRepository
-	mu             sync.RWMutex
+	cfg             *config.Config
+	aiProvider      ai.AIProvider
+	jobRepo         repository.JobRepository
+	userRepo        repository.UserRepository
+	githubRepo      repository.GitHubRepository
+	matchRepo       repository.MatchRepository
+	notificationSvc NotificationService
+	mu              sync.RWMutex
 }
 
 func NewMatchingService(
@@ -83,14 +84,16 @@ func NewMatchingService(
 	userRepo repository.UserRepository,
 	githubRepo repository.GitHubRepository,
 	matchRepo repository.MatchRepository,
+	notificationSvc NotificationService,
 ) MatchingService {
 	return &MatchingServiceImpl{
-		cfg:        cfg,
-		aiProvider: aiProvider,
-		jobRepo:    jobRepo,
-		userRepo:   userRepo,
-		githubRepo: githubRepo,
-		matchRepo:  matchRepo,
+		cfg:             cfg,
+		aiProvider:      aiProvider,
+		jobRepo:         jobRepo,
+		userRepo:        userRepo,
+		githubRepo:      githubRepo,
+		matchRepo:       matchRepo,
+		notificationSvc: notificationSvc,
 	}
 }
 
@@ -486,7 +489,7 @@ func (s *MatchingServiceImpl) saveMatch(ctx context.Context, jobID, employeeID s
 		existingMatch.MatchReason = analysis.Summary
 		return s.matchRepo.Update(ctx, existingMatch)
 	}
-	
+
 	match := &models.Match{
 		ID:              uuid.New().String(),
 		JobID:           jobID,
@@ -502,8 +505,16 @@ func (s *MatchingServiceImpl) saveMatch(ctx context.Context, jobID, employeeID s
 		CreatedAt:       time.Now(),
 		ExpiresAt:       time.Now().AddDate(0, 1, 0),
 	}
-	
-	return s.matchRepo.Create(ctx, match)
+
+	if err := s.matchRepo.Create(ctx, match); err != nil {
+		return err
+	}
+
+	if analysis.OverallScore >= 70 {
+		s.notificationSvc.NotifyNewJobMatch(ctx, employeeID, jobID, analysis.OverallScore)
+	}
+
+	return nil
 }
 
 func (s *MatchingServiceImpl) getUserTypeFromID(ctx context.Context, userID string, match *models.Match) string {
