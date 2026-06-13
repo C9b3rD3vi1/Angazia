@@ -3,6 +3,7 @@
 
   var trendsChart = null;
   var sourcesChart = null;
+  var currentPeriod = 'daily';
 
   var els = {};
 
@@ -243,14 +244,14 @@
   async function loadTrends() {
     try {
       var days = parseInt(els.period ? els.period.value : '30', 10);
-      var data = await AngaziaAPI.analytics.employerTrends({ period: 'daily', duration: days });
+      var data = await AngaziaAPI.analytics.employerTrends({ period: currentPeriod, duration: days });
 
-      var daily = data.daily || [];
-      if (daily.length === 0) {
+      var series = data[currentPeriod] || [];
+      if (series.length === 0) {
         if (trendsChart) { trendsChart.destroy(); trendsChart = null; }
         return;
       }
-      renderTrendsChart(daily);
+      renderTrendsChart(series);
     } catch (err) {
       console.error('loadTrends failed:', err);
     }
@@ -477,6 +478,101 @@
     });
   }
 
+  async function loadDemographics() {
+    try {
+      var data = await AngaziaAPI.analytics.demographics();
+      var el = document.getElementById('an-demographics');
+      if (!el) return;
+
+      var levels = data.experience_levels || [];
+      var locs = data.locations || [];
+
+      if (levels.length === 0 && locs.length === 0) {
+        el.innerHTML = '<div class="an-demo-empty">No applicant demographic data yet.</div>';
+        return;
+      }
+
+      var html = '<div class="an-demo-grid">';
+
+      // Experience levels
+      html += '<div class="an-demo-group"><div class="an-demo-title">Experience Level</div>';
+      if (levels.length === 0) {
+        html += '<div class="an-demo-empty">No data</div>';
+      } else {
+        levels.forEach(function (l) {
+          html += '<div class="an-demo-bar">' +
+            '<span class="an-demo-label">' + escapeHtml(l.label) + '</span>' +
+            '<div class="an-demo-track"><span class="an-demo-fill" style="width:' + l.percentage.toFixed(0) + '%"></span></div>' +
+            '<span class="an-demo-pct">' + l.percentage.toFixed(0) + '%</span>' +
+          '</div>';
+        });
+      }
+      html += '</div>';
+
+      // Locations
+      html += '<div class="an-demo-group"><div class="an-demo-title">Top Locations</div>';
+      if (locs.length === 0) {
+        html += '<div class="an-demo-empty">No data</div>';
+      } else {
+        locs.forEach(function (l) {
+          html += '<div class="an-demo-bar">' +
+            '<span class="an-demo-label">' + escapeHtml(l.label) + '</span>' +
+            '<div class="an-demo-track"><span class="an-demo-fill alt" style="width:' + l.percentage.toFixed(0) + '%"></span></div>' +
+            '<span class="an-demo-pct">' + l.percentage.toFixed(0) + '%</span>' +
+          '</div>';
+        });
+      }
+      html += '</div></div>';
+
+      el.innerHTML = html;
+    } catch (err) {
+      console.error('loadDemographics failed:', err);
+      var el2 = document.getElementById('an-demographics');
+      if (el2) el2.innerHTML = '<div class="an-demo-empty">Failed to load demographics.</div>';
+    }
+  }
+
+  async function loadStageDurations() {
+    try {
+      var data = await AngaziaAPI.analytics.stageDurations();
+      var el = document.getElementById('an-stage-durations');
+      if (!el) return;
+
+      if (!data || data.length === 0) {
+        el.innerHTML = '<div class="an-sd-empty">No stage timing data yet.</div>';
+        return;
+      }
+
+      var stageLabels = {
+        'applied': 'Applied',
+        'viewed': 'Viewed',
+        'shortlisted': 'Shortlisted',
+        'interviewed': 'Interviewed',
+        'hired': 'Hired'
+      };
+
+      var html = '<div class="an-sd-grid">';
+      data.forEach(function (d) {
+        var from = stageLabels[d.from_stage] || d.from_stage;
+        var to = stageLabels[d.to_stage] || d.to_stage;
+        var days = d.avg_days ? d.avg_days.toFixed(1) : '0';
+        html += '<div class="an-sd-item">' +
+          '<div class="an-sd-arrow">' + from + ' → ' + to + '</div>' +
+          '<div class="an-sd-value">' + days + '</div>' +
+          '<div class="an-sd-label">Avg Days</div>' +
+          '<div class="an-sd-meta">' + d.sample_count + ' samples</div>' +
+        '</div>';
+      });
+      html += '</div>';
+
+      el.innerHTML = html;
+    } catch (err) {
+      console.error('loadStageDurations failed:', err);
+      var el2 = document.getElementById('an-stage-durations');
+      if (el2) el2.innerHTML = '<div class="an-sd-empty">Failed to load stage durations.</div>';
+    }
+  }
+
   async function loadTimeToHire() {
     try {
       var data = await AngaziaAPI.analytics.timeToHire();
@@ -553,6 +649,8 @@
         loadTopJobs(),
         loadQuality(),
         loadSources(),
+        loadDemographics(),
+        loadStageDurations(),
         loadTimeToHire(),
         loadRecentApps()
       ]);
@@ -566,6 +664,19 @@
       console.error('loadAllData failed:', err);
       showError(err.message || 'Failed to load analytics data');
     }
+  }
+
+  function initPeriodToggle() {
+    var container = document.getElementById('an-period-type');
+    if (!container) return;
+    container.addEventListener('click', function (e) {
+      var btn = e.target.closest('.an-period-btn');
+      if (!btn) return;
+      container.querySelectorAll('.an-period-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentPeriod = btn.getAttribute('data-period');
+      loadTrends();
+    });
   }
 
   function initEventListeners() {
@@ -587,6 +698,7 @@
         showToast('Analytics refreshed', 'success');
       });
     }
+    initPeriodToggle();
   }
 
   function init() {

@@ -40,6 +40,7 @@ type ProfileCompletionResponse struct {
 	Profile     *models.EmployeeProfile `json:"profile"`
 	Completion  *ProfileCompletion `json:"completion"`
 	NewSkills   []string           `json:"new_skills"`
+	ResumeURL   string             `json:"resume_url"`
 }
 
 type ProfileWizard struct {
@@ -83,60 +84,90 @@ func NewProfileService(
 }
 
 func (s *ProfileServiceImpl) ParseAndUpdateProfile(ctx context.Context, userID string, file multipart.File, filename string) (*ProfileCompletionResponse, error) {
-	// Parse resume
-	parsed, err := s.pdfParser.Parse(ctx, file, filename)
+	// Save resume file to disk FIRST (before consuming the file handle for parsing)
+	ext := strings.ToLower(filepath.Ext(filename))
+	resumeFilename := fmt.Sprintf("resume_%s_%d%s", userID, time.Now().Unix(), ext)
+	uploadDir := filepath.Join(s.cfg.UploadDir, "resumes")
+	filePath := filepath.Join(uploadDir, resumeFilename)
+
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create upload directory: %w", err)
+	}
+
+	dst, err := os.Create(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create resume file: %w", err)
+	}
+
+	if _, err := io.Copy(dst, file); err != nil {
+		dst.Close()
+		return nil, fmt.Errorf("failed to write resume file: %w", err)
+	}
+	dst.Close()
+
+	resumeURL := fmt.Sprintf("%s/uploads/resumes/%s", s.cfg.AppURL, resumeFilename)
+
+	// Re-open the saved file for parsing
+	savedFile, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open saved resume for parsing: %w", err)
+	}
+	defer savedFile.Close()
+
+	parsed, err := s.pdfParser.Parse(ctx, savedFile, filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse resume: %w", err)
 	}
-	
+
 	// Get existing profile
 	profile, err := s.userRepo.GetEmployeeProfile(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get profile: %w", err)
 	}
-	
+
 	newSkills := []string{}
-	
+
 	// Merge skills
 	existingSkills := make(map[string]bool)
 	for _, skill := range profile.Skills {
 		existingSkills[strings.ToLower(skill)] = true
 	}
-	
+
 	for _, skill := range parsed.Skills {
 		if !existingSkills[strings.ToLower(skill)] {
 			newSkills = append(newSkills, skill)
 			existingSkills[strings.ToLower(skill)] = true
 		}
 	}
-	
-	// Build profile updates using struct (non-zero fields will be sent)
+
+	// Build profile updates
 	updates := models.EmployeeProfile{}
-	
+	updates.ResumeURL = resumeURL
+
 	if profile.FullName == "" && parsed.FullName != "" {
 		updates.FullName = parsed.FullName
 	}
-	
+
 	if profile.Location == "" && parsed.Location != "" {
 		updates.Location = parsed.Location
 	}
-	
+
 	if profile.Bio == "" && parsed.Summary != "" {
 		updates.Bio = parsed.Summary
 	}
-	
+
 	if len(newSkills) > 0 {
 		updates.Skills = append(profile.Skills, newSkills...)
 	}
-	
+
 	if profile.LinkedInURL == "" && parsed.LinkedInURL != "" {
 		updates.LinkedInURL = parsed.LinkedInURL
 	}
-	
+
 	if profile.PortfolioURL == "" && parsed.PortfolioURL != "" {
 		updates.PortfolioURL = parsed.PortfolioURL
 	}
-	
+
 	if profile.ExperienceLevel == "" && parsed.TotalExperience > 0 {
 		experienceLevel := "entry"
 		if parsed.TotalExperience >= 7 {
@@ -147,32 +178,33 @@ func (s *ProfileServiceImpl) ParseAndUpdateProfile(ctx context.Context, userID s
 			experienceLevel = "junior"
 		}
 		updates.ExperienceLevel = experienceLevel
-		
+
 		if profile.YearsOfExperience == 0 {
 			updates.YearsOfExperience = parsed.TotalExperience
 		}
 	}
-	
-	// Apply updates via struct so GORM knows field types
+
+	// Apply updates
 	if err := s.db.WithContext(ctx).
 		Model(&models.EmployeeProfile{}).
 		Where("user_id = ?", userID).
 		Updates(&updates).Error; err != nil {
 		return nil, fmt.Errorf("failed to update profile: %w", err)
 	}
-	
+
 	// Get updated profile
 	updatedProfile, _ := s.userRepo.GetEmployeeProfile(ctx, userID)
-	
+
 	// Calculate completion
 	completion := s.calculateCompletion(updatedProfile)
-	
+
 	return &ProfileCompletionResponse{
 		Success:    true,
-		Message:    fmt.Sprintf("Resume parsed successfully! Added %d new skills.", len(newSkills)),
+		Message:    fmt.Sprintf("Resume uploaded and parsed successfully! Added %d new skills.", len(newSkills)),
 		Profile:    updatedProfile,
 		Completion: completion,
 		NewSkills:  newSkills,
+		ResumeURL:  resumeURL,
 	}, nil
 }
 

@@ -19,10 +19,286 @@
     modalBody: document.getElementById('mm-modal-body'),
     modalLoading: document.getElementById('mm-modal-loading'),
     modalClose: document.getElementById('mm-modal-close'),
+
+    // Pool picker
+    poolModal: document.getElementById('mm-pool-modal'),
+    poolTitle: document.getElementById('mm-pool-title'),
+    poolHeading: document.getElementById('mm-pool-heading'),
+    poolDesc: document.getElementById('mm-pool-desc'),
+    poolSelect: document.getElementById('mm-pool-select'),
+    poolNewSection: document.getElementById('mm-new-pool-section'),
+    poolNewName: document.getElementById('mm-new-pool-name'),
+    poolCreateToggle: document.getElementById('mm-create-toggle'),
+    poolSave: document.getElementById('mm-pool-save'),
+    poolCancel: document.getElementById('mm-pool-cancel'),
+    poolClose: document.getElementById('mm-pool-close'),
+    poolError: document.getElementById('mm-pool-error'),
+    poolErrorMsg: document.getElementById('mm-pool-error-msg'),
+
+    // Interview
+    interviewModal: document.getElementById('mm-interview-modal'),
+    interviewHeading: document.getElementById('mm-interview-heading'),
+    interviewDesc: document.getElementById('mm-interview-desc'),
+    interviewDate: document.getElementById('mm-interview-date'),
+    interviewTime: document.getElementById('mm-interview-time'),
+    interviewType: document.getElementById('mm-interview-type'),
+    interviewNotes: document.getElementById('mm-interview-notes'),
+    interviewConfirm: document.getElementById('mm-interview-confirm'),
+    interviewCancel: document.getElementById('mm-interview-cancel'),
+    interviewClose: document.getElementById('mm-interview-close'),
+
+    // Feedback
+    feedbackModal: document.getElementById('mm-feedback-modal'),
+    feedbackHeading: document.getElementById('mm-feedback-heading'),
+    feedbackStars: document.getElementById('mm-feedback-stars'),
+    feedbackStarLabel: document.getElementById('mm-feedback-star-label'),
+    feedbackNotes: document.getElementById('mm-feedback-notes'),
+    feedbackSubmit: document.getElementById('mm-feedback-submit'),
+    feedbackCancel: document.getElementById('mm-feedback-cancel'),
+    feedbackClose: document.getElementById('mm-feedback-close'),
+    feedbackError: document.getElementById('mm-feedback-error'),
+    feedbackErrorMsg: document.getElementById('mm-feedback-error-msg'),
   };
 
   var currentJobId = '';
   var currentMatches = [];
+
+  // ── Pool Picker Modal (add to talent pool) ──
+
+  var cachedPools = [];
+  var pendingPoolCandidateId = null;
+  var pendingPoolCandidateName = '';
+
+  function setPoolLoading(loading) {
+    if (!els.poolSave) return;
+    els.poolSave.disabled = loading;
+    els.poolSave.classList.toggle('emp-btn-loading', loading);
+  }
+
+  function showPoolError(msg) {
+    if (els.poolError) els.poolError.style.display = msg ? 'block' : 'none';
+    if (els.poolErrorMsg) els.poolErrorMsg.textContent = msg || '';
+  }
+
+  function loadPools() {
+    return AngaziaAPI.talentPools.list({ limit: 100 })
+      .then(function (resp) {
+        cachedPools = resp && resp.pools ? resp.pools : (Array.isArray(resp) ? resp : []);
+        if (els.poolSelect) {
+          var html = '<option value="">— Select a pool —</option>';
+          cachedPools.forEach(function (p) {
+            html += '<option value="' + (p.id || p.ID) + '">' + (p.name || 'Unnamed') + '</option>';
+          });
+          els.poolSelect.innerHTML = html;
+          els.poolSelect.value = '';
+        }
+      })
+      .catch(function () { cachedPools = []; });
+  }
+
+  function openPoolPicker(candidateId, candidateName) {
+    pendingPoolCandidateId = candidateId;
+    pendingPoolCandidateName = candidateName || '';
+
+    if (els.poolHeading) els.poolHeading.textContent = 'Add to Pool' + (pendingPoolCandidateName ? ': ' + pendingPoolCandidateName : '');
+    if (els.poolDesc) els.poolDesc.textContent = 'Choose a pool to save this matched candidate for future reference.';
+
+    if (els.poolNewSection) els.poolNewSection.style.display = 'none';
+    if (els.poolNewName) els.poolNewName.value = '';
+    showPoolError('');
+    setPoolLoading(false);
+    loadPools().then(function () {
+      if (els.poolModal) els.poolModal.style.display = 'flex';
+    });
+  }
+
+  function closePoolPicker() {
+    if (els.poolModal) els.poolModal.style.display = 'none';
+    setPoolLoading(false);
+    showPoolError('');
+    pendingPoolCandidateId = null;
+    pendingPoolCandidateName = '';
+  }
+
+  function handlePoolSave() {
+    var candidateId = pendingPoolCandidateId;
+    var candidateName = pendingPoolCandidateName;
+    if (!candidateId) return;
+
+    var selectedPoolId = els.poolSelect ? els.poolSelect.value : '';
+    var newPoolName = els.poolNewName ? els.poolNewName.value.trim() : '';
+
+    if (!selectedPoolId && !newPoolName) {
+      showPoolError('Please select a pool or enter a name for a new one.');
+      return;
+    }
+    if (newPoolName && newPoolName.length < 2) {
+      showPoolError('Pool name must be at least 2 characters.');
+      return;
+    }
+
+    showPoolError('');
+    setPoolLoading(true);
+
+    var poolPromise;
+    if (selectedPoolId) {
+      poolPromise = Promise.resolve(selectedPoolId);
+    } else {
+      poolPromise = AngaziaAPI.talentPools.create({ name: newPoolName })
+        .then(function (newPool) { return newPool.id || newPool.ID || (newPool.data && newPool.data.id); });
+    }
+
+    poolPromise.then(function (poolId) {
+      return AngaziaAPI.talentPools.addCandidate(poolId, {
+        employee_id: candidateId,
+        job_id: currentJobId,
+        notes: 'Added from AI Matches',
+        match_score: 0
+      }).then(function () {
+        closePoolPicker();
+        var btn = document.querySelector('[data-candidate-id="' + candidateId + '"]');
+        if (btn) {
+          var parent = btn.closest('.emp-card-actions, .mm-actions');
+          if (parent) {
+            var poolBtn = parent.querySelector('[data-action="addPool"]');
+            if (poolBtn) { poolBtn.textContent = 'Added'; poolBtn.disabled = true; }
+          }
+        }
+      });
+    }).catch(function (err) {
+      console.error('Failed to add candidate to pool:', err);
+      setPoolLoading(false);
+      showPoolError(err && err.message ? err.message : 'Failed to add candidate. Please try again.');
+    });
+  }
+
+  // ── Interview Modal ──
+
+  var pendingInterviewCandidateId = null;
+  var pendingInterviewBtn = null;
+
+  function setInterviewLoading(loading) {
+    if (!els.interviewConfirm) return;
+    els.interviewConfirm.disabled = loading;
+    els.interviewConfirm.classList.toggle('emp-btn-loading', loading);
+  }
+
+  function openInterviewModal(candidateId, btn) {
+    pendingInterviewCandidateId = candidateId;
+    pendingInterviewBtn = btn;
+    var name = getCandidateNameFromBtn(btn);
+    if (els.interviewHeading) els.interviewHeading.textContent = 'Schedule Interview' + (name ? ': ' + name : '');
+    if (els.interviewDesc) els.interviewDesc.textContent = 'Set the date, time, and type of interview for this candidate.';
+    if (els.interviewDate) els.interviewDate.value = new Date().toISOString().slice(0, 10);
+    if (els.interviewTime) els.interviewTime.value = '';
+    if (els.interviewType) els.interviewType.value = 'technical';
+    if (els.interviewNotes) els.interviewNotes.value = '';
+    setInterviewLoading(false);
+    if (els.interviewModal) els.interviewModal.style.display = 'flex';
+  }
+
+  function hideInterviewModal() {
+    if (els.interviewModal) els.interviewModal.style.display = 'none';
+    setInterviewLoading(false);
+    pendingInterviewCandidateId = null;
+    pendingInterviewBtn = null;
+  }
+
+  function executeInterview() {
+    var candidateId = pendingInterviewCandidateId;
+    if (!candidateId) return;
+    var date = els.interviewDate ? els.interviewDate.value : '';
+    if (!date) { if (els.interviewDate) els.interviewDate.focus(); return; }
+    var time = els.interviewTime ? els.interviewTime.value : '';
+    var type = els.interviewType ? els.interviewType.value : 'technical';
+    var notes = els.interviewNotes ? els.interviewNotes.value : '';
+
+    var scheduledAt = date + (time ? 'T' + time + ':00' : 'T09:00:00');
+
+    setInterviewLoading(true);
+
+    AngaziaAPI.applications.interview(candidateId, {
+      interview_date: new Date(scheduledAt).toISOString(),
+      interview_type: type,
+      notes: notes
+    }).then(function () {
+      hideInterviewModal();
+      var btn = pendingInterviewBtn;
+      if (btn) { btn.textContent = 'Scheduled'; btn.disabled = true; }
+    }).catch(function (err) {
+      console.error('Failed to schedule interview:', err);
+      setInterviewLoading(false);
+    });
+  }
+
+  // ── Feedback Modal ──
+
+  var pendingFeedbackMatchId = null;
+  var pendingFeedbackRating = 0;
+  var pendingFeedbackCandidateName = '';
+
+  function setFeedbackLoading(loading) {
+    if (!els.feedbackSubmit) return;
+    els.feedbackSubmit.disabled = loading;
+    els.feedbackSubmit.classList.toggle('emp-btn-loading', loading);
+  }
+
+  function showFeedbackError(msg) {
+    if (els.feedbackError) els.feedbackError.style.display = msg ? 'block' : 'none';
+    if (els.feedbackErrorMsg) els.feedbackErrorMsg.textContent = msg || '';
+  }
+
+  function openFeedbackModal(matchId, candidateName) {
+    pendingFeedbackMatchId = matchId;
+    pendingFeedbackRating = 0;
+    pendingFeedbackCandidateName = candidateName || '';
+
+    if (els.feedbackHeading) els.feedbackHeading.textContent = 'Rate ' + (pendingFeedbackCandidateName || 'this Candidate');
+    if (els.feedbackNotes) els.feedbackNotes.value = '';
+    if (els.feedbackStarLabel) els.feedbackStarLabel.textContent = 'Select rating';
+    showFeedbackError('');
+    setFeedbackLoading(false);
+
+    // Reset stars
+    if (els.feedbackStars) {
+      els.feedbackStars.querySelectorAll('.emp-star').forEach(function (s) { s.classList.remove('active'); s.textContent = '\u2606'; });
+    }
+
+    if (els.feedbackModal) els.feedbackModal.style.display = 'flex';
+  }
+
+  function hideFeedbackModal() {
+    if (els.feedbackModal) els.feedbackModal.style.display = 'none';
+    setFeedbackLoading(false);
+    showFeedbackError('');
+    pendingFeedbackMatchId = null;
+    pendingFeedbackRating = 0;
+    pendingFeedbackCandidateName = '';
+  }
+
+  function handleFeedbackSubmit() {
+    var matchId = pendingFeedbackMatchId;
+    var rating = pendingFeedbackRating;
+    if (!matchId) return;
+    if (rating < 1 || rating > 5) {
+      showFeedbackError('Please select a rating (1-5 stars).');
+      return;
+    }
+
+    var notes = els.feedbackNotes ? els.feedbackNotes.value : '';
+    showFeedbackError('');
+    setFeedbackLoading(true);
+
+    AngaziaAPI.matches.submitFeedback({ match_id: matchId, rating: rating, feedback: notes })
+      .then(function () {
+        hideFeedbackModal();
+      })
+      .catch(function (err) {
+        console.error('Failed to submit feedback:', err);
+        setFeedbackLoading(false);
+        showFeedbackError(err && err.message ? err.message : 'Failed to submit feedback.');
+      });
+  }
 
   if (!els.content || !els.jobSelector) return;
 
@@ -234,9 +510,7 @@
           '</div>' +
           (matchId ? '<div class="emp-match-feedback">' +
             '<span style="font-size:10px;color:var(--muted2)">Was this match accurate?</span>' +
-            '<button class="emp-feedback-btn" data-match-id="' + escapeHtml(matchId) + '" data-rating="1" title="Not accurate">&#x1F44E;</button>' +
-            '<button class="emp-feedback-btn" data-match-id="' + escapeHtml(matchId) + '" data-rating="3" title="Somewhat accurate">&#x1F44D;</button>' +
-            '<button class="emp-feedback-btn" data-match-id="' + escapeHtml(matchId) + '" data-rating="5" title="Very accurate">&#x1F31F;</button>' +
+            '<button class="emp-btn emp-btn-xs emp-btn-ghost action-feedback" data-match-id="' + escapeHtml(matchId) + '" data-candidate-name="' + escapeHtml(name) + '">&#x1F4AC; Give Feedback</button>' +
           '</div>' : '') +
         '</div>' +
         '<div class="emp-candidate-actions emp-match-actions">' +
@@ -258,6 +532,16 @@
 
   // ── Card Action Handlers ──
 
+  function bindFeedback() {
+    els.matchesContainer.querySelectorAll('.action-feedback').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var matchId = this.dataset.matchId;
+        var name = this.dataset.candidateName || '';
+        if (matchId) openFeedbackModal(matchId, name);
+      });
+    });
+  }
+
   function bindCardActions() {
     els.matchesContainer.querySelectorAll('.action-view-profile').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -269,14 +553,15 @@
     els.matchesContainer.querySelectorAll('.action-add-pool').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var cid = this.dataset.candidateId;
-        if (cid) addToTalentPool(cid, currentJobId, this);
+        var name = getCandidateNameFromBtn(this);
+        if (cid) openPoolPicker(cid, name);
       });
     });
 
     els.matchesContainer.querySelectorAll('.action-interview').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var cid = this.dataset.candidateId;
-        if (cid) scheduleInterview(cid, this);
+        if (cid) openInterviewModal(cid, this);
       });
     });
 
@@ -293,388 +578,255 @@
         if (cid) viewSkillsGap(cid, currentJobId);
       });
     });
-  }
 
-  function bindFeedback() {
-    els.matchesContainer.querySelectorAll('.emp-feedback-btn').forEach(function (btn) {
+    els.matchesContainer.querySelectorAll('.action-feedback').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var matchId = this.dataset.matchId;
-        var rating = parseInt(this.dataset.rating, 10);
-        if (!matchId) return;
-
-        var allBtns = this.parentElement.querySelectorAll('.emp-feedback-btn');
-        allBtns.forEach(function (b) { b.classList.remove('active'); b.style.opacity = '0.4'; });
-        this.classList.add('active');
-        this.style.opacity = '1';
-
-        AngaziaAPI.matches.submitFeedback({ match_id: matchId, rating: rating })
-          .then(function () { })
-          .catch(function () { });
+        var name = this.dataset.candidateName || '';
+        if (matchId) openFeedbackModal(matchId, name);
       });
     });
   }
 
-  function addToTalentPool(candidateId, jobId, btn) {
-    if (typeof AngaziaAPI === 'undefined') return;
-    btn.disabled = true;
-    btn.textContent = 'Adding...';
+  // ── Skills Gap Aggregation (aggregated chart) ──
 
-    AngaziaAPI.talentPools.list({ limit: 1 })
-      .then(function (data) {
-        var pools = data && data.pools ? data.pools : (Array.isArray(data) ? data : []);
-        if (pools && pools.length) {
-          return AngaziaAPI.talentPools.addCandidate(pools[0].id, { candidate_id: candidateId, job_id: jobId })
-            .then(function () {
-              btn.textContent = 'Added';
-            });
-        }
-        return AngaziaAPI.talentPools.create({ name: 'AI Matches - ' + new Date().toLocaleDateString() })
-          .then(function (p) {
-            var poolId = p && (p.id || (p.data && p.data.id));
-            if (!poolId) throw new Error('Could not create pool');
-              return AngaziaAPI.talentPools.addCandidate(poolId, { candidate_id: candidateId, job_id: jobId })
-                .then(function () {
-                  btn.textContent = 'Added';
-                });
-          });
-      })
-      .catch(function (err) {
-        console.error(err);
-        btn.disabled = false;
-        btn.textContent = '+ Pool';
+  function renderSkillGapAll(matches) {
+    if (!els.skillSection || !els.skillChart) return;
+    if (!matches || !matches.length) {
+      els.skillSection.style.display = 'none';
+      return;
+    }
+
+    els.skillSection.style.display = '';
+    if (els.skillEmpty) els.skillEmpty.style.display = 'none';
+
+    var skillMap = {};
+    var total = matches.length;
+
+    matches.forEach(function (m) {
+      var matching = m.matching_skills || m.MatchingSkills || [];
+      var missing = m.missing_skills || m.MissingSkills || [];
+      matching.forEach(function (s) {
+        var name = typeof s === 'string' ? s : (s.name || s.Name || '');
+        if (!name) return;
+        if (!skillMap[name]) skillMap[name] = { matching: 0, missing: 0 };
+        skillMap[name].matching++;
       });
+      missing.forEach(function (s) {
+        var name = typeof s === 'string' ? s : (s.name || s.Name || '');
+        if (!name) return;
+        if (!skillMap[name]) skillMap[name] = { matching: 0, missing: 0 };
+        skillMap[name].missing++;
+      });
+    });
+
+    var skills = Object.keys(skillMap).map(function (name) {
+      return { name: name, score: Math.round((skillMap[name].matching / total) * 100) };
+    });
+    skills.sort(function (a, b) { return b.score - a.score; });
+    skills = skills.slice(0, 10);
+
+    if (!skills.length) {
+      els.skillSection.style.display = 'none';
+      return;
+    }
+
+    var html = '';
+    skills.forEach(function (s) {
+      html += '<div class="emp-skill-bar-row">' +
+        '<span class="emp-skill-bar-label">' + escapeHtml(s.name) + '</span>' +
+        '<div class="emp-skill-bar-track"><div class="emp-skill-bar-fill" style="width:' + s.score + '%"></div></div>' +
+        '<span class="emp-skill-bar-pct">' + s.score + '%</span>' +
+        '</div>';
+    });
+    els.skillChart.innerHTML = html;
   }
 
-  function scheduleInterview(candidateId, btn) {
-    var date = prompt('Interview date (YYYY-MM-DD):');
-    if (!date) return;
-    var time = prompt('Interview time (optional, e.g. 10:00):');
-    var scheduledAt = date + (time ? 'T' + time + ':00' : 'T09:00:00');
-
-    btn.disabled = true;
-    btn.textContent = 'Scheduling...';
-
-    AngaziaAPI.applications.interview(candidateId, { scheduled_at: scheduledAt, job_id: currentJobId })
-      .then(function () {
-        btn.textContent = '&#x1F4C5; Interview';
-        btn.disabled = false;
-      })
-      .catch(function (err) {
-        console.error(err);
-        btn.textContent = '&#x1F4C5; Interview';
-        btn.disabled = false;
-      });
-  }
+  // ── View Analysis (detailed modal per candidate) ──
 
   function viewAnalysis(candidateId, jobId) {
-    if (typeof AngaziaAPI === 'undefined') return;
-    openModal('Match Analysis', '');
+    if (!candidateId || !jobId) return;
     setModalLoading(true);
+    openModal('Match Analysis', '');
 
     AngaziaAPI.matches.employerAnalysis(jobId, candidateId)
-      .then(function (data) {
-        var analysis = data && data.analysis ? data.analysis : data;
-        var html = '';
-
-        html += '<div class="mm-analysis-scores">';
-        html += scoreBox('Overall', analysis.overall_score || 0, getScoreColor(analysis.overall_score));
-        html += scoreBox('Skills', analysis.skills_score || 0, getScoreColor(analysis.skills_score));
-        html += scoreBox('Experience', analysis.experience_score || 0, getScoreColor(analysis.experience_score));
-        html += scoreBox('Culture', analysis.culture_score || 0, getScoreColor(analysis.culture_score));
-        html += scoreBox('Location', analysis.location_score || 0, getScoreColor(analysis.location_score));
-        html += '</div>';
-
-        if (analysis.matching_skills && analysis.matching_skills.length) {
-          html += '<div class="mm-analysis-section">';
-          html += '<div class="mm-analysis-label">&#x2705; Matching Skills</div>';
-          html += '<div class="mm-tag-list">';
-          analysis.matching_skills.forEach(function (s) {
-            html += '<span class="emp-tag emp-tag-matched">' + escapeHtml(typeof s === 'string' ? s : '') + '</span>';
-          });
-          html += '</div></div>';
+      .then(function (analysis) {
+        setModalLoading(false);
+        if (!analysis) {
+          els.modalBody.innerHTML = '<p style="text-align:center;color:var(--muted)">No analysis available.</p>';
+          return;
         }
 
-        if (analysis.missing_skills && analysis.missing_skills.length) {
-          html += '<div class="mm-analysis-section">';
-          html += '<div class="mm-analysis-label">&#x274C; Missing Skills</div>';
-          html += '<div class="mm-tag-list">';
-          analysis.missing_skills.forEach(function (s) {
-            html += '<span class="emp-tag emp-tag-missing">' + escapeHtml(typeof s === 'string' ? s : '') + '</span>';
-          });
-          html += '</div></div>';
-        }
+        var scoreItems = [
+          { label: 'Overall', value: analysis.overall_score || 0 },
+          { label: 'Skills', value: analysis.skills_score || 0 },
+          { label: 'Experience', value: analysis.experience_score || 0 },
+          { label: 'Culture', value: analysis.culture_score || 0 },
+          { label: 'Location', value: analysis.location_score || 0 },
+        ];
+        var scoreHtml = '';
+        scoreItems.forEach(function (s) {
+          scoreHtml += '<div class="mm-score-item"><div class="mm-score-value" style="color:' + getScoreColor(s.value) + '">' + s.value + '</div><div class="mm-score-label">' + s.label + '</div></div>';
+        });
+
+        var bodyHtml = '<div class="mm-analysis-scores">' + scoreHtml + '</div>';
 
         if (analysis.strong_points && analysis.strong_points.length) {
-          html += '<div class="mm-analysis-section">';
-          html += '<div class="mm-analysis-label">&#x2B50; Strong Points</div>';
-          html += '<ul style="padding-left:16px;margin:0">';
-          analysis.strong_points.forEach(function (s) {
-            html += '<li style="padding:3px 0;font-size:12px;color:var(--muted)">' + escapeHtml(typeof s === 'string' ? s : '') + '</li>';
-          });
-          html += '</ul></div>';
+          bodyHtml += '<div class="mm-analysis-section"><div class="mm-analysis-label">Strong Points</div><ul style="margin:0;padding-left:20px">';
+          analysis.strong_points.forEach(function (p) { bodyHtml += '<li style="padding:4px 0;color:var(--accent)">' + escapeHtml(p) + '</li>'; });
+          bodyHtml += '</ul></div>';
         }
 
         if (analysis.weak_points && analysis.weak_points.length) {
-          html += '<div class="mm-analysis-section">';
-          html += '<div class="mm-analysis-label">&#x26A0; Areas to Improve</div>';
-          html += '<ul style="padding-left:16px;margin:0">';
-          analysis.weak_points.forEach(function (s) {
-            html += '<li style="padding:3px 0;font-size:12px;color:var(--muted)">' + escapeHtml(typeof s === 'string' ? s : '') + '</li>';
-          });
-          html += '</ul></div>';
+          bodyHtml += '<div class="mm-analysis-section"><div class="mm-analysis-label">Areas for Improvement</div><ul style="margin:0;padding-left:20px">';
+          analysis.weak_points.forEach(function (p) { bodyHtml += '<li style="padding:4px 0;color:var(--warn)">' + escapeHtml(p) + '</li>'; });
+          bodyHtml += '</ul></div>';
         }
 
-        if (analysis.interview_tips && analysis.interview_tips.length) {
-          html += '<div class="mm-analysis-section">';
-          html += '<div class="mm-analysis-label">&#x1F4AD; Interview Tips</div>';
-          html += '<ul style="padding-left:16px;margin:0">';
-          analysis.interview_tips.forEach(function (s) {
-            html += '<li style="padding:3px 0;font-size:12px;color:var(--muted)">' + escapeHtml(typeof s === 'string' ? s : '') + '</li>';
-          });
-          html += '</ul></div>';
-        }
-
-        if (analysis.summary) {
-          html += '<div class="mm-analysis-section">';
-          html += '<div class="mm-analysis-label">&#x1F4A1; Summary</div>';
-          html += '<p style="margin:0;font-size:13px;color:var(--text)">' + escapeHtml(analysis.summary) + '</p></div>';
-        }
-
-        if (analysis.recommendation) {
-          html += '<div class="mm-analysis-section">';
-          html += '<div class="mm-analysis-label">&#x1F3AF; Recommendation</div>';
-          html += '<p style="margin:0;font-size:13px;color:var(--accent)">' + escapeHtml(analysis.recommendation) + '</p></div>';
-        }
-
-        if (analysis.analysis_metadata) {
-          var meta = analysis.analysis_metadata;
-          html += '<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);font-size:10px;color:var(--muted2)">';
-          if (meta.provider) html += 'AI: ' + escapeHtml(meta.provider) + ' | ';
-          if (meta.model) html += 'Model: ' + escapeHtml(meta.model) + ' | ';
-          if (meta.processing_time_ms) html += 'Time: ' + meta.processing_time_ms + 'ms';
-          html += '</div>';
-        }
-
-        setModalLoading(false);
-        if (els.modalBody) { els.modalBody.innerHTML = html; els.modalBody.style.display = ''; }
-      })
-      .catch(function () {
-        setModalLoading(false);
-        if (els.modalBody) {
-          els.modalBody.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px 0">Failed to load analysis. Please try again.</p>';
-          els.modalBody.style.display = '';
-        }
-      });
-  }
-
-  function scoreBox(label, value, color) {
-    return '<div class="mm-score-item">' +
-      '<div class="mm-score-value" style="color:' + color + '">' + value + '%</div>' +
-      '<div class="mm-score-label">' + label + '</div>' +
-      '</div>';
-  }
-
-  function viewSkillsGap(candidateId, jobId) {
-    if (typeof AngaziaAPI === 'undefined') return;
-    openModal('Skills Gap Analysis', '');
-    setModalLoading(true);
-
-    AngaziaAPI.matches.employerSkillsGap(jobId, candidateId)
-      .then(function (data) {
-        var analysis = data && data.analysis ? data.analysis : data;
-        var html = '';
-
-        if (analysis.improvement_plan) {
-          html += '<div class="mm-analysis-section">';
-          html += '<div class="mm-analysis-label">&#x1F4CB; Improvement Plan</div>';
-          html += '<p style="margin:0 0 12px;font-size:13px;color:var(--text)">' + escapeHtml(analysis.improvement_plan) + '</p></div>';
-        }
-
-        if (analysis.estimated_time_to_fill) {
-          html += '<div class="mm-analysis-section">';
-          html += '<div class="mm-analysis-label">&#x23F1; Estimated Time to Fill</div>';
-          html += '<p style="margin:0 0 12px;font-size:13px;color:var(--text)">' + escapeHtml(analysis.estimated_time_to_fill) + '</p></div>';
-        }
-
-        if (analysis.priority_level) {
-          var pCls = analysis.priority_level === 'high' ? 'critical' : (analysis.priority_level === 'medium' ? 'important' : '');
-          html += '<div class="mm-analysis-section">';
-          html += '<div class="mm-analysis-label">Priority Level</div>';
-          html += '<span class="mm-gap-importance ' + pCls + '">' + escapeHtml(analysis.priority_level.toUpperCase()) + '</span>';
-          html += '</div>';
+        if (analysis.matching_skills && analysis.matching_skills.length) {
+          bodyHtml += '<div class="mm-analysis-section"><div class="mm-analysis-label">Matching Skills</div><div class="mm-tag-list">' +
+            analysis.matching_skills.map(function (s) { return '<span class="emp-tag emp-tag-matched">' + escapeHtml(s) + '</span>'; }).join('') +
+            '</div></div>';
         }
 
         if (analysis.missing_skills && analysis.missing_skills.length) {
-          html += '<div class="mm-analysis-section">';
-          html += '<div class="mm-analysis-label">&#x274C; Missing Skills</div>';
-          analysis.missing_skills.forEach(function (s) {
-            var skillName = s.skill_name || s.SkillName || '';
-            var importance = s.importance || s.Importance || '';
-            var description = s.description || s.Description || '';
-            var resources = s.learning_resources || s.LearningResources || [];
-            var impCls = importance === 'critical' ? 'critical' : (importance === 'important' ? 'important' : 'nice-to-have');
+          bodyHtml += '<div class="mm-analysis-section"><div class="mm-analysis-label">Missing Skills</div><div class="mm-tag-list">' +
+            analysis.missing_skills.map(function (s) { return '<span class="emp-tag emp-tag-missing">' + escapeHtml(s) + '</span>'; }).join('') +
+            '</div></div>';
+        }
 
-            html += '<div class="mm-gap-item">';
-            html += '<div class="mm-gap-skill">' + escapeHtml(skillName) + '</div>';
-            if (importance) html += '<span class="mm-gap-importance ' + impCls + '">' + escapeHtml(importance.toUpperCase()) + '</span>';
-            if (description) html += '<div class="mm-gap-desc">' + escapeHtml(description) + '</div>';
-            if (resources && resources.length) {
-              html += '<div class="mm-gap-resources">Resources: ';
-              resources.forEach(function (r, i) {
-                html += escapeHtml(typeof r === 'string' ? r : r.name || r.url || '');
-                if (i < resources.length - 1) html += ', ';
-              });
-              html += '</div>';
-            }
-            html += '</div>';
+        if (analysis.summary) {
+          bodyHtml += '<div class="mm-analysis-section"><div class="mm-analysis-label">Analysis</div><p style="margin:0;line-height:1.7">' + escapeHtml(analysis.summary) + '</p></div>';
+        }
+
+        if (analysis.recommendation) {
+          bodyHtml += '<div class="mm-analysis-section"><div class="mm-analysis-label">Recommendation</div><p style="margin:0;line-height:1.7">' + escapeHtml(analysis.recommendation) + '</p></div>';
+        }
+
+        if (analysis.interview_tips && analysis.interview_tips.length) {
+          bodyHtml += '<div class="mm-analysis-section"><div class="mm-analysis-label">Interview Tips</div><ol class="mm-question-list">';
+          analysis.interview_tips.forEach(function (t) { bodyHtml += '<li>' + escapeHtml(t) + '</li>'; });
+          bodyHtml += '</ol></div>';
+        }
+
+        els.modalBody.innerHTML = bodyHtml;
+      })
+      .catch(function (err) {
+        setModalLoading(false);
+        els.modalBody.innerHTML = '<p style="text-align:center;color:var(--danger)">Failed to load analysis: ' + escapeHtml(err.message || 'Unknown error') + '</p>';
+      });
+  }
+
+  // ── View Skills Gap (detailed modal per candidate) ──
+
+  function viewSkillsGap(candidateId, jobId) {
+    if (!candidateId || !jobId) return;
+    setModalLoading(true);
+    openModal('Skills Gap Analysis', '');
+
+    AngaziaAPI.matches.employerSkillsGap(jobId, candidateId)
+      .then(function (analysis) {
+        setModalLoading(false);
+        if (!analysis) {
+          els.modalBody.innerHTML = '<p style="text-align:center;color:var(--muted)">No skills gap data available.</p>';
+          return;
+        }
+
+        var html = '';
+
+        if (analysis.priority_level) {
+          var pc = analysis.priority_level === 'high' ? 'critical' : analysis.priority_level === 'medium' ? 'important' : 'nice-to-have';
+          html += '<div style="margin-bottom:16px"><span class="mm-gap-importance ' + pc + '">' + escapeHtml(analysis.priority_level.toUpperCase()) + ' PRIORITY</span></div>';
+        }
+
+        if (analysis.estimated_time_to_fill) {
+          html += '<p style="font-size:13px;color:var(--muted2);margin:0 0 16px">Est. time to fill: <strong>' + escapeHtml(analysis.estimated_time_to_fill) + '</strong></p>';
+        }
+
+        if (analysis.transferable_skills && analysis.transferable_skills.length) {
+          html += '<div class="mm-analysis-section"><div class="mm-analysis-label">Transferable Skills</div><div class="mm-tag-list">' +
+            analysis.transferable_skills.map(function (s) { return '<span class="emp-tag">' + escapeHtml(s) + '</span>'; }).join('') +
+            '</div></div>';
+        }
+
+        if (analysis.missing_skills && analysis.missing_skills.length) {
+          html += '<div class="mm-analysis-section"><div class="mm-analysis-label">Missing Skills</div>';
+          analysis.missing_skills.forEach(function (gap) {
+            var ic = gap.importance === 'critical' ? 'critical' : gap.importance === 'important' ? 'important' : 'nice-to-have';
+            html += '<div class="mm-gap-item">' +
+              '<div class="mm-gap-skill">' + escapeHtml(gap.skill_name || gap.SkillName || '') +
+              ' <span class="mm-gap-importance ' + ic + '">' + escapeHtml(gap.importance || '') + '</span></div>' +
+              (gap.description ? '<div class="mm-gap-desc">' + escapeHtml(gap.description) + '</div>' : '') +
+              (gap.learning_resources && gap.learning_resources.length ? '<div class="mm-gap-resources">Resources: ' + gap.learning_resources.map(function (r) { return escapeHtml(r); }).join(' &#183; ') + '</div>' : '') +
+              '</div>';
           });
           html += '</div>';
         }
 
-        if (analysis.transferable_skills && analysis.transferable_skills.length) {
-          html += '<div class="mm-analysis-section">';
-          html += '<div class="mm-analysis-label">&#x1F500; Transferable Skills</div>';
-          html += '<div class="mm-tag-list">';
-          analysis.transferable_skills.forEach(function (s) {
-            html += '<span class="emp-tag">' + escapeHtml(typeof s === 'string' ? s : '') + '</span>';
+        if (analysis.improvement_plan) {
+          html += '<div class="mm-analysis-section"><div class="mm-analysis-label">Improvement Plan</div><p style="margin:0;line-height:1.7;white-space:pre-wrap">' + escapeHtml(analysis.improvement_plan) + '</p></div>';
+        }
+
+        if (analysis.recommended_courses && analysis.recommended_courses.length) {
+          html += '<div class="mm-analysis-section"><div class="mm-analysis-label">Recommended Courses</div>';
+          analysis.recommended_courses.forEach(function (c) {
+            var cName = c.name || c.Name || '';
+            var cPlatform = c.platform || c.Platform || '';
+            var cDuration = c.duration || c.Duration || '';
+            var cDifficulty = c.difficulty || c.Difficulty || '';
+            var cUrl = c.url || c.URL || '';
+            html += '<div class="mm-gap-item" style="display:flex;justify-content:space-between;align-items:center">' +
+              '<div><strong>' + escapeHtml(cName) + '</strong><br><span style="font-size:11px;color:var(--muted2)">' + escapeHtml(cPlatform) + ' &middot; ' + escapeHtml(cDuration) + ' &middot; ' + escapeHtml(cDifficulty) + '</span></div>' +
+              (cUrl ? '<a href="' + escapeHtml(cUrl) + '" target="_blank" rel="noopener" class="emp-btn emp-btn-xs emp-btn-outline" style="flex-shrink:0">View</a>' : '') +
+              '</div>';
           });
-          html += '</div></div>';
+          html += '</div>';
         }
 
-        setModalLoading(false);
-        if (els.modalBody) { els.modalBody.innerHTML = html || '<p style="color:var(--muted);text-align:center;padding:20px 0">No skills gap data available.</p>'; els.modalBody.style.display = ''; }
+        if (!html) html = '<p style="text-align:center;color:var(--muted)">No skills gap data available.</p>';
+        els.modalBody.innerHTML = html;
       })
-      .catch(function () {
+      .catch(function (err) {
         setModalLoading(false);
-        if (els.modalBody) {
-          els.modalBody.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px 0">Failed to load skills gap analysis.</p>';
-          els.modalBody.style.display = '';
-        }
+        els.modalBody.innerHTML = '<p style="text-align:center;color:var(--danger)">Failed to load skills gap: ' + escapeHtml(err.message || 'Unknown error') + '</p>';
       });
-  }
-
-  // ── Skills Gap Aggregate ──
-
-  function renderSkillGapAll(matches) {
-    if (!els.skillChart || !els.skillSection) return;
-
-    var hasData = matches && matches.some(function (m) {
-      return (m.matching_skills && m.matching_skills.length) || (m.missing_skills && m.missing_skills.length);
-    });
-
-    if (!hasData) {
-      els.skillSection.style.display = 'none';
-      return;
-    }
-
-    els.skillSection.style.display = 'block';
-
-    var skillCounts = {};
-    matches.forEach(function (m) {
-      var skills = m.skills || m.Skills || [];
-      var matching = m.matching_skills || m.MatchingSkills || [];
-      var missing = m.missing_skills || m.MissingSkills || [];
-
-      var all = [];
-      if (Array.isArray(skills)) {
-        skills.forEach(function (s) {
-          var name = typeof s === 'string' ? s : (s.name || '');
-          if (name) all.push(name);
-        });
-      }
-      if (Array.isArray(matching)) {
-        matching.forEach(function (s) {
-          var name = typeof s === 'string' ? s : '';
-          if (name && all.indexOf(name) === -1) all.push(name);
-        });
-      }
-      if (Array.isArray(missing)) {
-        missing.forEach(function (s) {
-          var name = typeof s === 'string' ? s : '';
-          if (name && all.indexOf(name) === -1) all.push(name);
-        });
-      }
-
-      all.forEach(function (skill) {
-        if (!skillCounts[skill]) skillCounts[skill] = { count: 0, total: 0 };
-        skillCounts[skill].total++;
-        if (matching.indexOf(skill) !== -1 || skills.indexOf(skill) !== -1) {
-          skillCounts[skill].count++;
-        }
-      });
-    });
-
-    var sorted = Object.keys(skillCounts).sort(function (a, b) {
-      return (skillCounts[b].count / skillCounts[b].total) - (skillCounts[a].count / skillCounts[a].total);
-    }).slice(0, 10);
-
-    if (!sorted.length) {
-      els.skillSection.style.display = 'none';
-      return;
-    }
-
-    els.skillChart.innerHTML = '';
-    sorted.forEach(function (skill) {
-      var info = skillCounts[skill];
-      var pct = Math.round((info.count / info.total) * 100);
-      var row = document.createElement('div');
-      row.className = 'emp-skill-bar-row';
-
-      var label = document.createElement('span');
-      label.className = 'emp-skill-bar-label';
-      label.textContent = skill;
-
-      var track = document.createElement('div');
-      track.className = 'emp-skill-bar-track';
-
-      var fill = document.createElement('div');
-      fill.className = 'emp-skill-bar-fill';
-      fill.style.width = pct + '%';
-
-      track.appendChild(fill);
-
-      var pctEl = document.createElement('span');
-      pctEl.className = 'emp-skill-bar-pct';
-      pctEl.textContent = pct + '%';
-
-      row.appendChild(label);
-      row.appendChild(track);
-      row.appendChild(pctEl);
-      els.skillChart.appendChild(row);
-    });
   }
 
   // ── Generate Interview Questions ──
 
   function generateQuestions(jobId) {
-    if (!jobId || typeof AngaziaAPI === 'undefined') return;
-    openModal('Interview Questions', '<p style="text-align:center;padding:20px 0;color:var(--muted2)">Generating questions...</p>');
+    if (!jobId) return;
+    setModalLoading(true);
+    openModal('Interview Questions', '');
 
     AngaziaAPI.matches.interviewQuestions(jobId)
-      .then(function (data) {
-        var questions = data && data.questions ? data.questions : (Array.isArray(data) ? data : []);
-        var html = '';
-        if (questions && questions.length) {
-          html += '<ol class="mm-question-list">';
-          questions.forEach(function (q) {
-            var text = typeof q === 'string' ? q : (q.question || q.text || '');
-            html += '<li>' + escapeHtml(text) + '</li>';
-          });
-          html += '</ol>';
-        } else {
-          html = '<p style="color:var(--muted2);text-align:center;padding:20px 0">No questions generated. Try with more job details.</p>';
+      .then(function (resp) {
+        setModalLoading(false);
+        var questions = resp && resp.questions ? resp.questions : (Array.isArray(resp) ? resp : []);
+        if (!questions.length) {
+          els.modalBody.innerHTML = '<p style="text-align:center;color:var(--muted)">No questions generated.</p>';
+          return;
         }
-        if (els.modalBody) { els.modalBody.innerHTML = html; els.modalBody.style.display = ''; }
+        var html = '<p style="font-size:12px;color:var(--muted2);margin:0 0 12px">Role-specific interview questions to assess candidates:</p><ol class="mm-question-list">';
+        questions.forEach(function (q) { html += '<li>' + escapeHtml(typeof q === 'string' ? q : (q.text || q.question || '')) + '</li>'; });
+        html += '</ol>';
+        els.modalBody.innerHTML = html;
       })
-      .catch(function () {
-        if (els.modalBody) {
-          els.modalBody.innerHTML = '<p style="color:var(--muted2);text-align:center;padding:20px 0">Failed to generate questions.</p>';
-          els.modalBody.style.display = '';
-        }
+      .catch(function (err) {
+        setModalLoading(false);
+        els.modalBody.innerHTML = '<p style="text-align:center;color:var(--danger)">Failed to generate questions: ' + escapeHtml(err.message || 'Unknown error') + '</p>';
       });
   }
 
   // ── Init ──
+
+  function getCandidateNameFromBtn(btn) {
+    if (!btn) return '';
+    var card = btn.closest('.emp-candidate-card') || btn.closest('.mm-candidate');
+    if (!card) return '';
+    var nameEl = card.querySelector('.emp-candidate-name') || card.querySelector('.mm-candidate-name');
+    return nameEl ? nameEl.textContent.trim() : '';
+  }
 
   function init() {
     loadJobs();
@@ -704,8 +856,81 @@
       });
     }
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closeModal();
+      if (e.key === 'Escape') {
+        if (els.poolModal && els.poolModal.style.display === 'flex') closePoolPicker();
+        else if (els.interviewModal && els.interviewModal.style.display === 'flex') hideInterviewModal();
+        else if (els.feedbackModal && els.feedbackModal.style.display === 'flex') hideFeedbackModal();
+        else closeModal();
+      }
     });
+
+    // Pool picker modal events
+    if (els.poolSave) els.poolSave.addEventListener('click', handlePoolSave);
+    if (els.poolCancel) els.poolCancel.addEventListener('click', closePoolPicker);
+    if (els.poolClose) els.poolClose.addEventListener('click', closePoolPicker);
+    if (els.poolModal) {
+      els.poolModal.addEventListener('click', function (e) {
+        if (e.target === els.poolModal) closePoolPicker();
+      });
+    }
+    if (els.poolCreateToggle) {
+      els.poolCreateToggle.addEventListener('click', function () {
+        if (els.poolNewSection) els.poolNewSection.style.display = 'block';
+        if (els.poolNewName) els.poolNewName.focus();
+        if (els.poolSelect) els.poolSelect.value = '';
+        this.style.display = 'none';
+      });
+    }
+    if (els.poolSelect) {
+      els.poolSelect.addEventListener('change', function () {
+        if (this.value) {
+          if (els.poolNewSection) els.poolNewSection.style.display = 'none';
+          if (els.poolNewName) els.poolNewName.value = '';
+          if (els.poolCreateToggle) els.poolCreateToggle.style.display = 'flex';
+        }
+        if (els.poolError) els.poolError.style.display = 'none';
+      });
+    }
+    if (els.poolNewName) {
+      els.poolNewName.addEventListener('input', function () {
+        if (els.poolError) els.poolError.style.display = 'none';
+      });
+    }
+
+    // Interview modal events
+    if (els.interviewConfirm) els.interviewConfirm.addEventListener('click', executeInterview);
+    if (els.interviewCancel) els.interviewCancel.addEventListener('click', hideInterviewModal);
+    if (els.interviewClose) els.interviewClose.addEventListener('click', hideInterviewModal);
+    if (els.interviewModal) {
+      els.interviewModal.addEventListener('click', function (e) {
+        if (e.target === els.interviewModal) hideInterviewModal();
+      });
+    }
+
+    // Feedback modal events
+    if (els.feedbackSubmit) els.feedbackSubmit.addEventListener('click', handleFeedbackSubmit);
+    if (els.feedbackCancel) els.feedbackCancel.addEventListener('click', hideFeedbackModal);
+    if (els.feedbackClose) els.feedbackClose.addEventListener('click', hideFeedbackModal);
+    if (els.feedbackModal) {
+      els.feedbackModal.addEventListener('click', function (e) {
+        if (e.target === els.feedbackModal) hideFeedbackModal();
+      });
+    }
+    if (els.feedbackStars) {
+      els.feedbackStars.querySelectorAll('.emp-star').forEach(function (s) {
+        s.addEventListener('click', function () {
+          var val = parseInt(this.dataset.value, 10);
+          pendingFeedbackRating = val;
+          els.feedbackStars.querySelectorAll('.emp-star').forEach(function (star, i) {
+            if (i < val) { star.classList.add('active'); star.textContent = '\u2605'; }
+            else { star.classList.remove('active'); star.textContent = '\u2606'; }
+          });
+          var labels = ['', 'Poor', 'Below Average', 'Average', 'Good', 'Excellent'];
+          if (els.feedbackStarLabel) els.feedbackStarLabel.textContent = labels[val] || val + ' stars';
+          if (els.feedbackError) els.feedbackError.style.display = 'none';
+        });
+      });
+    }
   }
 
   if (document.readyState === 'loading') {

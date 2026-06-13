@@ -16,6 +16,8 @@
     els.retryBtn = qs('dash-retry-btn');
     els.content = qs('dash-content');
     els.greeting = qs('dash-greeting');
+    els.subtitle = qs('dash-subtitle');
+    els.exportBtn = qs('dash-export-btn');
 
     els.statActiveJobs = qs('stat-active-jobs');
     els.statActiveJobsChange = qs('stat-active-jobs-change');
@@ -36,6 +38,19 @@
     els.statHiredChange = qs('stat-hired-change');
     els.statHiredTrend = qs('stat-hired-trend');
 
+    els.insightsBanner = qs('insights-banner');
+    els.insightsText = qs('insights-text');
+
+    els.cardQuality = qs('card-quality');
+    els.qualityAvgScore = qs('quality-avg-score');
+    els.qualityBarHigh = qs('quality-bar-high');
+    els.qualityBarMedium = qs('quality-bar-medium');
+    els.qualityBarLow = qs('quality-bar-low');
+    els.qualityCountHigh = qs('quality-count-high');
+    els.qualityCountMedium = qs('quality-count-medium');
+    els.qualityCountLow = qs('quality-count-low');
+    els.qualityResponseTime = qs('quality-response-time');
+
     els.funnelApps = qs('funnel-applications');
     els.funnelShortlisted = qs('funnel-shortlisted');
     els.funnelInterviewed = qs('funnel-interviewed');
@@ -43,6 +58,16 @@
     els.funnelShortlistedBar = qs('funnel-shortlisted-bar');
     els.funnelInterviewedBar = qs('funnel-interviewed-bar');
     els.funnelHiredBar = qs('funnel-hired-bar');
+    els.funnelMeta = qs('funnel-meta');
+
+    els.cardSource = qs('card-source');
+    els.sourceList = qs('source-list');
+
+    els.cardTth = qs('card-tth');
+    els.tthAvg = qs('tth-average');
+    els.tthMin = qs('tth-min');
+    els.tthMax = qs('tth-max');
+    els.tthDetail = qs('tth-detail');
 
     els.subPlan = qs('subscription-plan');
     els.subPrice = qs('subscription-price');
@@ -55,6 +80,7 @@
     els.topJobsList = qs('top-jobs-list');
 
     els.chartPeriod = qs('chart-period');
+    els.chartSubtitle = qs('chart-subtitle');
     els.jobPerfSort = qs('job-performance-sort');
     els.upgradeBtn = qs('upgrade-plan-btn');
   }
@@ -78,13 +104,25 @@
     if (els.content) els.content.style.display = '';
   }
 
+  function updateGreeting() {
+    if (!els.greeting) return;
+    var h = new Date().getHours();
+    var g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+    els.greeting.textContent = g + ', welcome back';
+    if (els.subtitle) {
+      els.subtitle.textContent = 'Here\'s what\'s happening with your job listings today.';
+    }
+  }
+
   function loadData() {
     showLoading();
     var period = els.chartPeriod ? parseInt(els.chartPeriod.value) : 30;
     currentPeriod = period;
+    applicationsChart = { labels: [], values: [] };
 
     AngaziaAPI.dashboard.employer({ days: period }).then(function (data) {
       dashboardData = data;
+      updateGreeting();
       showContent();
       renderStats(data.stats);
       renderTrends(data.trends);
@@ -92,6 +130,10 @@
       renderJobs(data.jobs);
       renderRecentApps(data.recent_applications);
       renderSubscription(data.subscription);
+      renderQuality(data.application_quality);
+      renderTimeToHire(data.time_to_hire);
+      renderSourceAnalytics(data.source_analytics);
+      renderInsights(data);
       renderChart();
     }).catch(function (err) {
       showError(err.message || 'Failed to load dashboard data');
@@ -154,61 +196,71 @@
   }
 
   function renderTrends(trends) {
-    if (!trends || !trends.daily || trends.daily.length === 0) return;
-    var labels = trends.daily.map(function (d) { return d.date; });
-    var values = trends.daily.map(function (d) { return d.total || 0; });
-    applicationsChart = { labels: labels, values: values };
-    renderChart();
+    if (trends && trends.daily && trends.daily.length > 0) {
+      applicationsChart = {
+        labels: trends.daily.map(function (d) { return d.date; }),
+        values: trends.daily.map(function (d) { return d.total || 0; })
+      };
+    } else {
+      applicationsChart = { labels: [], values: [] };
+    }
   }
 
   function renderChart() {
-    var ctx = qs('applications-chart');
-    if (!ctx || !applicationsChart) return;
-    ctx = ctx.getContext('2d');
+    var canvas = qs('applications-chart');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    var prev = Chart.getChart(ctx.canvas);
-    if (prev) prev.destroy();
+    try {
+      var prev = Chart.getChart(canvas);
+      if (prev) prev.destroy();
+    } catch (e) {}
 
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: applicationsChart.labels,
-        datasets: [{
-          label: 'Applications',
-          data: applicationsChart.values,
-          borderColor: '#6366f1',
-          backgroundColor: 'rgba(99,102,241,0.1)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.4,
-          pointRadius: 3,
-          pointHoverRadius: 6,
-          pointBackgroundColor: '#6366f1',
-          pointBorderColor: '#fff',
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            mode: 'index',
-            intersect: false,
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            titleColor: '#fff',
-            bodyColor: '#ddd',
-            callbacks: {
-              label: function (context) { return 'Applications: ' + context.raw; }
-            }
-          }
+    try {
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: applicationsChart ? applicationsChart.labels : [],
+          datasets: [{
+            label: 'Applications',
+            data: applicationsChart ? applicationsChart.values : [],
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99,102,241,0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#6366f1',
+            pointBorderColor: '#fff',
+          }]
         },
-        scales: {
-          y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { stepSize: 1 } },
-          x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 45 } }
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              backgroundColor: 'rgba(0,0,0,0.8)',
+              titleColor: '#fff',
+              bodyColor: '#ddd',
+              callbacks: {
+                label: function (context) { return 'Applications: ' + context.raw; }
+              }
+            }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { stepSize: 1 } },
+            x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 45, maxTicksLimit: 15 } }
+          }
         }
-      }
-    });
+      });
+    } catch (e) {
+      console.error('Chart render error:', e);
+    }
   }
 
   function renderFunnel(funnel) {
@@ -235,11 +287,143 @@
     if (els.funnelShortlistedBar) els.funnelShortlistedBar.style.width = sp + '%';
     if (els.funnelInterviewedBar) els.funnelInterviewedBar.style.width = ip + '%';
     if (els.funnelHiredBar) els.funnelHiredBar.style.width = hp + '%';
+
+    if (els.funnelMeta) {
+      var overall = funnel.overall_rate || 0;
+      els.funnelMeta.textContent = 'Overall conversion: ' + overall.toFixed(1) + '% from application to hire';
+    }
+  }
+
+  function renderQuality(quality) {
+    if (!quality || !els.cardQuality) return;
+    els.cardQuality.style.display = '';
+    if (els.qualityAvgScore) {
+      els.qualityAvgScore.textContent = (quality.average_match_score || 0).toFixed(1);
+    }
+
+    var high = quality.high_quality_count || 0;
+    var medium = quality.medium_quality_count || 0;
+    var low = quality.low_quality_count || 0;
+    var total = high + medium + low;
+
+    if (els.qualityBarHigh) els.qualityBarHigh.style.width = (total > 0 ? (high / total) * 100 : 0) + '%';
+    if (els.qualityBarMedium) els.qualityBarMedium.style.width = (total > 0 ? (medium / total) * 100 : 0) + '%';
+    if (els.qualityBarLow) els.qualityBarLow.style.width = (total > 0 ? (low / total) * 100 : 0) + '%';
+
+    if (els.qualityCountHigh) els.qualityCountHigh.textContent = high;
+    if (els.qualityCountMedium) els.qualityCountMedium.textContent = medium;
+    if (els.qualityCountLow) els.qualityCountLow.textContent = low;
+
+    if (els.qualityResponseTime) {
+      var rt = quality.average_response_time || 0;
+      if (rt < 1) {
+        els.qualityResponseTime.textContent = (rt * 60).toFixed(0) + ' minutes';
+      } else if (rt < 24) {
+        els.qualityResponseTime.textContent = rt.toFixed(1) + ' hours';
+      } else {
+        els.qualityResponseTime.textContent = (rt / 24).toFixed(1) + ' days';
+      }
+    }
+  }
+
+  function renderTimeToHire(tth) {
+    if (!tth || !els.cardTth) return;
+    els.cardTth.style.display = '';
+
+    if (els.tthAvg) els.tthAvg.textContent = tth.average_days || 0;
+    if (els.tthMin) els.tthMin.textContent = tth.min_days || 0;
+    if (els.tthMax) els.tthMax.textContent = tth.max_days || 0;
+
+    if (els.tthDetail && tth.by_job_title) {
+      var titles = Object.keys(tth.by_job_title);
+      if (titles.length > 0) {
+        els.tthDetail.innerHTML = '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Days by job:</div>' +
+          titles.map(function (title) {
+            return '<div class="emp-tth-job-row"><span class="emp-tth-job-name">' + escapeHtml(title) + '</span><span class="emp-tth-job-days">' + tth.by_job_title[title] + ' days</span></div>';
+          }).join('');
+      }
+    }
+  }
+
+  function renderSourceAnalytics(sources) {
+    if (!sources || !Array.isArray(sources) || sources.length === 0 || !els.cardSource) return;
+    els.cardSource.style.display = '';
+
+    var total = 0;
+    sources.forEach(function (s) { total += s.count || 0; });
+
+    if (els.sourceList) {
+      els.sourceList.innerHTML = sources.map(function (src) {
+        var pct = total > 0 ? ((src.count || 0) / total * 100).toFixed(1) : 0;
+        return '<div class="emp-source-row">' +
+          '<span class="emp-source-name">' + escapeHtml(src.source) + '</span>' +
+          '<div class="emp-source-bar-track"><div class="emp-source-bar" style="width:' + pct + '%"></div></div>' +
+          '<span class="emp-source-count">' + (src.count || 0) + '</span>' +
+          '<span class="emp-source-pct">' + pct + '%</span>' +
+          '</div>';
+      }).join('');
+    }
+  }
+
+  function renderInsights(data) {
+    if (!els.insightsBanner || !els.insightsText) return;
+    var insights = [];
+
+    if (data.stats) {
+      if (data.stats.total_applicants > 0) {
+        insights.push('You have received ' + data.stats.total_applicants + ' total application' + (data.stats.total_applicants !== 1 ? 's' : '') + ' across ' + data.stats.active_jobs + ' active job' + (data.stats.active_jobs !== 1 ? 's' : '') + '.');
+      }
+      if (data.stats.new_applications > 0) {
+        insights.push(data.stats.new_applications + ' new application' + (data.stats.new_applications !== 1 ? 's' : '') + ' in the last 30 days.');
+      }
+    }
+
+    if (data.trends && data.trends.summary) {
+      var growth = data.trends.summary.growth_rate;
+      if (growth !== undefined && growth !== 0) {
+        var direction = growth > 0 ? 'increasing' : 'decreasing';
+        insights.push('Application volume is ' + direction + ' (' + Math.abs(growth).toFixed(1) + '% vs previous period).');
+      }
+      if (data.trends.summary.peak_day) {
+        insights.push('Peak application day was ' + data.trends.summary.peak_day + ' with ' + data.trends.summary.peak_applications + ' applications.');
+      }
+    }
+
+    if (data.funnel && data.funnel.overall_rate !== undefined && data.funnel.overall_rate > 0) {
+      insights.push('Your application-to-hire conversion rate is ' + data.funnel.overall_rate.toFixed(1) + '%.');
+    }
+
+    if (data.application_quality) {
+      var high = data.application_quality.high_quality_count || 0;
+      var total = high + (data.application_quality.medium_quality_count || 0) + (data.application_quality.low_quality_count || 0);
+      if (total > 0) {
+        var highPct = (high / total * 100).toFixed(0);
+        insights.push(highPct + '% of your applications are high-quality (match score \u226580).');
+      }
+    }
+
+    if (data.time_to_hire && data.time_to_hire.average_days > 0) {
+      insights.push('Average time-to-hire is ' + data.time_to_hire.average_days + ' days.');
+    }
+
+    if (data.jobs && Array.isArray(data.jobs)) {
+      var noApps = data.jobs.filter(function (j) { return !j.applications || j.applications === 0; });
+      if (noApps.length > 0) {
+        insights.push(noApps.length + ' job' + (noApps.length !== 1 ? 's' : '') + ' have no applications yet.');
+      }
+    }
+
+    if (insights.length > 0) {
+      els.insightsBanner.style.display = 'flex';
+      els.insightsText.textContent = insights.slice(0, 3).join(' ');
+    } else {
+      els.insightsBanner.style.display = 'none';
+    }
   }
 
   function renderJobs(jobs) {
     if (!jobs || !Array.isArray(jobs)) {
-      if (els.jobPerfTbody) els.jobPerfTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">No jobs posted yet</td></tr>';
+      if (els.jobPerfTbody) els.jobPerfTbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">No jobs posted yet</td></tr>';
       if (els.topJobsList) els.topJobsList.innerHTML = '<div class="emp-list-item" style="justify-content:center;color:var(--muted)">No jobs posted yet</div>';
       return;
     }
@@ -249,16 +433,20 @@
 
     if (els.jobPerfTbody) {
       if (jobs.length === 0) {
-        els.jobPerfTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">No jobs posted yet</td></tr>';
+        els.jobPerfTbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">No jobs posted yet</td></tr>';
       } else {
         els.jobPerfTbody.innerHTML = sorted.map(function (job) {
-          var conv = job.views > 0 ? ((job.applications / job.views) * 100).toFixed(1) : '0.0';
+          var vta = job.view_to_app_rate !== undefined ? job.view_to_app_rate.toFixed(1) : (job.views > 0 ? ((job.applications / job.views) * 100).toFixed(1) : '0.0');
+          var ats = job.app_to_shortlist_rate !== undefined ? job.app_to_shortlist_rate.toFixed(1) : (job.applications > 0 ? ((job.shortlisted / job.applications) * 100).toFixed(1) : '0.0');
           return '<tr data-href="/employer/jobs/' + (job.job_id || '') + '">'
             + '<td style="font-weight:500">' + escapeHtml(job.title) + '</td>'
             + '<td>' + formatDate(job.posted_at) + '</td>'
             + '<td>' + (job.views || 0) + '</td>'
             + '<td>' + (job.applications || 0) + '</td>'
-            + '<td>' + conv + '%</td>'
+            + '<td>' + (job.shortlisted || 0) + '</td>'
+            + '<td>' + (job.hired || 0) + '</td>'
+            + '<td>' + vta + '%</td>'
+            + '<td>' + ats + '%</td>'
             + '<td><span class="emp-status-badge ' + (job.is_active !== false ? 'active' : 'closed') + '">' + (job.is_active !== false ? 'Active' : 'Closed') + '</span></td>'
             + '<td><a href="/employer/jobs/' + (job.job_id || '') + '" class="emp-link">View &rarr;</a></td>'
             + '</tr>';
@@ -348,9 +536,17 @@
 
   function setupListeners() {
     if (els.retryBtn) els.retryBtn.addEventListener('click', loadData);
+    if (els.exportBtn) {
+      els.exportBtn.addEventListener('click', function () {
+        window.location.href = '/employer/analytics/export?format=csv';
+      });
+    }
     if (els.chartPeriod) {
       els.chartPeriod.addEventListener('change', function () {
         currentPeriod = parseInt(this.value);
+        if (els.chartSubtitle) {
+          els.chartSubtitle.textContent = 'Daily application volume (last ' + currentPeriod + ' days)';
+        }
         loadData();
       });
     }
@@ -370,6 +566,7 @@
     if (refreshInterval) clearInterval(refreshInterval);
     refreshInterval = setInterval(function () {
       if (dashboardData) {
+        applicationsChart = { labels: [], values: [] };
         AngaziaAPI.dashboard.employer({ days: currentPeriod }).then(function (data) {
           dashboardData = data;
           renderStats(data.stats);
@@ -378,6 +575,11 @@
           renderJobs(data.jobs);
           renderRecentApps(data.recent_applications);
           renderSubscription(data.subscription);
+          renderQuality(data.application_quality);
+          renderTimeToHire(data.time_to_hire);
+          renderSourceAnalytics(data.source_analytics);
+          renderInsights(data);
+          renderChart();
         }).catch(function () {});
       }
     }, 30000);

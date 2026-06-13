@@ -239,14 +239,6 @@ func (h *WebHandler) EmployerCompanyPage(c *fiber.Ctx) error {
 	}), "layouts/employer")
 }
 
-// EmployerCompanyEditPage renders the employer company edit page
-func (h *WebHandler) EmployerCompanyEditPage(c *fiber.Ctx) error {
-	return c.Render("employer/company-edit", mergePageData(c, fiber.Map{
-		"Title":      "Edit Company - Angazia",
-		"ActivePage": "company",
-	}), "layouts/employer")
-}
-
 // EmployerMatchesPage renders the employer matches page
 func (h *WebHandler) EmployerMatchesPage(c *fiber.Ctx) error {
 	return c.Render("employer/matches", mergePageData(c, fiber.Map{

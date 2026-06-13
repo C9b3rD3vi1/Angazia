@@ -28,82 +28,130 @@
   </div>
 
   <div id="cd-content" style="display:none;">
-    <div class="emp-card">
-      <div class="emp-card-header">
-        <div class="emp-card-header-left emp-cd-profile-row">
-          <div class="emp-cd-avatar" id="cd-avatar">
-            <span class="emp-cd-initials" id="cd-initials">--</span>
-          </div>
-          <div>
-            <h2 class="emp-card-title" id="cd-fullname">--</h2>
-            <span class="emp-text-muted" id="cd-headline2"></span>
-          </div>
-        </div>
-        <div>
-          <span class="emp-status-badge" id="cd-availability">--</span>
-        </div>
-      </div>
-      <div class="emp-card-body">
-        <div class="emp-stats-grid emp-cd-stats">
-          <div class="emp-stat-card">
-            <div class="emp-stat-value" id="cd-exp-years">0</div>
-            <div class="emp-stat-label">Years Exp.</div>
-          </div>
-          <div class="emp-stat-card">
-            <div class="emp-stat-value" id="cd-exp-level">--</div>
-            <div class="emp-stat-label">Level</div>
-          </div>
-          <div class="emp-stat-card">
-            <div class="emp-stat-value" id="cd-location">--</div>
-            <div class="emp-stat-label">Location</div>
-          </div>
-          <div class="emp-stat-card">
-            <div class="emp-stat-value" id="cd-remote">--</div>
-            <div class="emp-stat-label">Remote</div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div class="cd-grid">
+      <div class="cd-col cd-col-main">
 
-    <div class="emp-card">
-      <div class="emp-card-header">
-        <h2 class="emp-card-title">Bio</h2>
-      </div>
-      <div class="emp-card-body">
-        <p id="cd-bio" class="emp-text-muted" style="line-height:1.6;">No bio provided.</p>
-      </div>
-    </div>
-
-    <div class="emp-card">
-      <div class="emp-card-header">
-        <h2 class="emp-card-title">Skills</h2>
-      </div>
-      <div class="emp-card-body">
-        <div id="cd-skills" class="emp-tags-container">
-          <span class="emp-tag">No skills listed</span>
+        <div class="emp-card">
+          <div class="emp-card-header">
+            <h2 class="emp-card-title">About</h2>
+          </div>
+          <div class="emp-card-body">
+            <p id="cd-bio" class="cd-text-body">No bio provided.</p>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <div class="emp-card">
-      <div class="emp-card-header">
-        <h2 class="emp-card-title">Links</h2>
-      </div>
-      <div class="emp-card-body">
-        <div id="cd-links" class="emp-cd-links">
-          <span class="emp-text-muted">No links provided.</span>
+        <div class="emp-card">
+          <div class="emp-card-header">
+            <h2 class="emp-card-title">Experience</h2>
+          </div>
+          <div class="emp-card-body">
+            <div id="cd-experience" class="cd-timeline">
+              <div class="cd-empty">No experience listed.</div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <div class="emp-card">
-      <div class="emp-card-header">
-        <h2 class="emp-card-title">GitHub Profile</h2>
-      </div>
-      <div class="emp-card-body">
-        <div id="cd-github" class="emp-cd-links">
-          <span class="emp-text-muted">No GitHub profile linked.</span>
+        <div class="emp-card">
+          <div class="emp-card-header">
+            <h2 class="emp-card-title">Skills</h2>
+          </div>
+          <div class="emp-card-body">
+            <div id="cd-skills" class="cd-tags">
+              <span class="cd-tag">No skills listed</span>
+            </div>
+          </div>
         </div>
+
+        <div class="emp-card">
+          <div class="emp-card-header">
+            <h2 class="emp-card-title">Certifications</h2>
+          </div>
+          <div class="emp-card-body">
+            <div id="cd-certifications" class="cd-cert-grid">
+              <div class="cd-empty">No certifications listed.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="cd-col cd-col-side">
+
+        <div class="emp-card cd-profile-card">
+          <div class="cd-profile-top">
+            <div class="cd-avatar" id="cd-avatar">
+              <span class="cd-initials" id="cd-initials">--</span>
+            </div>
+            <div class="cd-profile-info">
+              <div class="cd-profile-name" id="cd-fullname">--</div>
+              <div class="cd-profile-headline" id="cd-headline2"></div>
+              <span class="cd-badge" id="cd-availability">--</span>
+            </div>
+          </div>
+          <div class="cd-stats">
+            <div class="cd-stat">
+              <div class="cd-stat-val" id="cd-exp-years">0</div>
+              <div class="cd-stat-lbl">Years Exp.</div>
+            </div>
+            <div class="cd-stat">
+              <div class="cd-stat-val" id="cd-exp-level">--</div>
+              <div class="cd-stat-lbl">Level</div>
+            </div>
+            <div class="cd-stat">
+              <div class="cd-stat-val" id="cd-location">--</div>
+              <div class="cd-stat-lbl">Location</div>
+            </div>
+            <div class="cd-stat">
+              <div class="cd-stat-val" id="cd-remote">--</div>
+              <div class="cd-stat-lbl">Remote</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="emp-card">
+          <div class="emp-card-header">
+            <h2 class="emp-card-title">Resume</h2>
+          </div>
+          <div class="emp-card-body">
+            <div id="cd-resume-section">
+              <div id="cd-resume-present" style="display:none">
+                <div class="cd-resume-row">
+                  <span class="cd-resume-icon">&#x1F4C4;</span>
+                  <div class="cd-resume-info">
+                    <div class="cd-resume-name" id="cd-resume-name"></div>
+                    <div class="cd-resume-meta" id="cd-resume-meta"></div>
+                  </div>
+                  <a class="emp-btn emp-btn-sm emp-btn-primary" id="cd-resume-view" target="_blank">View</a>
+                </div>
+              </div>
+              <div id="cd-resume-empty">
+                <div class="cd-empty">No resume uploaded.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="emp-card">
+          <div class="emp-card-header">
+            <h2 class="emp-card-title">Links</h2>
+          </div>
+          <div class="emp-card-body">
+            <div id="cd-links" class="cd-links">
+              <div class="cd-empty">No links provided.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="emp-card">
+          <div class="emp-card-header">
+            <h2 class="emp-card-title">GitHub</h2>
+          </div>
+          <div class="emp-card-body">
+            <div id="cd-github" class="cd-links">
+              <div class="cd-empty">No GitHub profile linked.</div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -152,172 +200,231 @@
 </div>
 
 <style>
-.emp-loading, .emp-error {
-  text-align: center;
-  padding: 60px 20px;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  margin-top: 20px;
+/* ── Loading / Error ── */
+.cd-loading, .cd-error {
+  text-align: center; padding: 60px 20px;
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: 12px; margin-top: 20px;
 }
-.emp-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--border);
-  border-top-color: var(--purple);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 16px;
+.cd-spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--border); border-top-color: var(--purple);
+  border-radius: 50%; animation: cd-spin .8s linear infinite;
+  margin: 0 auto 14px;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
-.emp-error-icon { font-size: 48px; margin-bottom: 16px; }
+@keyframes cd-spin { to { transform: rotate(360deg); } }
 
+/* ── Page head ── */
 .emp-page-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 16px; margin-bottom: 24px; flex-wrap: wrap;
 }
 .emp-page-title {
-  font-family: var(--fh);
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  color: var(--text);
+  font-family: var(--fh); font-size: 26px; font-weight: 700;
+  letter-spacing: -.5px; color: var(--text);
 }
-.emp-page-sub {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 4px;
-}
-.emp-page-actions {
-  display: flex;
-  gap: 12px;
-}
+.emp-page-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.emp-page-actions { display: flex; gap: 12px; }
 
-
+/* ── Card base ── */
 .emp-card {
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  margin-bottom: 24px;
-  overflow: hidden;
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  transition: transform .2s ease, box-shadow .2s ease;
 }
+.emp-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0,0,0,.08);
+}
+.emp-card + .emp-card { margin-top: 0; }
 .emp-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: var(--s2);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; background: var(--s2);
   border-bottom: 1px solid var(--border);
+  transition: background .2s ease;
+}
+.emp-card:hover .emp-card-header {
+  background: var(--bg);
 }
 .emp-card-title {
-  font-family: var(--fm);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: var(--text);
-  margin: 0;
+  font-family: var(--fm); font-size: 11px; font-weight: 600;
+  letter-spacing: .8px; text-transform: uppercase; color: var(--text); margin: 0;
 }
-.emp-card-body {
-  padding: 20px;
-}
+.emp-card-body { padding: 16px 18px; transition: background .2s ease; }
 
-.emp-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+/* ── Grid layout (like skills page) ── */
+.cd-grid {
+  display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start;
 }
-.emp-stat-card {
-  text-align: center;
-  padding: 16px;
-  background: var(--s2);
-  border-radius: 10px;
+.cd-col { display: flex; flex-direction: column; gap: 20px; }
+@media (max-width: 1000px) {
+  .cd-grid { grid-template-columns: 1fr; }
+  .cd-col-side { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 }
-.emp-stat-value {
-  font-family: var(--fh);
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--accent);
-  margin-bottom: 4px;
-}
-.emp-stat-label {
-  font-size: 11px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
+@media (max-width: 640px) { .cd-col-side { grid-template-columns: 1fr; } }
 
-.emp-status-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 500;
-}
-.emp-status-badge.active {
-  background: rgba(0,229,160,0.12);
-  color: var(--accent);
-}
-.emp-tag {
-  font-size: 10px;
-  padding: 3px 10px;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  color: var(--muted);
-  border-radius: 4px;
-}
+/* ── Empty state ── */
+.cd-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 8px 0; }
 
-.emp-cd-profile-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+/* ── Profile card (sidebar) ── */
+.cd-profile-card { margin-bottom: 0; }
+.cd-profile-card:hover { transform: none; box-shadow: none; }
+.cd-profile-top {
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px; border-bottom: 1px solid var(--border);
+  transition: background .2s ease;
 }
-.emp-cd-avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
+.cd-profile-card:hover .cd-profile-top { background: var(--s2); }
+.cd-avatar {
+  width: 60px; height: 60px; border-radius: 50%;
   background: linear-gradient(135deg, var(--purple), #ec4899);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  overflow: hidden; transition: transform .3s ease, box-shadow .3s ease;
 }
-.emp-cd-initials {
-  font-family: var(--fh);
-  font-size: 24px;
-  font-weight: 700;
-  color: #fff;
+.cd-avatar:hover { transform: scale(1.05); box-shadow: 0 0 0 4px rgba(139,92,246,.15); }
+.cd-initials { font-family: var(--fh); font-size: 22px; font-weight: 700; color: #fff; }
+.cd-profile-info { flex: 1; min-width: 0; }
+.cd-profile-name {
+  font-family: var(--fh); font-size: 16px; font-weight: 700;
+  color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.emp-cd-stats { margin-top: 8px; }
-.emp-text-muted { color: var(--muted); font-size: 13px; }
-.emp-tags-container {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+.cd-profile-headline {
+  font-size: 11px; color: var(--muted); margin: 2px 0 6px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.emp-cd-links {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.cd-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 10px; font-weight: 500; transition: opacity .2s ease;
 }
-.emp-cd-links a {
-  color: var(--purple);
+.cd-badge:hover { opacity: .8; }
+.cd-badge.active { background: rgba(0,229,160,.12); color: var(--accent); }
+.cd-badge:not(.active) { background: var(--s2); color: var(--muted2); border: 1px solid var(--border); }
+
+.cd-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+}
+.cd-stat {
+  text-align: center; padding: 14px 8px; border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transition: background .2s ease;
+  cursor: default;
+}
+.cd-stat:hover { background: var(--s2); }
+.cd-stat:nth-child(2n) { border-right: none; }
+.cd-stat:nth-child(3) { border-bottom: none; }
+.cd-stat:nth-child(4) { border-bottom: none; border-right: none; }
+.cd-stat-val {
+  font-family: var(--fh); font-size: 22px; font-weight: 700; color: var(--accent);
+  transition: color .2s ease;
+}
+.cd-stat:hover .cd-stat-val { color: var(--text); }
+.cd-stat-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
+
+/* ── About body ── */
+.cd-text-body { font-size: 13px; color: var(--muted); line-height: 1.7; margin: 0; }
+
+/* ── Tags (skills) ── */
+.cd-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.cd-tag {
+  font-size: 10px; padding: 3px 10px; background: var(--s2);
+  border: 1px solid var(--border); color: var(--muted); border-radius: 6px;
+  transition: background .2s ease, border-color .2s ease, color .2s ease, transform .15s ease;
+  cursor: default;
+}
+.cd-tag:hover {
+  background: rgba(139,92,246,.08); border-color: rgba(139,92,246,.25);
+  color: var(--text); transform: translateY(-1px);
+}
+
+/* ── Timeline ── */
+.cd-timeline { position: relative; padding-left: 22px; }
+.cd-timeline::before {
+  content: ''; position: absolute; left: 7px; top: 4px; bottom: 4px;
+  width: 2px; background: var(--border); border-radius: 1px;
+}
+.cd-tl-item {
+  position: relative; padding: 0 0 18px 14px;
+  animation: cd-fade .25s ease;
+  transition: background .2s ease, border-radius .2s ease;
+  margin: 0 -12px; padding-left: 26px; padding-right: 12px;
+  border-radius: 8px;
+}
+.cd-tl-item:hover { background: var(--s2); }
+.cd-tl-item:last-child { padding-bottom: 0; }
+.cd-tl-dot {
+  position: absolute; left: -18px; top: 6px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--s2); border: 2px solid var(--accent);
+  transition: background .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+.cd-tl-item:hover .cd-tl-dot {
+  background: var(--accent); transform: scale(1.2);
+  box-shadow: 0 0 0 4px rgba(0,229,160,.2);
+}
+.cd-tl-title { font-family: var(--fh); font-size: 14px; font-weight: 600; color: var(--text); transition: color .2s ease; }
+.cd-tl-item:hover .cd-tl-title { color: var(--accent); }
+.cd-tl-org { font-size: 11px; color: var(--muted); margin: 1px 0 4px; }
+.cd-tl-desc { font-size: 12px; line-height: 1.6; color: var(--muted); margin-top: 4px; }
+@keyframes cd-fade { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── Certifications grid ── */
+.cd-cert-grid { display: flex; flex-direction: column; gap: 8px; }
+.cd-cert {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; background: var(--s2);
+  border: 1px solid var(--border); border-radius: 8px;
+  transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+  cursor: default;
+}
+.cd-cert:hover {
+  transform: translateX(3px);
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  border-color: rgba(139,92,246,.2);
+}
+.cd-cert-icon {
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  font-size: 16px; background: rgba(0,229,160,.08); border-radius: 8px; flex-shrink: 0;
+  transition: background .2s ease, transform .2s ease;
+}
+.cd-cert:hover .cd-cert-icon {
+  background: rgba(139,92,246,.12);
+  transform: scale(1.1);
+}
+.cd-cert-info { flex: 1; min-width: 0; }
+.cd-cert-name { font-size: 12px; font-weight: 600; color: var(--text); }
+.cd-cert-meta { font-size: 10px; color: var(--muted2); margin-top: 2px; }
+
+/* ── Resume ── */
+.cd-resume-row {
+  display: flex; align-items: center; gap: 12px;
+  transition: background .2s ease; border-radius: 8px;
+  margin: 0 -6px; padding: 6px;
+}
+.cd-resume-row:hover { background: var(--s2); }
+.cd-resume-icon {
+  font-size: 28px; flex-shrink: 0;
+  transition: transform .2s ease;
+}
+.cd-resume-row:hover .cd-resume-icon { transform: scale(1.08); }
+.cd-resume-info { flex: 1; min-width: 0; }
+.cd-resume-name { font-size: 12px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cd-resume-meta { font-size: 10px; color: var(--muted2); margin-top: 2px; }
+
+/* ── Links ── */
+.cd-links { display: flex; flex-direction: column; gap: 6px; }
+.cd-links a {
+  color: var(--purple); text-decoration: none; font-size: 12px; padding: 6px 8px;
+  border-radius: 6px; transition: background .2s ease, color .2s ease, transform .15s ease;
+  display: inline-block;
+}
+.cd-links a:hover {
+  background: rgba(139,92,246,.08);
+  transform: translateX(2px);
   text-decoration: none;
-  font-size: 13px;
 }
-.emp-cd-links a:hover { text-decoration: underline; }
+.cd-links a:active { transform: translateX(1px); }
 
-@media (max-width: 860px) {
-  .emp-page-head { flex-direction: column; align-items: flex-start; }
-  .emp-page-actions { width: 100%; justify-content: flex-start; }
-  .emp-stats-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-
+/* ── Modal ── */
 .emp-modal-overlay {
   position: fixed;
   top: 0;
@@ -329,6 +436,7 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: cd-overlay-in .2s ease;
 }
 .emp-modal {
   background: var(--s1);
@@ -337,6 +445,15 @@
   width: 90%;
   max-width: 500px;
   box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+  animation: cd-modal-in .25s ease-out;
+}
+@keyframes cd-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes cd-modal-in {
+  from { opacity: 0; transform: scale(.92) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 .emp-modal-head {
   display: flex;
@@ -423,6 +540,48 @@
 }
 .emp-toast.success { background: var(--accent); color: #000; }
 .emp-toast.error { background: var(--danger); color: #fff; }
+
+/* ── Button micro-interactions ── */
+#cd-save-btn { transition: transform .15s ease, box-shadow .15s ease; }
+#cd-save-btn:active { transform: scale(.96); }
+#cd-save-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(139,92,246,.3); }
+
+.emp-btn-sm { transition: transform .12s ease, box-shadow .12s ease; }
+.emp-btn-sm:active { transform: scale(.94); }
+
+/* ── Timeline line pulse ── */
+.cd-timeline::before { animation: cd-line-glow 3s ease-in-out infinite; }
+@keyframes cd-line-glow {
+  0%, 100% { opacity: .5; }
+  50% { opacity: 1; }
+}
+
+/* ── Pool badge animation ── */
+#cd-pool-badge-wrap {
+  animation: cd-slide-down .3s ease-out;
+}
+@keyframes cd-slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Staggered fade-in for content cards ── */
+#cd-content .emp-card {
+  animation: cd-card-in .35s ease-out backwards;
+}
+#cd-content .emp-card:nth-child(1) { animation-delay: 0ms; }
+#cd-content .emp-card:nth-child(2) { animation-delay: 50ms; }
+#cd-content .emp-card:nth-child(3) { animation-delay: 100ms; }
+#cd-content .emp-card:nth-child(4) { animation-delay: 150ms; }
+#cd-content .emp-card:nth-child(5) { animation-delay: 200ms; }
+#cd-content .emp-card:nth-child(6) { animation-delay: 250ms; }
+#cd-content .emp-card:nth-child(7) { animation-delay: 300ms; }
+#cd-content .emp-card:nth-child(8) { animation-delay: 350ms; }
+@keyframes cd-card-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 </style>
 
 <script src="/static/js/pages/employer/candidate-detail.js"></script>

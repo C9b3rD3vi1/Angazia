@@ -38,6 +38,12 @@ type AnalyticsService interface {
 	// Source analytics
 	GetSourceAnalytics(ctx context.Context, employerID string) ([]models.SourceAnalytics, error)
 	
+	// Demographics
+	GetDemographics(ctx context.Context, employerID string) (*models.DemographicsResponse, error)
+	
+	// Stage durations
+	GetStageDurations(ctx context.Context, employerID string) ([]models.StageDuration, error)
+	
 	// Export
 	ExportAnalytics(ctx context.Context, employerID string, format models.ExportFormat, startDate, endDate time.Time) ([]byte, string, error)
 }
@@ -251,6 +257,14 @@ func (s *AnalyticsServiceImpl) GetApplicationQualityScores(ctx context.Context, 
 
 func (s *AnalyticsServiceImpl) GetSourceAnalytics(ctx context.Context, employerID string) ([]models.SourceAnalytics, error) {
 	return s.analyticsRepo.GetSourceAnalytics(ctx, employerID)
+}
+
+func (s *AnalyticsServiceImpl) GetDemographics(ctx context.Context, employerID string) (*models.DemographicsResponse, error) {
+	return s.analyticsRepo.GetDemographics(ctx, employerID)
+}
+
+func (s *AnalyticsServiceImpl) GetStageDurations(ctx context.Context, employerID string) ([]models.StageDuration, error) {
+	return s.analyticsRepo.GetStageDurations(ctx, employerID)
 }
 
 func (s *AnalyticsServiceImpl) ExportAnalytics(ctx context.Context, employerID string, format models.ExportFormat, startDate, endDate time.Time) ([]byte, string, error) {

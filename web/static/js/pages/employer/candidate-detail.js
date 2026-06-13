@@ -65,6 +65,13 @@
     return name.split(' ').map(function (w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
   }
 
+  function esc(text) {
+    if (!text) return '';
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(text));
+    return d.innerHTML;
+  }
+
   function updatePoolBadge() {
     if (!badgeWrap || !badgeEl) return;
     AngaziaAPI.candidates.pools(candidateId)
@@ -123,10 +130,10 @@
     if (availEl) {
       if (profile.is_available) {
         availEl.innerText = 'Available';
-        availEl.className = 'emp-status-badge active';
+        availEl.className = 'cd-badge active';
       } else {
         availEl.innerText = 'Not Available';
-        availEl.className = 'emp-status-badge';
+        availEl.className = 'cd-badge';
       }
     }
 
@@ -145,24 +152,89 @@
     var bioEl = document.getElementById('cd-bio');
     if (bioEl) bioEl.innerText = profile.bio || 'No bio provided.';
 
+    var expEl = document.getElementById('cd-experience');
+    if (expEl) {
+      var exp = profile.experience || [];
+      if (exp.length > 0) {
+        expEl.innerHTML = exp.map(function (e) {
+          var start = e.start_date || '';
+          var end = e.end_date || (e.current ? 'Present' : '');
+          var dateStr = start && end ? start + ' \u2013 ' + end : start || end;
+          return '<div class="cd-tl-item">' +
+            '<div class="cd-tl-dot"></div>' +
+            '<div>' +
+            '<div class="cd-tl-title">' + esc(e.title || '') + '</div>' +
+            '<div class="cd-tl-org">' + esc(e.company || '') + (dateStr ? ' \u00B7 ' + esc(dateStr) : '') + '</div>' +
+            (e.description ? '<div class="cd-tl-desc">' + esc(e.description) + '</div>' : '') +
+            '</div>' +
+            '</div>';
+        }).join('');
+      } else {
+        expEl.innerHTML = '<div class="cd-empty">No experience listed.</div>';
+      }
+    }
+
     var skillsEl = document.getElementById('cd-skills');
     if (skillsEl) {
       if (profile.skills && profile.skills.length > 0) {
         skillsEl.innerHTML = profile.skills.map(function (s) {
-          return '<span class="emp-tag">' + s + '</span>';
+          return '<span class="cd-tag">' + esc(s) + '</span>';
         }).join('');
       } else {
-        skillsEl.innerHTML = '<span class="emp-tag">No skills listed</span>';
+        skillsEl.innerHTML = '<span class="cd-tag">No skills listed</span>';
+      }
+    }
+
+    var certEl = document.getElementById('cd-certifications');
+    if (certEl) {
+      var certs = profile.certifications || [];
+      if (certs.length > 0) {
+        certEl.innerHTML = certs.map(function (c) {
+          return '<div class="cd-cert">' +
+            '<div class="cd-cert-icon">\u{1F4DC}</div>' +
+            '<div class="cd-cert-info">' +
+            '<div class="cd-cert-name">' + esc(c.name || '') + '</div>' +
+            '<div class="cd-cert-meta">' + esc(c.issuer || '') + (c.year ? ' \u00B7 ' + esc(c.year) : '') + '</div>' +
+            '</div>' +
+            '</div>';
+        }).join('');
+      } else {
+        certEl.innerHTML = '<span class="cd-empty">No certifications listed.</span>';
+      }
+    }
+
+    var resumeSection = document.getElementById('cd-resume-section');
+    if (resumeSection) {
+      var resumePresent = document.getElementById('cd-resume-present');
+      var resumeEmpty = document.getElementById('cd-resume-empty');
+      var resumeUrl = profile.resume_url || '';
+      if (resumeUrl) {
+        if (resumePresent) resumePresent.style.display = '';
+        if (resumeEmpty) resumeEmpty.style.display = 'none';
+        var nameEl = document.getElementById('cd-resume-name');
+        var metaEl = document.getElementById('cd-resume-meta');
+        if (nameEl) {
+          var parts = resumeUrl.split('/');
+          var fileName = parts[parts.length - 1] || 'Resume';
+          var ext = fileName.split('.').pop().toUpperCase();
+          fileName = fileName.replace(/^resume_[^_]+_\d+/, 'Resume');
+          nameEl.textContent = fileName;
+          if (metaEl) metaEl.textContent = ext + ' file';
+        }
+        var viewBtn = document.getElementById('cd-resume-view');
+        if (viewBtn) viewBtn.href = resumeUrl;
+      } else {
+        if (resumePresent) resumePresent.style.display = 'none';
+        if (resumeEmpty) resumeEmpty.style.display = '';
       }
     }
 
     var linksEl = document.getElementById('cd-links');
     if (linksEl) {
       var linksHtml = '';
-      if (profile.resume_url) linksHtml += '<a href="' + profile.resume_url + '" target="_blank">View Resume</a>';
       if (profile.portfolio_url) linksHtml += '<a href="' + profile.portfolio_url + '" target="_blank">Portfolio</a>';
       if (profile.linkedin_url) linksHtml += '<a href="' + profile.linkedin_url + '" target="_blank">LinkedIn</a>';
-      linksEl.innerHTML = linksHtml || '<span class="emp-text-muted">No links provided.</span>';
+      linksEl.innerHTML = linksHtml || '<span class="cd-empty">No links provided.</span>';
     }
 
     var githubEl = document.getElementById('cd-github');
@@ -175,7 +247,7 @@
           (gh.public_repos ? ' (' + gh.public_repos + ' repos)' : '') +
           '</a>';
       } else {
-        githubEl.innerHTML = '<span class="emp-text-muted">No GitHub profile linked.</span>';
+        githubEl.innerHTML = '<span class="cd-empty">No GitHub profile linked.</span>';
       }
     }
 

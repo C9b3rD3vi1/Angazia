@@ -176,9 +176,11 @@ func (h *JobHandler) EmployerJobPostPage(c *fiber.Ctx) error {
 
 // EmployerJobDetailPage renders the employer's single job detail page
 func (h *JobHandler) EmployerJobDetailPage(c *fiber.Ctx) error {
+	jobID := c.Params("id")
 	return c.Render("employer/job-detail", mergePageData(c, fiber.Map{
 		"Title":      "Job Details - Angazia",
 		"ActivePage": "jobs",
+		"JobID":      jobID,
 	}), "layouts/employer")
 }
 

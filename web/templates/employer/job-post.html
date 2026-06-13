@@ -1,3 +1,27 @@
+{{/* Confirmation Modal */}}
+<div class="emp-modal-overlay" id="jp-confirm-modal" style="display:none;">
+  <div class="emp-modal emp-modal-sm">
+    <div class="emp-modal-head">
+      <h3 class="emp-modal-title" id="jp-confirm-title">Publish Job</h3>
+      <button class="emp-modal-close" id="jp-confirm-close">&times;</button>
+    </div>
+    <div class="emp-modal-body">
+      <div class="emp-modal-icon-wrap">
+        <span class="emp-modal-icon icon-success" id="jp-confirm-icon">&#x1F4E2;</span>
+      </div>
+      <h4 class="emp-modal-heading" id="jp-confirm-heading">Publish this job?</h4>
+      <p class="emp-modal-desc" id="jp-confirm-desc">The job will be visible immediately to all candidates.</p>
+    </div>
+    <div class="emp-modal-foot">
+      <button class="emp-btn emp-btn-ghost" id="jp-confirm-no">Cancel</button>
+      <button class="emp-btn emp-btn-primary" id="jp-confirm-yes">
+        <span class="emp-btn-label" id="jp-confirm-yes-label">Publish Job</span>
+        <span class="emp-btn-spinner"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
 {{/* Employer - Post a Job */}}
 <div class="emp-dash">
   <div class="emp-page-head">
@@ -29,16 +53,18 @@
         <div class="emp-row-3">
           <div class="emp-field">
             <label class="emp-label">Employment Type</label>
-            <select name="type" class="emp-input">
-              <option value="full-time">Full-time</option>
-              <option value="part-time">Part-time</option>
-              <option value="contract">Contract</option>
-              <option value="internship">Internship</option>
-            </select>
+              <select name="type" class="emp-input" required>
+                <option value="">Select type</option>
+                <option value="full-time">Full-time</option>
+                <option value="part-time">Part-time</option>
+                <option value="contract">Contract</option>
+                <option value="internship">Internship</option>
+                <option value="freelance">Freelance</option>
+              </select>
           </div>
           <div class="emp-field">
             <label class="emp-label">Location</label>
-            <input type="text" name="location" class="emp-input" placeholder="Nairobi, Kenya">
+            <input type="text" name="location" class="emp-input" placeholder="Nairobi, Kenya" required>
           </div>
           <div class="emp-field">
             <label class="emp-label">Work Type</label>
@@ -73,6 +99,11 @@
         </div>
 
         <div class="emp-field">
+          <label class="emp-label">Responsibilities</label>
+          <textarea name="responsibilities" class="emp-textarea" rows="5" placeholder="- List each responsibility on a new line&#10;- Example: Lead the design and architecture of backend services"></textarea>
+        </div>
+
+        <div class="emp-field">
           <label class="emp-label">Requirements <span class="emp-req">*</span></label>
           <textarea name="requirements" id="field-requirements" class="emp-textarea emp-textarea-list" rows="6" placeholder="- List each requirement on a new line&#10;- Start with a hyphen, number, or plain text&#10;- Example: 5+ years experience in Go" required></textarea>
           <div id="requirements-preview" class="emp-req-preview"></div>
@@ -85,9 +116,15 @@
         <h3 class="emp-form-section-title">Skills & Screening</h3>
 
         <div class="emp-field">
-          <label class="emp-label">Required Skills</label>
-          <input type="text" name="skills" class="emp-input" placeholder="e.g. Go, PostgreSQL, React, Docker, AWS">
+          <label class="emp-label">Required Skills <span class="emp-req">*</span></label>
+          <input type="text" name="skills" class="emp-input" placeholder="e.g. Go, PostgreSQL, React, Docker, AWS" required>
           <span class="emp-hint">Comma-separated list of required skills</span>
+        </div>
+
+        <div class="emp-field">
+          <label class="emp-label">Nice-to-Have Skills</label>
+          <input type="text" name="nice_to_have_skills" class="emp-input" placeholder="e.g. Kubernetes, GraphQL, Redis">
+          <span class="emp-hint">Comma-separated list of bonus skills</span>
         </div>
 
         <div class="emp-field">
@@ -306,10 +343,82 @@
   .emp-form-footer { flex-direction: column; align-items: stretch; }
   .emp-form-note { margin-left: 0; text-align: center; }
 }
+
+/* ── Enhanced Confirmation Modal ── */
+.emp-modal-overlay { animation: empFadeIn 0.15s ease; }
+@keyframes empFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.emp-modal { animation: empScaleIn 0.2s ease; }
+@keyframes empScaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.emp-modal-icon-wrap { text-align: center; margin-bottom: 16px; }
+.emp-modal-icon { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; font-size: 26px; }
+.emp-modal-icon.icon-danger { background: rgba(239,68,68,0.1); }
+.emp-modal-icon.icon-warning { background: rgba(245,166,35,0.1); }
+.emp-modal-icon.icon-success { background: rgba(0,229,160,0.1); }
+.emp-modal-icon.icon-info { background: rgba(59,130,246,0.1); }
+.emp-modal-icon.icon-primary { background: rgba(139,92,246,0.1); }
+
+.emp-modal-heading { font-family: var(--fh); font-size: 18px; font-weight: 600; color: var(--text); text-align: center; margin: 0 0 8px; }
+.emp-modal-desc { font-size: 13px; line-height: 1.6; color: var(--muted); text-align: center; margin: 0; }
+
+.emp-btn-loading { position: relative; pointer-events: none; }
+.emp-btn-loading .emp-btn-label { opacity: 0; }
+.emp-btn-loading .emp-btn-spinner { display: inline-block !important; }
+.emp-btn-spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: empSpin 0.6s linear infinite; position: absolute; top: 50%; left: 50%; margin: -8px 0 0 -8px; }
+@keyframes empSpin { to { transform: rotate(360deg); } }
+
+.emp-modal-sm .emp-modal { max-width: 400px; }
+.emp-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.emp-modal {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+}
+.emp-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.emp-modal-title {
+  font-family: var(--fh);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+.emp-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--muted);
+}
+.emp-modal-body { padding: 24px; }
+.emp-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+}
 </style>
 
 <script>
 (function () {
+  var pendingData = null;
+
   function toast(msg, type) {
     if (window.AngaziaApp && AngaziaApp.showToast) {
       AngaziaApp.showToast(msg, type);
@@ -318,6 +427,61 @@
     }
   }
 
+  /* ── Modal helpers ── */
+  var jpModal = document.getElementById('jp-confirm-modal');
+  var jpConfirmYes = document.getElementById('jp-confirm-yes');
+  var jpConfirmNo = document.getElementById('jp-confirm-no');
+  var jpConfirmClose = document.getElementById('jp-confirm-close');
+  var jpConfirmIcon = document.getElementById('jp-confirm-icon');
+  var jpConfirmHeading = document.getElementById('jp-confirm-heading');
+  var jpConfirmDesc = document.getElementById('jp-confirm-desc');
+  var jpConfirmYesLabel = document.getElementById('jp-confirm-yes-label');
+
+  function setJpLoading(loading) {
+    if (!jpConfirmYes) return;
+    jpConfirmYes.disabled = loading;
+    jpConfirmYes.classList.toggle('emp-btn-loading', loading);
+  }
+
+  function showJpModal(title, desc) {
+    if (jpConfirmHeading) jpConfirmHeading.textContent = title;
+    if (jpConfirmDesc) jpConfirmDesc.textContent = desc;
+    setJpLoading(false);
+    if (jpModal) jpModal.style.display = 'flex';
+  }
+
+  function hideJpModal() {
+    if (jpModal) jpModal.style.display = 'none';
+    setJpLoading(false);
+    pendingData = null;
+  }
+
+  function executePublish() {
+    if (!pendingData) return;
+    setJpLoading(true);
+    AngaziaAPI.jobs.create(pendingData).then(function () {
+      hideJpModal();
+      toast('Job posted successfully!', 'success');
+      window.location.href = '/employer/jobs';
+    }).catch(function (err) {
+      toast(err.message || 'Failed to post job', 'error');
+      setJpLoading(false);
+    });
+  }
+
+  if (jpConfirmYes) jpConfirmYes.addEventListener('click', executePublish);
+  if (jpConfirmNo) jpConfirmNo.addEventListener('click', hideJpModal);
+  if (jpConfirmClose) jpConfirmClose.addEventListener('click', hideJpModal);
+  if (jpModal) {
+    jpModal.addEventListener('click', function (e) {
+      if (e.target === jpModal) hideJpModal();
+    });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && jpModal && jpModal.style.display === 'flex') hideJpModal();
+  });
+
+  /* ── Requirements preview ── */
   var reqField = document.getElementById('field-requirements');
   var reqPreview = document.getElementById('requirements-preview');
   if (reqField && reqPreview) {
@@ -344,6 +508,7 @@
     }
   }
 
+  /* ── Form submission ── */
   var form = document.getElementById('form-job-post');
   if (form) {
     form.addEventListener('submit', function (e) {
@@ -363,6 +528,12 @@
       var skills = fd.get('skills');
       if (skills) data.required_skills = skills.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
 
+      var niceSkills = fd.get('nice_to_have_skills');
+      if (niceSkills) data.nice_to_have_skills = niceSkills.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+
+      var responsibilities = fd.get('responsibilities');
+      if (responsibilities) data.responsibilities = responsibilities;
+
       var salaryMin = fd.get('salary_min');
       if (salaryMin) data.salary_min = parseInt(salaryMin, 10);
       var salaryMax = fd.get('salary_max');
@@ -375,19 +546,15 @@
       var deadline = fd.get('deadline');
       if (deadline) data.expires_at = deadline;
 
-      var btn = form.querySelector('button[type="submit"]');
-      btn.disabled = true;
-      btn.textContent = 'Publishing...';
+      var titleText = fd.get('title') || 'Untitled Job';
+      var typeText = fd.get('type') || 'full-time';
+      var locationText = fd.get('location') || 'Not specified';
+      pendingData = data;
 
-      AngaziaAPI.jobs.create(data).then(function () {
-        toast('Job posted successfully!', 'success');
-        window.location.href = '/employer/jobs';
-      }).catch(function (err) {
-        toast(err.message || 'Failed to post job', 'error');
-      }).then(function () {
-        btn.disabled = false;
-        btn.textContent = 'Publish Job';
-      });
+      showJpModal(
+        'Publish: ' + titleText,
+        'Employment: ' + typeText + ' | Location: ' + locationText + '. The job will be visible immediately to all candidates.'
+      );
     });
   }
 })();

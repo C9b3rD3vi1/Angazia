@@ -3,112 +3,216 @@
   <div class="emp-page-head">
     <div>
       <h1 class="emp-page-title">Settings</h1>
-      <p class="emp-page-sub">Manage your account, company preferences, and security</p>
+      <p class="emp-page-sub">Manage your account, company profile, security, and preferences</p>
     </div>
   </div>
 
   <div class="emp-settings-sections">
 
+    {{/* Profile Picture */}}
     <section class="emp-section">
       <div class="emp-section-head">
-        <h2 class="emp-section-title">&#x1F5BC; Profile Picture</h2>
+        <h2 class="emp-section-title">Profile Picture</h2>
       </div>
       <div class="emp-avatar-section">
         <div class="emp-avatar-preview">
           <div class="emp-avatar-img-wrap">
-            {{if .User.Avatar}}<img src="{{.User.Avatar}}" alt="Profile" id="avatar-preview-img" class="emp-avatar-img">{{else}}<span class="emp-avatar-placeholder" id="avatar-preview-init">{{.User.Initials}}</span>{{end}}
+            <img src="" alt="Profile" id="avatar-preview-img" class="emp-avatar-img" style="display:none">
+            <span class="emp-avatar-placeholder" id="avatar-preview-init">{{.User.Initials}}</span>
           </div>
         </div>
         <div class="emp-avatar-actions">
           <label class="emp-btn emp-btn-secondary emp-btn-sm" for="avatar-upload-input">Choose Photo</label>
           <input type="file" id="avatar-upload-input" accept="image/jpeg,image/png,image/webp" hidden>
           <button type="button" id="avatar-upload-btn" class="emp-btn emp-btn-primary emp-btn-sm" disabled>Upload</button>
+          <button type="button" id="avatar-remove-btn" class="emp-btn emp-btn-xs emp-btn-ghost" style="color:var(--danger)">Remove</button>
           <span class="emp-hint" id="avatar-file-name"></span>
         </div>
       </div>
     </section>
 
+    {{/* Account Information */}}
     <section class="emp-section">
       <div class="emp-section-head">
-        <h2 class="emp-section-title">&#x1F464; Account Information</h2>
+        <h2 class="emp-section-title">Account Information</h2>
       </div>
       <form id="form-profile" class="emp-form">
         <div class="emp-form-row">
           <div class="emp-form-group">
-            <label class="emp-form-label">Full Name</label>
-            <input type="text" name="full_name" class="emp-input" value="{{.Profile.FullName}}">
+            <label class="emp-form-label">Company Name</label>
+            <input type="text" id="profile-company-name" name="company_name" class="emp-input" placeholder="Your company name">
           </div>
           <div class="emp-form-group">
-            <label class="emp-form-label">Email</label>
-            <input type="email" class="emp-input" value="{{.Profile.Email}}" disabled>
+            <label class="emp-form-label">Contact Email</label>
+            <input type="email" id="profile-contact-email" name="email_address" class="emp-input" placeholder="company@example.com">
           </div>
         </div>
-        <div class="emp-form-group">
-          <label class="emp-form-label">Headline</label>
-          <input type="text" name="headline" class="emp-input" value="{{.Profile.Headline}}" placeholder="e.g. Talent Acquisition Manager">
-        </div>
-        <div class="emp-form-group">
-          <label class="emp-form-label">Bio</label>
-          <textarea name="bio" class="emp-textarea" rows="3" placeholder="Tell us about your professional background...">{{.Profile.Bio}}</textarea>
+        <div class="emp-form-row">
+          <div class="emp-form-group">
+            <label class="emp-form-label">Phone Number</label>
+            <input type="tel" id="profile-phone" name="phone_number" class="emp-input" placeholder="+254 700 000 000">
+          </div>
+          <div class="emp-form-group">
+            <label class="emp-form-label">Location</label>
+            <input type="text" id="profile-location" name="location" class="emp-input" placeholder="e.g. Nairobi, Kenya">
+          </div>
         </div>
         <button type="submit" class="emp-btn emp-btn-primary">Save Changes</button>
       </form>
     </section>
 
+    {{/* Company Profile */}}
     <section class="emp-section">
       <div class="emp-section-head">
-        <h2 class="emp-section-title">&#x1F512; Change Password</h2>
+        <h2 class="emp-section-title">Company Profile</h2>
+      </div>
+      <form id="form-company" class="emp-form">
+        <div class="emp-form-row">
+          <div class="emp-form-group">
+            <label class="emp-form-label">Website</label>
+            <input type="url" id="company-website" name="company_website" class="emp-input" placeholder="https://example.com">
+          </div>
+          <div class="emp-form-group">
+            <label class="emp-form-label">LinkedIn</label>
+            <input type="url" id="company-linkedin" name="company_linkedin" class="emp-input" placeholder="https://linkedin.com/company/...">
+          </div>
+        </div>
+        <div class="emp-form-row">
+          <div class="emp-form-group">
+            <label class="emp-form-label">Industry</label>
+            <select id="company-industry" name="industry" class="emp-input">
+              <option value="">Select industry</option>
+              <option value="technology">Technology</option>
+              <option value="finance">Finance & Banking</option>
+              <option value="healthcare">Healthcare</option>
+              <option value="education">Education</option>
+              <option value="manufacturing">Manufacturing</option>
+              <option value="retail">Retail & E-commerce</option>
+              <option value="real_estate">Real Estate</option>
+              <option value="consulting">Consulting</option>
+              <option value="hospitality">Hospitality & Tourism</option>
+              <option value="media">Media & Entertainment</option>
+              <option value="telecom">Telecommunications</option>
+              <option value="agriculture">Agriculture</option>
+              <option value="energy">Energy & Utilities</option>
+              <option value="transport">Transport & Logistics</option>
+              <option value="nonprofit">Nonprofit</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="emp-form-group">
+            <label class="emp-form-label">Company Size</label>
+            <select id="company-size" name="company_size" class="emp-input">
+              <option value="">Select size</option>
+              <option value="1-10">1-10 employees</option>
+              <option value="11-50">11-50 employees</option>
+              <option value="51-200">51-200 employees</option>
+              <option value="201-500">201-500 employees</option>
+              <option value="500+">500+ employees</option>
+            </select>
+          </div>
+        </div>
+        <div class="emp-form-group">
+          <label class="emp-form-label">Company Description</label>
+          <textarea id="company-description" name="company_description" class="emp-textarea" rows="4" placeholder="Tell job seekers about your company..."></textarea>
+        </div>
+        <div class="emp-form-row">
+          <div class="emp-form-group">
+            <label class="emp-form-label">Business Registration No.</label>
+            <input type="text" id="company-business-reg" name="business_registration_number" class="emp-input" placeholder="e.g. BRN-2024-12345">
+          </div>
+          <div class="emp-form-group">
+            <label class="emp-form-label">Tax ID</label>
+            <input type="text" id="company-tax-id" name="tax_id" class="emp-input" placeholder="e.g. KRA PIN A123456789X">
+          </div>
+        </div>
+        <button type="submit" class="emp-btn emp-btn-primary">Save Company Profile</button>
+      </form>
+    </section>
+
+    {{/* Change Password */}}
+    <section class="emp-section">
+      <div class="emp-section-head">
+        <h2 class="emp-section-title">Change Password</h2>
       </div>
       <form id="form-password" class="emp-form">
         <div class="emp-form-group">
           <label class="emp-form-label">Current Password</label>
-          <input type="password" name="current_password" class="emp-input" required>
+          <input type="password" id="pw-current" name="current_password" class="emp-input" required autocomplete="current-password">
         </div>
         <div class="emp-form-row">
           <div class="emp-form-group">
             <label class="emp-form-label">New Password</label>
-            <input type="password" name="new_password" class="emp-input" required minlength="8">
+            <input type="password" id="pw-new" name="new_password" class="emp-input" required minlength="8" autocomplete="new-password">
+            <div class="pw-strength-bar"><div class="pw-strength-fill" id="pw-strength"></div></div>
+            <span class="pw-strength-label" id="pw-strength-text"></span>
           </div>
           <div class="emp-form-group">
             <label class="emp-form-label">Confirm New Password</label>
-            <input type="password" name="confirm_password" class="emp-input" required minlength="8">
+            <input type="password" id="pw-confirm" name="confirm_password" class="emp-input" required minlength="8" autocomplete="new-password">
           </div>
         </div>
         <button type="submit" class="emp-btn emp-btn-outline">Update Password</button>
       </form>
     </section>
 
+    {{/* Two-Factor Authentication */}}
     <section class="emp-section">
       <div class="emp-section-head">
-        <h2 class="emp-section-title">&#x1F510; Two-Factor Authentication</h2>
+        <h2 class="emp-section-title">Two-Factor Authentication</h2>
       </div>
       <div id="tfa-section" class="emp-form">
-        <div id="tfa-status-loading" class="emp-form-group">
-          <p class="emp-form-label" style="text-transform:none;letter-spacing:0">Checking 2FA status...</p>
+        <div id="tfa-status-loading" class="tfa-loading">
+          <div class="mm-loading-spinner" style="width:20px;height:20px;border-width:2px"></div>
+          <span>Checking 2FA status...</span>
         </div>
         <div id="tfa-not-enabled" style="display:none">
-          <p style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5">Add an extra layer of security to your employer account by enabling two-factor authentication.</p>
+          <p class="tfa-desc">Add an extra layer of security to your employer account by enabling two-factor authentication.</p>
           <button class="emp-btn emp-btn-primary" id="tfa-enable-btn">Enable Two-Factor Authentication</button>
         </div>
         <div id="tfa-enabled" style="display:none">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-            <span class="emp-toast emp-toast-success" style="display:inline-block;padding:6px 14px">&#x2713; 2FA is active</span>
+          <div class="tfa-active-badge">
+            <span class="tfa-active-icon">&#x2713;</span>
+            <div>
+              <strong>2FA is active</strong>
+              <span class="tfa-method" id="tfa-method"></span>
+            </div>
           </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <div class="tfa-actions">
             <button class="emp-btn emp-btn-outline" id="tfa-view-backup-btn">Generate New Backup Codes</button>
-            <button class="emp-btn emp-btn-outline" id="tfa-disable-btn" style="border-color:rgba(255,79,79,0.3);color:var(--danger)">Disable 2FA</button>
+            <button class="emp-btn emp-btn-outline tfa-disable-btn" id="tfa-disable-btn">Disable 2FA</button>
           </div>
         </div>
-        <div id="tfa-error" class="emp-toast emp-toast-error" style="display:none;margin-top:8px"></div>
+        <div id="tfa-error" class="emp-alert emp-alert-error" style="display:none;margin-top:12px"></div>
       </div>
     </section>
 
+    {{/* Active Sessions */}}
     <section class="emp-section">
       <div class="emp-section-head">
-        <h2 class="emp-section-title">&#x1F4E8; Notification Preferences</h2>
+        <h2 class="emp-section-title">Active Sessions</h2>
+        <button class="emp-btn emp-btn-xs emp-btn-ghost" id="revoke-all-btn" style="color:var(--danger)">Revoke All Other Sessions</button>
       </div>
-      <div id="notif-prefs-loading" class="emp-form">
-        <p class="emp-form-label" style="text-transform:none;letter-spacing:0">Loading preferences...</p>
+      <div class="sessions-list" id="sessions-list"></div>
+      <div id="sessions-loading" class="tfa-loading">
+        <div class="mm-loading-spinner" style="width:20px;height:20px;border-width:2px"></div>
+        <span>Loading sessions...</span>
+      </div>
+      <div id="sessions-empty" class="emp-empty" style="display:none">
+        <p style="font-size:13px;color:var(--muted)">No active sessions found.</p>
+      </div>
+      <div id="sessions-error" class="emp-alert emp-alert-error" style="display:none"></div>
+    </section>
+
+    {{/* Notification Preferences */}}
+    <section class="emp-section">
+      <div class="emp-section-head">
+        <h2 class="emp-section-title">Notification Preferences</h2>
+        <button class="emp-btn emp-btn-xs emp-btn-ghost" id="notif-test-btn">Send Test</button>
+      </div>
+      <div id="notif-prefs-loading" class="tfa-loading">
+        <div class="mm-loading-spinner" style="width:20px;height:20px;border-width:2px"></div>
+        <span>Loading preferences...</span>
       </div>
       <form id="form-notifications" class="emp-form" style="display:none">
         <div class="emp-form-checkboxes">
@@ -126,10 +230,145 @@
           <label class="emp-checkbox"><input type="checkbox" name="in_app_enabled" value="1"><span>In-app notifications</span></label>
         </div>
         <button type="submit" class="emp-btn emp-btn-primary">Save Preferences</button>
-        <div id="notif-prefs-error" class="emp-toast emp-toast-error" style="display:none;margin-top:8px"></div>
+        <div id="notif-prefs-error" class="emp-alert emp-alert-error" style="display:none;margin-top:8px"></div>
       </form>
     </section>
 
+    {{/* Danger Zone */}}
+    <section class="emp-section emp-section-danger">
+      <div class="emp-section-head">
+        <h2 class="emp-section-title emp-section-title-danger">Danger Zone</h2>
+      </div>
+      <div class="emp-danger-body">
+        <div class="emp-danger-info">
+          <strong>Delete Account</strong>
+          <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+        </div>
+        <button class="emp-btn emp-btn-danger" id="delete-account-btn">Delete Account</button>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+{{/* 2FA Setup Modal */}}
+<div class="emp-modal-overlay" id="tfa-setup-modal" style="display:none;">
+  <div class="emp-modal emp-modal-md">
+    <div class="emp-modal-head">
+      <h3 class="emp-modal-title">Set Up Two-Factor Authentication</h3>
+      <button class="emp-modal-close" id="tfa-setup-cancel">&times;</button>
+    </div>
+    <div class="emp-modal-body">
+      <div id="tfa-setup-loading" class="tfa-loading" style="padding:40px 0">
+        <div class="mm-loading-spinner" style="width:28px;height:28px"></div>
+        <span>Generating setup key...</span>
+      </div>
+      <div id="tfa-setup-content" style="display:none">
+        <div class="tfa-setup-steps">
+          <div class="tfa-step">
+            <span class="tfa-step-num">1</span>
+            <div>
+              <strong>Scan QR Code</strong>
+              <p>Open your authenticator app (Google Authenticator, Authy, etc.) and scan the QR code below.</p>
+            </div>
+          </div>
+          <div class="tfa-qr-wrap" id="tfa-setup-qr"></div>
+          <div class="tfa-secret-wrap">
+            <span class="tfa-secret-label">Or enter this key manually:</span>
+            <code id="tfa-setup-secret" class="tfa-secret"></code>
+          </div>
+          <div class="tfa-step">
+            <span class="tfa-step-num">2</span>
+            <div>
+              <strong>Verify the Code</strong>
+              <p>Enter the 6-digit verification code from your authenticator app to confirm setup.</p>
+            </div>
+          </div>
+          <div class="tfa-verify-row">
+            <input type="text" id="tfa-setup-code" class="emp-input tfa-code-input" maxlength="6" placeholder="000000" inputmode="numeric" pattern="[0-9]*">
+            <button class="emp-btn emp-btn-primary" id="tfa-setup-verify">Verify &amp; Enable</button>
+          </div>
+          <div id="tfa-setup-error" class="emp-alert emp-alert-error" style="display:none;margin-top:12px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{/* Generic Confirm Modal */}}
+<div class="emp-modal-overlay" id="confirm-modal" style="display:none;">
+  <div class="emp-modal emp-modal-sm">
+    <div class="emp-modal-head">
+      <h3 class="emp-modal-title" id="confirm-modal-title">Confirm</h3>
+      <button class="emp-modal-close" id="confirm-modal-close">&times;</button>
+    </div>
+    <div class="emp-modal-body">
+      <div class="emp-modal-icon-wrap">
+        <span class="emp-modal-icon icon-danger">&#x26A0;</span>
+      </div>
+      <h4 class="emp-modal-heading" id="confirm-modal-heading">Are you sure?</h4>
+      <p class="emp-modal-desc" id="confirm-modal-desc">This action cannot be undone.</p>
+    </div>
+    <div class="emp-modal-foot">
+      <button class="emp-btn emp-btn-ghost" id="confirm-modal-cancel">Cancel</button>
+      <button class="emp-btn emp-btn-danger" id="confirm-modal-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+{{/* Disable 2FA Modal */}}
+<div class="emp-modal-overlay" id="tfa-disable-modal" style="display:none;">
+  <div class="emp-modal emp-modal-sm">
+    <div class="emp-modal-head">
+      <h3 class="emp-modal-title">Disable Two-Factor Authentication</h3>
+      <button class="emp-modal-close" id="tfa-disable-cancel">&times;</button>
+    </div>
+    <div class="emp-modal-body">
+      <div class="emp-modal-icon-wrap">
+        <span class="emp-modal-icon icon-danger">&#x26A0;</span>
+      </div>
+      <h4 class="emp-modal-heading">Are you sure?</h4>
+      <p class="emp-modal-desc">Disabling 2FA reduces your account security. Enter your TOTP code and password to confirm.</p>
+      <div class="emp-field" style="margin-top:20px">
+        <label class="emp-label">TOTP Code or Backup Code</label>
+        <input type="text" id="tfa-disable-code" class="emp-input" placeholder="6-digit code" maxlength="6" inputmode="numeric">
+      </div>
+      <div class="emp-field" style="margin-top:12px">
+        <label class="emp-label">Password</label>
+        <input type="password" id="tfa-disable-password" class="emp-input" placeholder="Your current password" autocomplete="current-password">
+      </div>
+      <div id="tfa-disable-error" class="emp-alert emp-alert-error" style="display:none;margin-top:12px"></div>
+    </div>
+    <div class="emp-modal-foot">
+      <button class="emp-btn emp-btn-ghost" id="tfa-disable-cancel">Cancel</button>
+      <button class="emp-btn emp-btn-danger" id="tfa-disable-confirm">Disable 2FA</button>
+    </div>
+  </div>
+</div>
+
+{{/* Delete Account Confirmation Modal */}}
+<div class="emp-modal-overlay" id="delete-modal" style="display:none;">
+  <div class="emp-modal emp-modal-sm">
+    <div class="emp-modal-head">
+      <h3 class="emp-modal-title">Delete Account</h3>
+      <button class="emp-modal-close" id="delete-cancel-btn">&times;</button>
+    </div>
+    <div class="emp-modal-body">
+      <div class="emp-modal-icon-wrap">
+        <span class="emp-modal-icon icon-danger">&#x26A0;</span>
+      </div>
+      <h4 class="emp-modal-heading">Are you absolutely sure?</h4>
+      <p class="emp-modal-desc">This action permanently deletes your account, company profile, job listings, and all associated data. This cannot be undone.</p>
+      <div class="emp-field" style="margin-top:20px">
+        <label class="emp-label">Enter your password to confirm</label>
+        <input type="password" id="delete-password" class="emp-input" placeholder="Your current password" autocomplete="current-password">
+      </div>
+      <div id="delete-error" class="emp-alert emp-alert-error" style="display:none;margin-top:12px"></div>
+    </div>
+    <div class="emp-modal-foot">
+      <button class="emp-btn emp-btn-ghost" id="delete-cancel-btn">Cancel</button>
+      <button class="emp-btn emp-btn-danger" id="delete-confirm-btn">Delete My Account</button>
+    </div>
   </div>
 </div>
 
@@ -180,7 +419,6 @@
   line-height: 1.5;
 }
 .emp-input[disabled] { opacity: 0.5; cursor: not-allowed; }
-
 .emp-form-checkboxes {
   display: flex;
   flex-direction: column;
@@ -222,11 +460,7 @@
   justify-content: center;
   background: rgba(0,229,160,.12);
 }
-.emp-avatar-img-wrap img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.emp-avatar-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
 .emp-avatar-placeholder {
   font-family: var(--fm);
   font-size: 24px;
@@ -244,283 +478,294 @@
   font-size: 11px;
   color: var(--muted2);
 }
+.emp-alert {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+.emp-alert-error {
+  background: rgba(255,79,79,0.08);
+  border: 1px solid rgba(255,79,79,0.15);
+  color: #ef4444;
+}
 
+/* Password strength */
+.pw-strength-bar {
+  height: 4px;
+  background: var(--s2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.pw-strength-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  transition: width 0.2s, background 0.2s;
+}
+.pw-strength-label {
+  font-size: 10px;
+  color: var(--muted2);
+  min-height: 14px;
+}
 
-.emp-toast {
-  padding: 12px 18px;
+/* 2FA */
+.tfa-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 0;
+  color: var(--muted2);
+  font-size: 13px;
+}
+.tfa-desc {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 12px;
+  line-height: 1.6;
+}
+.tfa-active-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(0,229,160,0.08);
+  border: 1px solid rgba(0,229,160,0.2);
+  border-radius: var(--radius);
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+.tfa-active-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.tfa-method {
+  display: block;
+  font-size: 11px;
+  color: var(--muted2);
+  margin-top: 2px;
+}
+.tfa-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tfa-disable-btn { border-color: rgba(255,79,79,0.3); color: var(--danger); }
+
+/* 2FA Setup Modal */
+.tfa-setup-steps { max-width: 440px; margin: 0 auto; }
+.tfa-step {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+.tfa-step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--purple);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.tfa-step strong { font-size: 14px; display: block; margin-bottom: 4px; }
+.tfa-step p { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5; }
+.tfa-qr-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+  margin-bottom: 16px;
+}
+.tfa-qr-wrap img { border: 2px solid var(--border); border-radius: 8px; max-width: 180px; }
+.tfa-secret-wrap {
+  text-align: center;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  background: var(--s2);
+  border-radius: var(--radius);
+}
+.tfa-secret-label { font-size: 11px; color: var(--muted2); display: block; margin-bottom: 6px; }
+.tfa-secret {
+  font-family: var(--fm);
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--text);
+  user-select: all;
+}
+.tfa-verify-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.tfa-code-input {
+  width: 140px;
+  text-align: center;
+  font-size: 20px !important;
+  letter-spacing: 6px;
+  font-family: var(--fm);
+}
+
+/* Sessions */
+.sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ses-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.ses-current {
+  border-color: rgba(0,229,160,0.3);
+  background: rgba(0,229,160,0.04);
+}
+.ses-info { flex: 1; min-width: 0; }
+.ses-device { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+.ses-meta { font-size: 11px; color: var(--muted2); }
+.ses-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+/* Danger Zone */
+.emp-section-danger {
+  border: 1px solid rgba(239,68,68,0.2);
+  background: rgba(239,68,68,0.03);
+}
+.emp-section-title-danger { color: var(--danger); }
+.emp-danger-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 8px 0;
+}
+.emp-danger-info strong { font-size: 14px; display: block; margin-bottom: 4px; }
+.emp-danger-info p { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5; }
+.emp-btn-danger {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: #ef4444;
+  white-space: nowrap;
+  padding: 10px 20px;
   border-radius: var(--radius);
   font-size: 13px;
   font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
 }
-.emp-toast-success {
-  background: rgba(0,229,160,0.08);
-  border: 1px solid rgba(0,229,160,0.2);
-  color: var(--accent);
+.emp-btn-danger:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
+
+/* Modal (reuse) */
+.emp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: empFadeIn 0.15s ease;
 }
-.emp-toast-error {
-  background: rgba(255,79,79,0.08);
-  border: 1px solid rgba(255,79,79,0.2);
-  color: var(--danger);
+.emp-modal {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+  animation: empScaleIn 0.2s ease;
 }
+.emp-modal-md { max-width: 560px; }
+.emp-modal-sm { max-width: 400px; }
+.emp-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.emp-modal-title {
+  font-family: var(--fh);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+.emp-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+.emp-modal-close:hover { color: var(--text); }
+.emp-modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+.emp-modal-foot {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+}
+.emp-modal-icon-wrap { text-align: center; margin-bottom: 16px; }
+.emp-modal-icon { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; font-size: 26px; }
+.emp-modal-icon.icon-danger { background: rgba(239,68,68,0.1); }
+.emp-modal-heading { font-family: var(--fh); font-size: 18px; font-weight: 600; color: var(--text); text-align: center; margin: 0 0 8px; }
+.emp-modal-desc { font-size: 13px; line-height: 1.6; color: var(--muted); text-align: center; margin: 0; }
+
+@keyframes empFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes empScaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.mm-loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border);
+  border-top: 3px solid var(--purple);
+  border-radius: 50%;
+  animation: mm-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes mm-spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 640px) {
   .emp-form-row { grid-template-columns: 1fr; }
+  .emp-avatar-section { flex-direction: column; align-items: flex-start; }
+  .emp-section-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .emp-danger-body { flex-direction: column; align-items: flex-start; }
+  .tfa-verify-row { flex-direction: column; align-items: stretch; }
+  .tfa-code-input { width: 100%; }
 }
 </style>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-(function () {
-  function toast(msg, type) {
-    if (window.AngaziaApp && AngaziaApp.showToast) {
-      AngaziaApp.showToast(msg, type);
-    } else {
-      alert((type === 'error' ? 'Error: ' : '') + msg);
-    }
-  }
-
-  // Avatar upload
-  var avatarInput = document.getElementById('avatar-upload-input');
-  var avatarBtn = document.getElementById('avatar-upload-btn');
-  var avatarFileName = document.getElementById('avatar-file-name');
-  var avatarPreviewImg = document.getElementById('avatar-preview-img');
-  var avatarPreviewInit = document.getElementById('avatar-preview-init');
-  var selectedAvatarFile = null;
-  if (avatarInput && avatarBtn) {
-    avatarInput.addEventListener('change', function () {
-      selectedAvatarFile = avatarInput.files[0];
-      if (selectedAvatarFile) {
-        avatarBtn.disabled = false;
-        avatarFileName.textContent = selectedAvatarFile.name;
-        var reader = new FileReader();
-        reader.onload = function (e) {
-          if (avatarPreviewImg) {
-            avatarPreviewImg.src = e.target.result;
-            avatarPreviewImg.style.display = '';
-          }
-          if (avatarPreviewInit) avatarPreviewInit.style.display = 'none';
-        };
-        reader.readAsDataURL(selectedAvatarFile);
-      } else {
-        avatarBtn.disabled = true;
-        avatarFileName.textContent = '';
-      }
-    });
-    avatarBtn.addEventListener('click', function () {
-      if (!selectedAvatarFile) return;
-      avatarBtn.disabled = true;
-      avatarBtn.textContent = 'Uploading...';
-      var fd = new FormData();
-      fd.append('avatar', selectedAvatarFile);
-      AngaziaAPI.profile.uploadAvatar(fd).then(function (resp) {
-        toast('Profile picture updated!', 'success');
-        selectedAvatarFile = null;
-        avatarBtn.textContent = 'Upload';
-        avatarFileName.textContent = '';
-        avatarInput.value = '';
-      }).catch(function (err) {
-        toast(err.message || 'Failed to upload avatar', 'error');
-        avatarBtn.disabled = false;
-        avatarBtn.textContent = 'Upload';
-      });
-    });
-  }
-
-  var pf = document.getElementById('form-profile');
-  if (pf) {
-    pf.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var fd = new FormData(pf);
-      var data = {};
-      fd.forEach(function (v, k) { data[k] = v; });
-      var btn = pf.querySelector('button[type="submit"]');
-      btn.disabled = true;
-      btn.textContent = 'Saving...';
-      AngaziaAPI.profile.update(data).then(function () {
-        toast('Profile saved successfully', 'success');
-      }).catch(function (err) {
-        toast(err.message || 'Failed to save profile', 'error');
-      }).then(function () {
-        btn.disabled = false;
-        btn.textContent = 'Save Changes';
-      });
-    });
-  }
-
-  var pwf = document.getElementById('form-password');
-  if (pwf) {
-    pwf.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var fd = new FormData(pwf);
-      var current = fd.get('current_password');
-      var newPw = fd.get('new_password');
-      var confirm = fd.get('confirm_password');
-      if (newPw !== confirm) {
-        toast('Passwords do not match', 'error');
-        return;
-      }
-      var btn = pwf.querySelector('button[type="submit"]');
-      btn.disabled = true;
-      btn.textContent = 'Updating...';
-      AngaziaAPI.auth.changePassword({ old_password: current, new_password: newPw }).then(function () {
-        toast('Password changed successfully', 'success');
-        pwf.reset();
-      }).catch(function (err) {
-        toast(err.message || 'Failed to change password', 'error');
-      }).then(function () {
-        btn.disabled = false;
-        btn.textContent = 'Update Password';
-      });
-    });
-  }
-
-  (function(){
-    var loadingEl=document.getElementById('tfa-status-loading');
-    var notEnabled=document.getElementById('tfa-not-enabled');
-    var enabledDiv=document.getElementById('tfa-enabled');
-    var tfaError=document.getElementById('tfa-error');
-    function showTfaError(m){
-      if(tfaError){tfaError.textContent=m;tfaError.style.display='';}
-    }
-    function hideTfaError(){
-      if(tfaError)tfaError.style.display='none';
-    }
-    AngaziaAPI.auth.twoFA.status().then(function(data){
-      if(loadingEl)loadingEl.style.display='none';
-      if(data&&data.enabled){
-        if(notEnabled)notEnabled.style.display='none';
-        if(enabledDiv)enabledDiv.style.display='';
-      }else{
-        if(notEnabled)notEnabled.style.display='';
-        if(enabledDiv)enabledDiv.style.display='none';
-      }
-    }).catch(function(){
-      if(loadingEl)loadingEl.style.display='none';
-      if(notEnabled)notEnabled.style.display='';
-      if(enabledDiv)enabledDiv.style.display='none';
-    });
-    var enableBtn=document.getElementById('tfa-enable-btn');
-    if(enableBtn){
-      enableBtn.addEventListener('click',function(){
-        window.open('/auth/2fa/setup','_blank');
-      });
-    }
-    var disableBtn=document.getElementById('tfa-disable-btn');
-    if(disableBtn){
-      disableBtn.addEventListener('click',function(){
-        if(!confirm('Are you sure you want to disable two-factor authentication?'))return;
-        var code=prompt('Enter your current TOTP code (or a backup code):');
-        if(!code)return;
-        var password=prompt('Confirm your password:');
-        if(!password)return;
-        hideTfaError();
-        disableBtn.disabled=true;
-        disableBtn.textContent='Disabling\u2026';
-        AngaziaAPI.auth.twoFA.disable({code:code,password:password}).then(function(){
-          window.location.reload();
-        }).catch(function(err){
-          disableBtn.disabled=false;
-          disableBtn.textContent='Disable 2FA';
-          showTfaError((err.body&&err.body.message)||err.message||'Failed to disable 2FA');
-        });
-      });
-    }
-    var viewBackupBtn=document.getElementById('tfa-view-backup-btn');
-    if(viewBackupBtn){
-      viewBackupBtn.addEventListener('click',function(){
-        hideTfaError();
-        if(!confirm('Generate new backup codes? Your existing codes will be invalidated.'))return;
-        viewBackupBtn.disabled=true;
-        viewBackupBtn.textContent='Generating\u2026';
-        AngaziaAPI.auth.twoFA.generateBackupCodes().then(function(data){
-          viewBackupBtn.disabled=false;
-          viewBackupBtn.textContent='Generate New Backup Codes';
-          if(data&&data.backup_codes&&data.backup_codes.length){
-            var msg='Your New Backup Codes:\n\n'+data.backup_codes.join('\n')+'\n\nStore these securely! You will not be able to view them again.';
-            alert(msg);
-          }else{
-            showTfaError('Failed to generate backup codes');
-          }
-        }).catch(function(err){
-          viewBackupBtn.disabled=false;
-          viewBackupBtn.textContent='Generate New Backup Codes';
-          showTfaError((err.body&&err.body.message)||err.message||'Failed to generate backup codes');
-        });
-      });
-    }
-  })();
-
-  // Notification preferences
-  var notifLoading = document.getElementById('notif-prefs-loading');
-  var notifForm = document.getElementById('form-notifications');
-  var notifError = document.getElementById('notif-prefs-error');
-
-  function showNotifError(msg) {
-    if (notifError) { notifError.textContent = msg; notifError.style.display = ''; }
-  }
-
-  function hideNotifError() {
-    if (notifError) notifError.style.display = 'none';
-  }
-
-  function setCheckboxes(prefs) {
-    if (!prefs || !notifForm) return;
-    var fields = [
-      'application_updates', 'job_alerts', 'interview_reminders',
-      'messages', 'system_alerts', 'marketing',
-      'push_enabled', 'email_enabled', 'in_app_enabled'
-    ];
-    for (var i = 0; i < fields.length; i++) {
-      var key = fields[i];
-      var val = prefs[key];
-      if (typeof val === 'boolean') {
-        var cb = notifForm.querySelector('input[name="' + key + '"]');
-        if (cb) cb.checked = val;
-      }
-    }
-  }
-
-  if (notifForm) {
-    AngaziaAPI.notifications.getPreferences()
-      .then(function (prefs) {
-        if (notifLoading) notifLoading.style.display = 'none';
-        notifForm.style.display = '';
-        setCheckboxes(prefs);
-      })
-      .catch(function () {
-        if (notifLoading) notifLoading.style.display = 'none';
-        notifForm.style.display = '';
-      });
-  }
-
-  var nf = document.getElementById('form-notifications');
-  if (nf) {
-    nf.addEventListener('submit', function (e) {
-      e.preventDefault();
-      hideNotifError();
-      var fd = new FormData(nf);
-      var fields = [
-        'application_updates', 'job_alerts', 'interview_reminders',
-        'messages', 'system_alerts', 'marketing',
-        'push_enabled', 'email_enabled', 'in_app_enabled'
-      ];
-      var data = {};
-      for (var i = 0; i < fields.length; i++) {
-        data[fields[i]] = !!fd.get(fields[i]);
-      }
-      var btn = nf.querySelector('button[type="submit"]');
-      btn.disabled = true;
-      btn.textContent = 'Saving...';
-      AngaziaAPI.notifications.updatePreferences(data).then(function () {
-        toast('Preferences saved successfully', 'success');
-      }).catch(function (err) {
-        showNotifError(err.message || 'Failed to save preferences');
-      }).then(function () {
-        btn.disabled = false;
-        btn.textContent = 'Save Preferences';
-      });
-    });
-  }
-})();
-});
-</script>
+<script src="/static/js/pages/employer/settings.js"></script>

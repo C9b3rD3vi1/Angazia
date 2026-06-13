@@ -6,6 +6,7 @@
   var totalPages = 1;
   var selectedIds = {};
   var elements = {};
+  var pendingBulkAction = null;
 
   function getJobId() {
     var parts = window.location.pathname.split('/');
@@ -32,7 +33,16 @@
       selectedCount: qs('ja-selected-count'),
       bulkShortlist: qs('ja-bulk-shortlist'),
       bulkReject: qs('ja-bulk-reject'),
-      clearSelection: qs('ja-clear-selection')
+      clearSelection: qs('ja-clear-selection'),
+      confirmModal: qs('ja-confirm-modal'),
+      confirmTitle: qs('ja-confirm-title'),
+      confirmIcon: qs('ja-confirm-icon'),
+      confirmHeading: qs('ja-confirm-heading'),
+      confirmDesc: qs('ja-confirm-desc'),
+      confirmYes: qs('ja-confirm-yes'),
+      confirmYesLabel: qs('ja-confirm-yes-label'),
+      confirmNo: qs('ja-confirm-no'),
+      confirmClose: qs('ja-confirm-close'),
     };
   }
 
@@ -101,6 +111,67 @@
         toast.style.opacity = '0';
         setTimeout(function () { toast.remove(); }, 300);
       }, 3000);
+    }
+  }
+
+  /* ── Modal helpers ── */
+  function setJaConfirmLoading(loading) {
+    if (!elements.confirmYes) return;
+    elements.confirmYes.disabled = loading;
+    elements.confirmYes.classList.toggle('emp-btn-loading', loading);
+  }
+
+  function showJaConfirmModal(title, icon, iconCls, heading, desc, btnClass, btnLabel, action) {
+    if (elements.confirmTitle) elements.confirmTitle.textContent = title;
+    if (elements.confirmIcon) {
+      elements.confirmIcon.textContent = icon;
+      elements.confirmIcon.className = 'emp-modal-icon ' + iconCls;
+    }
+    if (elements.confirmHeading) elements.confirmHeading.textContent = heading;
+    if (elements.confirmDesc) elements.confirmDesc.textContent = desc;
+    if (elements.confirmYesLabel) elements.confirmYesLabel.textContent = btnLabel;
+    elements.confirmYes.className = 'emp-btn ' + btnClass;
+    setJaConfirmLoading(false);
+    pendingBulkAction = action;
+    if (elements.confirmModal) elements.confirmModal.style.display = 'flex';
+  }
+
+  function hideJaConfirmModal() {
+    if (elements.confirmModal) elements.confirmModal.style.display = 'none';
+    setJaConfirmLoading(false);
+    pendingBulkAction = null;
+  }
+
+  function executeJaConfirmAction() {
+    if (!pendingBulkAction) return;
+    setJaConfirmLoading(true);
+
+    if (pendingBulkAction === 'shortlist') {
+      var ids = Object.keys(selectedIds);
+      AngaziaAPI.applications.bulkShortlist({ application_ids: ids }).then(function () {
+        hideJaConfirmModal();
+        toast(ids.length + ' application(s) shortlisted', 'success');
+        selectedIds = {};
+        updateBulkBar();
+        loadApplications();
+      }).catch(function (err) {
+        toast(err.message || 'Bulk shortlist failed', 'error');
+        setJaConfirmLoading(false);
+      });
+    } else if (pendingBulkAction === 'reject') {
+      var ids = Object.keys(selectedIds);
+      AngaziaAPI.applications.bulkReject({ application_ids: ids }).then(function () {
+        hideJaConfirmModal();
+        toast(ids.length + ' application(s) rejected', 'success');
+        selectedIds = {};
+        updateBulkBar();
+        loadApplications();
+      }).catch(function (err) {
+        toast(err.message || 'Bulk reject failed', 'error');
+        setJaConfirmLoading(false);
+      });
+    } else {
+      hideJaConfirmModal();
     }
   }
 
@@ -187,7 +258,6 @@
       '</tr>';
     }).join('');
 
-    // Attach checkbox events
     elements.tbody.querySelectorAll('.ja-select-item').forEach(function (cb) {
       cb.addEventListener('change', function () {
         if (this.checked) {
@@ -253,30 +323,28 @@
     var ids = Object.keys(selectedIds);
     if (ids.length === 0) return;
 
-    var confirmMsg = action === 'shortlist'
-      ? 'Shortlist ' + ids.length + ' application(s)?'
-      : 'Reject ' + ids.length + ' application(s)?';
-
-    if (!confirm(confirmMsg)) return;
-
     if (action === 'shortlist') {
-      AngaziaAPI.applications.bulkShortlist({ application_ids: ids }).then(function () {
-        toast(ids.length + ' application(s) shortlisted', 'success');
-        selectedIds = {};
-        updateBulkBar();
-        loadApplications();
-      }).catch(function (err) {
-        toast(err.message || 'Bulk shortlist failed', 'error');
-      });
+      showJaConfirmModal(
+        'Bulk Shortlist',
+        '\u2B50',
+        'icon-info',
+        'Shortlist ' + ids.length + ' ' + (ids.length === 1 ? 'Candidate' : 'Candidates') + '?',
+        ids.length + ' application(s) will be moved to shortlisted status.',
+        'emp-btn-primary',
+        'Yes, Shortlist',
+        'shortlist'
+      );
     } else {
-      AngaziaAPI.applications.bulkReject({ application_ids: ids }).then(function () {
-        toast(ids.length + ' application(s) rejected', 'success');
-        selectedIds = {};
-        updateBulkBar();
-        loadApplications();
-      }).catch(function (err) {
-        toast(err.message || 'Bulk reject failed', 'error');
-      });
+      showJaConfirmModal(
+        'Bulk Reject',
+        '\u2715',
+        'icon-danger',
+        'Reject ' + ids.length + ' ' + (ids.length === 1 ? 'Candidate' : 'Candidates') + '?',
+        ids.length + ' application(s) will be rejected and moved to rejected status.',
+        'emp-btn-danger',
+        'Yes, Reject',
+        'reject'
+      );
     }
   }
 
@@ -324,6 +392,25 @@
         }
       });
     }
+    if (elements.confirmYes) {
+      elements.confirmYes.addEventListener('click', executeJaConfirmAction);
+    }
+    if (elements.confirmNo) {
+      elements.confirmNo.addEventListener('click', hideJaConfirmModal);
+    }
+    if (elements.confirmClose) {
+      elements.confirmClose.addEventListener('click', hideJaConfirmModal);
+    }
+    if (elements.confirmModal) {
+      elements.confirmModal.addEventListener('click', function (e) {
+        if (e.target === elements.confirmModal) hideJaConfirmModal();
+      });
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && elements.confirmModal && elements.confirmModal.style.display === 'flex') {
+        hideJaConfirmModal();
+      }
+    });
   }
 
   function init() {

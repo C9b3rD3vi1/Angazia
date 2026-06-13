@@ -376,6 +376,8 @@ var AngaziaAPI = (function () {
       timeToHire: function () { return apiGet('/employer/analytics/time-to-hire'); },
       quality: function () { return apiGet('/employer/analytics/quality'); },
       sources: function () { return apiGet('/employer/analytics/sources'); },
+      demographics: function () { return apiGet('/employer/analytics/demographics'); },
+      stageDurations: function () { return apiGet('/employer/analytics/stage-durations'); },
       export: function () { return apiGet('/employer/analytics/export'); },
       candidateDashboard: function () { return apiGet('/employee/analytics/dashboard'); },
       profileStrength: function () { return apiGet('/employee/analytics/profile-strength'); },

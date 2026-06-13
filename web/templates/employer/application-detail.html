@@ -26,11 +26,13 @@
       <div class="emp-card-header">
         <div class="emp-card-header-left emp-cd-profile-row">
           <div class="emp-cd-avatar" id="ad-avatar">
+            <img id="ad-avatar-img" class="emp-cd-avatar-img" src="" alt="" style="display:none;">
             <span class="emp-cd-initials" id="ad-initials">--</span>
           </div>
           <div>
             <h2 class="emp-card-title" id="ad-candidate-name">--</h2>
             <span class="emp-text-muted" id="ad-candidate-email"></span>
+            <a id="ad-view-profile" class="emp-link ad-view-profile-link" href="" style="display:none;">View Full Profile &rarr;</a>
           </div>
         </div>
         <div>
@@ -96,12 +98,14 @@
       </div>
     </div>
 
-    <div class="emp-card">
+    <div class="emp-card emp-notes-card">
       <div class="emp-card-header">
         <h2 class="emp-card-title">Employer Notes</h2>
+        <button class="emp-btn emp-btn-primary emp-btn-sm" id="ad-notes-save">Save Notes</button>
       </div>
       <div class="emp-card-body">
-        <textarea id="ad-notes" class="emp-textarea" rows="4" placeholder="Add private notes about this candidate..."></textarea>
+        <textarea id="ad-notes" class="emp-textarea emp-notes-textarea" rows="4" placeholder="Add private notes about this candidate..."></textarea>
+        <span id="ad-notes-status" class="emp-notes-status"></span>
       </div>
     </div>
 
@@ -111,6 +115,30 @@
       </div>
       <div class="emp-card-body">
         <p id="ad-ai-insights" class="emp-text-muted"></p>
+      </div>
+    </div>
+
+    {{/* Confirmation Modal */}}
+    <div class="emp-modal-overlay" id="ad-confirm-modal" style="display:none;">
+      <div class="emp-modal emp-modal-sm">
+        <div class="emp-modal-head">
+          <h3 class="emp-modal-title" id="ad-confirm-title">Confirm Action</h3>
+          <button class="emp-modal-close" id="ad-confirm-close">&times;</button>
+        </div>
+        <div class="emp-modal-body">
+          <div class="emp-modal-icon-wrap">
+            <span class="emp-modal-icon" id="ad-confirm-icon"></span>
+          </div>
+          <h4 class="emp-modal-heading" id="ad-confirm-heading">Are you sure?</h4>
+          <p class="emp-modal-desc" id="ad-confirm-desc"></p>
+        </div>
+        <div class="emp-modal-foot">
+          <button class="emp-btn emp-btn-ghost" id="ad-confirm-no">Cancel</button>
+          <button class="emp-btn" id="ad-confirm-yes">
+            <span class="emp-btn-label" id="ad-confirm-yes-label">Confirm</span>
+            <span class="emp-btn-spinner"></span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -142,7 +170,10 @@
         </div>
         <div class="emp-modal-foot">
           <button class="emp-btn emp-btn-ghost" id="ad-interview-cancel">Cancel</button>
-          <button class="emp-btn emp-btn-primary" id="ad-interview-confirm">Confirm</button>
+          <button class="emp-btn emp-btn-primary" id="ad-interview-confirm">
+            <span class="emp-btn-label">Schedule</span>
+            <span class="emp-btn-spinner"></span>
+          </button>
         </div>
       </div>
     </div>
@@ -167,8 +198,10 @@
 .emp-card-title { font-family: var(--fh); font-size: 16px; font-weight: 600; color: var(--text); margin: 0; }
 
 .emp-cd-profile-row { display: flex; align-items: center; gap: 14px; }
-.emp-cd-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--purple), #ec4899); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.emp-cd-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--purple), #ec4899); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+.emp-cd-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .emp-cd-initials { font-family: var(--fh); font-size: 16px; font-weight: 700; color: #fff; }
+.ad-view-profile-link { display: inline-block; margin-top: 4px; font-size: 11px; }
 
 .emp-text-muted { font-size: 12px; color: var(--muted); }
 
@@ -199,6 +232,31 @@
 .emp-modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted); }
 .emp-modal-body { padding: 24px; }
 .emp-modal-foot { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid var(--border); }
+.emp-modal-sm .emp-modal { max-width: 400px; }
+
+/* ── Enhanced Confirmation Modal ── */
+.emp-modal-overlay { animation: empFadeIn 0.15s ease; }
+@keyframes empFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.emp-modal { animation: empScaleIn 0.2s ease; }
+@keyframes empScaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.emp-modal-icon-wrap { text-align: center; margin-bottom: 16px; }
+.emp-modal-icon { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; font-size: 26px; }
+.emp-modal-icon.icon-danger { background: rgba(239,68,68,0.1); }
+.emp-modal-icon.icon-warning { background: rgba(245,166,35,0.1); }
+.emp-modal-icon.icon-success { background: rgba(0,229,160,0.1); }
+.emp-modal-icon.icon-info { background: rgba(59,130,246,0.1); }
+.emp-modal-icon.icon-primary { background: rgba(139,92,246,0.1); }
+
+.emp-modal-heading { font-family: var(--fh); font-size: 18px; font-weight: 600; color: var(--text); text-align: center; margin: 0 0 8px; }
+.emp-modal-desc { font-size: 13px; line-height: 1.6; color: var(--muted); text-align: center; margin: 0; }
+
+.emp-btn-loading { position: relative; pointer-events: none; }
+.emp-btn-loading .emp-btn-label { opacity: 0; }
+.emp-btn-loading .emp-btn-spinner { display: inline-block !important; }
+.emp-btn-spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: empSpin 0.6s linear infinite; position: absolute; top: 50%; left: 50%; margin: -8px 0 0 -8px; }
+@keyframes empSpin { to { transform: rotate(360deg); } }
+
 .emp-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 .emp-label { font-family: var(--fm); font-size: 11px; letter-spacing: 0.5px; color: var(--muted); text-transform: uppercase; }
 .emp-input { padding: 10px 12px; background: var(--s2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; outline: none; }
@@ -207,10 +265,11 @@
 .emp-textarea:focus { border-color: var(--purple); }
 
 /* Employer Notes */
-.emp-card:has(#ad-notes) { border-left: 3px solid var(--purple); }
-.emp-card:has(#ad-notes) .emp-card-title::before { content: '\1F512'; margin-right: 6px; font-size: 13px; }
-#ad-notes { min-height: 80px; transition: border-color 0.15s, box-shadow 0.15s; }
-#ad-notes:focus { box-shadow: 0 0 0 3px rgba(139,92,246,0.15); }
+.emp-notes-card { border-left: 3px solid var(--purple); }
+.emp-notes-card .emp-card-title::before { content: '\1F512'; margin-right: 6px; font-size: 13px; }
+.emp-notes-textarea { width: 100%; min-height: 80px; transition: border-color 0.15s, box-shadow 0.15s; box-sizing: border-box; }
+.emp-notes-textarea:focus { box-shadow: 0 0 0 3px rgba(139,92,246,0.15); }
+.emp-notes-status { display: block; font-size: 11px; color: var(--muted2); margin-top: 6px; text-align: right; }
 
 @media (max-width: 860px) {
   .emp-detail-grid { grid-template-columns: 1fr; }

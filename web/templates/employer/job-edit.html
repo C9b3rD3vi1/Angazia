@@ -78,9 +78,13 @@
         </div>
 
         <div class="emp-field">
+          <label class="emp-label">Responsibilities</label>
+          <textarea name="responsibilities" id="field-responsibilities" class="emp-textarea" rows="5" placeholder="- List each responsibility on a new line&#10;- Example: Lead the design and architecture of backend services"></textarea>
+        </div>
+
+        <div class="emp-field">
           <label class="emp-label">Requirements <span class="emp-req">*</span></label>
           <textarea name="requirements" id="field-requirements" class="emp-textarea emp-textarea-list" rows="6" placeholder="- List each requirement on a new line&#10;- Each line becomes a bullet item&#10;- Example: 5+ years experience in Go" required></textarea>
-          <div id="requirements-preview" class="emp-req-preview"></div>
         </div>
       </div>
 
@@ -93,6 +97,12 @@
           <label class="emp-label">Required Skills</label>
           <input type="text" name="skills" id="field-skills" class="emp-input" placeholder="e.g. Go, PostgreSQL, React, Docker, AWS">
           <span class="emp-hint">Comma-separated list of required skills</span>
+        </div>
+
+        <div class="emp-field">
+          <label class="emp-label">Nice-to-Have Skills</label>
+          <input type="text" name="nice_to_have_skills" id="field-nice-skills" class="emp-input" placeholder="e.g. Kubernetes, GraphQL, Redis">
+          <span class="emp-hint">Comma-separated list of bonus skills</span>
         </div>
 
         <div class="emp-field">
@@ -121,6 +131,30 @@
       </div>
     </form>
   </section>
+</div>
+
+{{/* Confirmation Modal */}}
+<div class="emp-modal-overlay" id="je-confirm-modal" style="display:none;">
+  <div class="emp-modal emp-modal-sm">
+    <div class="emp-modal-head">
+      <h3 class="emp-modal-title" id="je-confirm-title">Save Changes</h3>
+      <button class="emp-modal-close" id="je-confirm-close">&times;</button>
+    </div>
+    <div class="emp-modal-body">
+      <div class="emp-modal-icon-wrap">
+        <span class="emp-modal-icon icon-info" id="je-confirm-icon">&#x1F4DD;</span>
+      </div>
+      <h4 class="emp-modal-heading" id="je-confirm-heading">Save changes to this job?</h4>
+      <p class="emp-modal-desc" id="je-confirm-desc">Changes will be visible immediately to candidates.</p>
+    </div>
+    <div class="emp-modal-foot">
+      <button class="emp-btn emp-btn-ghost" id="je-confirm-no">Cancel</button>
+      <button class="emp-btn emp-btn-primary" id="je-confirm-yes">
+        <span class="emp-btn-label" id="je-confirm-yes-label">Save Changes</span>
+        <span class="emp-btn-spinner"></span>
+      </button>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -248,37 +282,6 @@
   font-size: 12px;
   line-height: 1.8;
 }
-.emp-req-preview {
-  margin-top: 8px;
-  padding: 10px 14px;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  min-height: 0;
-  display: none;
-}
-.emp-req-preview.has-items {
-  display: block;
-}
-.emp-req-preview ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.emp-req-preview li {
-  padding: 3px 0 3px 18px;
-  font-size: 12px;
-  color: var(--text);
-  line-height: 1.6;
-  position: relative;
-}
-.emp-req-preview li::before {
-  content: "\\2022";
-  position: absolute;
-  left: 0;
-  color: var(--accent);
-  font-weight: 700;
-}
 
 @media (max-width: 860px) {
   .emp-page-head { flex-direction: column; align-items: flex-start; }
@@ -286,6 +289,61 @@
   .emp-row-2 { grid-template-columns: 1fr; }
   .emp-form-footer { flex-direction: column; align-items: stretch; }
   .emp-form-note { margin-left: 0; text-align: center; }
+}
+
+/* ── Enhanced Confirmation Modal ── */
+.emp-modal-overlay { animation: empFadeIn 0.15s ease; }
+@keyframes empFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.emp-modal { animation: empScaleIn 0.2s ease; }
+@keyframes empScaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.emp-modal-icon-wrap { text-align: center; margin-bottom: 16px; }
+.emp-modal-icon { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; font-size: 26px; }
+.emp-modal-icon.icon-danger { background: rgba(239,68,68,0.1); }
+.emp-modal-icon.icon-warning { background: rgba(245,166,35,0.1); }
+.emp-modal-icon.icon-success { background: rgba(0,229,160,0.1); }
+.emp-modal-icon.icon-info { background: rgba(59,130,246,0.1); }
+.emp-modal-icon.icon-primary { background: rgba(139,92,246,0.1); }
+.emp-modal-heading { font-family: var(--fh); font-size: 18px; font-weight: 600; color: var(--text); text-align: center; margin: 0 0 8px; }
+.emp-modal-desc { font-size: 13px; line-height: 1.6; color: var(--muted); text-align: center; margin: 0; }
+.emp-btn-loading { position: relative; pointer-events: none; }
+.emp-btn-loading .emp-btn-label { opacity: 0; }
+.emp-btn-loading .emp-btn-spinner { display: inline-block !important; }
+.emp-btn-spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: empSpin 0.6s linear infinite; position: absolute; top: 50%; left: 50%; margin: -8px 0 0 -8px; }
+@keyframes empSpin { to { transform: rotate(360deg); } }
+.emp-modal-sm .emp-modal { max-width: 400px; }
+.emp-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.emp-modal {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+}
+.emp-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.emp-modal-title { font-family: var(--fh); font-size: 18px; font-weight: 600; margin: 0; }
+.emp-modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted); }
+.emp-modal-body { padding: 24px; }
+.emp-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
 }
 </style>
 

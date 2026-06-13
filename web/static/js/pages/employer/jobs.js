@@ -1,15 +1,8 @@
-/**
- * Employer Jobs Management
- * Handles loading, displaying, filtering, and managing job listings
- */
-
 (function() {
   'use strict';
 
-  // DOM Elements
   let elements = {};
 
-  // Initialize the page
   function init() {
     cacheElements();
     attachEventListeners();
@@ -25,7 +18,7 @@
       error: document.getElementById('jobs-error'),
       errorMsg: document.getElementById('jobs-error-msg'),
       tbody: document.getElementById('jobs-tbody'),
-      filterSelect: document.getElementById('job-status-filter')
+      filterSelect: document.getElementById('job-status-filter'),
     };
   }
 
@@ -129,11 +122,6 @@
         <td class="emp-date-cell">${postedDate}</td>
         <td class="emp-actions-cell">
           <a href="/employer/job-applications/${jobId}" class="emp-action-link">View Apps</a>
-          ${job.is_active ? 
-            `<button class="emp-action-btn emp-action-close" data-job-id="${jobId}" data-job-title="${escapedTitle.replace(/'/g, "\\'")}">Close</button>` : 
-            ''
-          }
-          <button class="emp-action-btn emp-action-delete" data-job-id="${jobId}" data-job-title="${escapedTitle.replace(/'/g, "\\'")}">Delete</button>
         </td>
       </tr>
     `;
@@ -153,56 +141,7 @@
     });
   }
 
-  // Close a job
-  async function closeJob(jobId, jobTitle) {
-    if (!confirm(`Are you sure you want to close "${jobTitle}"? You can re-open it later.`)) {
-      return;
-    }
-    
-    showToast('Closing job...', 'info');
-    
-    try {
-      await AngaziaAPI.jobs.close(jobId);
-      loadJobs(); // Reload the list
-    } catch (error) {
-      console.error('Failed to close job:', error);
-    }
-  }
-
-  // Delete a job
-  async function deleteJob(jobId, jobTitle) {
-    if (!confirm(`⚠️ Are you sure you want to permanently delete "${jobTitle}"?\n\nThis action cannot be undone.`)) {
-      return;
-    }
-    
-    showToast('Deleting job...', 'info');
-    
-    try {
-      await AngaziaAPI.jobs.delete(jobId);
-      loadJobs(); // Reload the list
-    } catch (error) {
-      console.error('Failed to delete job:', error);
-    }
-  }
-
-  // Handle action button clicks (event delegation)
-  function handleActionClick(event) {
-    const target = event.target;
-    
-    if (target.classList.contains('emp-action-close')) {
-      const jobId = target.getAttribute('data-job-id');
-      const jobTitle = target.getAttribute('data-job-title');
-      if (jobId) closeJob(jobId, jobTitle);
-    }
-    
-    if (target.classList.contains('emp-action-delete')) {
-      const jobId = target.getAttribute('data-job-id');
-      const jobTitle = target.getAttribute('data-job-title');
-      if (jobId) deleteJob(jobId, jobTitle);
-    }
-  }
-
-  // UI State Management
+  // Helper Functions
   function showLoading() {
     if (elements.loading) elements.loading.style.display = 'block';
     if (elements.content) elements.content.style.display = 'none';
@@ -229,7 +168,6 @@
     }
   }
 
-  // Helper Functions
   function formatDate(dateStr) {
     if (!dateStr) return 'N/A';
     const date = new Date(dateStr);
@@ -247,63 +185,8 @@
     return div.innerHTML;
   }
 
-  function showToast(message, type) {
-    if (window.AngaziaApp && window.AngaziaApp.showToast) {
-      window.AngaziaApp.showToast(message, type);
-      return;
-    }
-    
-    // Fallback toast
-    const toast = document.createElement('div');
-    const bgColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
-    toast.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: ${bgColor};
-      color: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-family: monospace;
-      z-index: 9999;
-      animation: slideIn 0.3s ease;
-    `;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 300);
-    }, 3000);
-  }
-
-  // Add animation style if not exists
-  function addToastStyles() {
-    if (!document.querySelector('#toast-style')) {
-      const style = document.createElement('style');
-      style.id = 'toast-style';
-      style.textContent = `
-        @keyframes slideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-  }
-
-  // Set up event delegation for action buttons
-  function setupEventDelegation() {
-    if (elements.tbody) {
-      elements.tbody.addEventListener('click', handleActionClick);
-    }
-  }
-
   // Start the page
   function start() {
-    addToastStyles();
-    setupEventDelegation();
     init();
   }
 

@@ -32,6 +32,12 @@ func SetupAnalyticsRoutes(router fiber.Router, analyticsHandler *handlers.Analyt
 	// Source analytics
 	analytics.Get("/sources", analyticsHandler.GetSourceAnalytics)
 	
+	// Demographics
+	analytics.Get("/demographics", analyticsHandler.GetDemographics)
+	
+	// Stage durations
+	analytics.Get("/stage-durations", analyticsHandler.GetStageDurations)
+	
 	// Export
 	analytics.Get("/export", analyticsHandler.ExportAnalytics)
 }

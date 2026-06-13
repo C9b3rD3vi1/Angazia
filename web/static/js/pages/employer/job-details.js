@@ -9,6 +9,12 @@
   let jobId = null;
   let jobData = null;
   let elements = {};
+  let pendingJobAction = null;
+
+  const jobActionIcons = {
+    close: { icon: '\uD83D\uDD12', cls: 'icon-warning', heading: 'Close Job' },
+    delete: { icon: '\uD83D\uDDD1', cls: 'icon-danger', heading: 'Delete Job' },
+  };
 
   // Get job ID from URL
   function getJobIdFromUrl() {
@@ -43,8 +49,10 @@
       detailPosted: document.getElementById('detail-posted'),
       detailDeadline: document.getElementById('detail-deadline'),
       detailDescription: document.getElementById('detail-description'),
+      detailResponsibilities: document.getElementById('detail-responsibilities'),
       detailRequirements: document.getElementById('detail-requirements'),
       detailSkills: document.getElementById('detail-skills'),
+      detailNiceSkills: document.getElementById('detail-nice-skills'),
       
       // Applications
       recentApplications: document.getElementById('recent-applications'),
@@ -52,7 +60,17 @@
       // Buttons
       editBtn: document.getElementById('edit-job-btn'),
       closeBtn: document.getElementById('close-job-btn'),
-      deleteBtn: document.getElementById('delete-job-btn')
+      deleteBtn: document.getElementById('delete-job-btn'),
+
+      confirmModal: document.getElementById('jd-confirm-modal'),
+      confirmTitle: document.getElementById('jd-confirm-title'),
+      confirmIcon: document.getElementById('jd-confirm-icon'),
+      confirmHeading: document.getElementById('jd-confirm-heading'),
+      confirmDesc: document.getElementById('jd-confirm-desc'),
+      confirmYes: document.getElementById('jd-confirm-yes'),
+      confirmYesLabel: document.getElementById('jd-confirm-yes-label'),
+      confirmNo: document.getElementById('jd-confirm-no'),
+      confirmClose: document.getElementById('jd-confirm-close')
     };
   }
 
@@ -70,6 +88,15 @@
     
     if (elements.deleteBtn) {
       elements.deleteBtn.addEventListener('click', () => deleteJob());
+    }
+
+    if (elements.confirmYes) elements.confirmYes.addEventListener('click', executeJobAction);
+    if (elements.confirmNo) elements.confirmNo.addEventListener('click', hideJobConfirmModal);
+    if (elements.confirmClose) elements.confirmClose.addEventListener('click', hideJobConfirmModal);
+    if (elements.confirmModal) {
+      elements.confirmModal.addEventListener('click', (e) => {
+        if (e.target === elements.confirmModal) hideJobConfirmModal();
+      });
     }
   }
 
@@ -169,6 +196,9 @@
     if (elements.detailDescription) {
       elements.detailDescription.innerHTML = formatText(job.description || 'No description provided.');
     }
+    if (elements.detailResponsibilities) {
+      elements.detailResponsibilities.innerHTML = formatText(job.responsibilities || 'No responsibilities listed.');
+    }
     if (elements.detailRequirements) {
       elements.detailRequirements.innerHTML = formatRequirements(job.requirements);
     }
@@ -182,6 +212,16 @@
         ).join('');
       } else {
         elements.detailSkills.innerHTML = '<p class="emp-muted">No specific skills listed.</p>';
+      }
+    }
+    if (elements.detailNiceSkills) {
+      const niceSkills = job.nice_to_have_skills || [];
+      if (niceSkills.length > 0) {
+        elements.detailNiceSkills.innerHTML = niceSkills.map(skill => 
+          `<span class="emp-skill-badge">${escapeHtml(skill)}</span>`
+        ).join('');
+      } else {
+        elements.detailNiceSkills.innerHTML = '<p class="emp-muted">No nice-to-have skills listed.</p>';
       }
     }
   }
@@ -200,34 +240,159 @@
       return;
     }
     
-    elements.recentApplications.innerHTML = applications.map(app => `
+    elements.recentApplications.innerHTML = applications.map(app => {
+      const emp = app.employee || {};
+      const name = emp.full_name || app.candidate_name || app.name || 'Candidate';
+      const email = (emp.user && emp.user.email) || '';
+      const avatarUrl = emp.user && emp.user.avatar_url ? emp.user.avatar_url : null;
+      return `
       <div class="emp-application-item">
+        <div class="emp-application-avatar">
+          ${avatarUrl ? `<img src="${escapeHtml(avatarUrl)}" alt="" class="emp-avatar-img">` : `<div class="emp-avatar-placeholder">${name.charAt(0).toUpperCase()}</div>`}
+        </div>
         <div class="emp-application-score">${app.match_score || 0}%</div>
         <div class="emp-application-info">
-          <div class="emp-application-name">${escapeHtml(app.employee_name || 'Candidate')}</div>
+          <div class="emp-application-name">${escapeHtml(name)}</div>
           <div class="emp-application-details">
             <span>📅 Applied ${formatDate(app.applied_at)}</span>
-            <span>📧 ${escapeHtml(app.employee_email || 'No email')}</span>
+            <span>${email ? `📧 ${escapeHtml(email)}` : ''}</span>
           </div>
         </div>
         <div class="emp-application-actions">
-          <a href="/employer/application/${app.id}" class="emp-link">Review →</a>
+          <a href="/employer/applications/${app.id}" class="emp-link">Review →</a>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
+  }
+
+  function setJobConfirmLoading(loading) {
+    if (!elements.confirmYes) return;
+    elements.confirmYes.disabled = loading;
+    elements.confirmYes.classList.toggle('emp-btn-loading', loading);
+  }
+
+  // Confirmation modal helpers
+  function showJobConfirmModal(title, message, btnClass, btnLabel, action) {
+    if (!elements.confirmModal) return;
+    var ico = jobActionIcons[action] || { icon: '\u26A0', cls: 'icon-warning', heading: title };
+    elements.confirmTitle.textContent = title;
+    if (elements.confirmIcon) {
+      elements.confirmIcon.textContent = ico.icon;
+      elements.confirmIcon.className = 'emp-modal-icon ' + ico.cls;
+    }
+    if (elements.confirmHeading) {
+      var jobTitle = jobData ? jobData.title : '';
+      elements.confirmHeading.textContent = jobTitle ? ico.heading + ': ' + jobTitle : ico.heading;
+    }
+    if (elements.confirmDesc) elements.confirmDesc.textContent = message;
+    if (elements.confirmYesLabel) elements.confirmYesLabel.textContent = btnLabel;
+    elements.confirmYes.className = 'emp-btn ' + btnClass;
+    setJobConfirmLoading(false);
+    pendingJobAction = action;
+    elements.confirmModal.style.display = 'flex';
+  }
+
+  function hideJobConfirmModal() {
+    if (elements.confirmModal) elements.confirmModal.style.display = 'none';
+    setJobConfirmLoading(false);
+    pendingJobAction = null;
+  }
+
+  function executeJobAction() {
+    if (!pendingJobAction) return;
+    setJobConfirmLoading(true);
+    if (pendingJobAction === 'close') {
+      executeCloseJob().then(function () {
+        hideJobConfirmModal();
+      }).catch(function () {
+        setJobConfirmLoading(false);
+      });
+    } else if (pendingJobAction === 'delete') {
+      executeDeleteJob().then(function () {
+        hideJobConfirmModal();
+      }).catch(function () {
+        setJobConfirmLoading(false);
+      });
+    } else {
+      hideJobConfirmModal();
+    }
   }
 
   // Close job
-  async function closeJob() {
-    if (!confirm(`Are you sure you want to close "${jobData.title}"?`)) {
-      return;
-    }
-    
-    showToast('Closing job...', 'info');
-    
+  function closeJob() {
+    var title = jobData ? jobData.title : '';
+    showJobConfirmModal(
+      'Close Job',
+      'Close "' + title + '"? It will no longer accept new applications. You can reopen it later.',
+      'emp-btn-warning',
+      'Yes, Close Job',
+      'close'
+    );
+  }
+
+  async function executeCloseJob() {
     try {
       await AngaziaAPI.jobs.close(jobId);
-      // Update UI
+      jobData.is_active = false;
+      renderJobDetails(jobData);
+    } catch (error) {
+      console.error('Failed to close job:', error);
+      throw error;
+    }
+  }
+
+  // Delete job
+  function deleteJob() {
+    var title = jobData ? jobData.title : '';
+    showJobConfirmModal(
+      'Delete Job',
+      'Permanently delete "' + title + '"? This cannot be undone. All associated applications will also be removed.',
+      'emp-btn-danger',
+      'Yes, Delete Job',
+      'delete'
+    );
+  }
+
+  async function executeDeleteJob() {
+    try {
+      await AngaziaAPI.jobs.delete(jobId);
+      window.location.href = '/employer/jobs';
+    } catch (error) {
+      console.error('Failed to delete job:', error);
+      throw error;
+    }
+  }
+
+  function hideJobConfirmModal() {
+    if (elements.confirmModal) elements.confirmModal.style.display = 'none';
+    pendingJobAction = null;
+  }
+
+  function executeJobAction() {
+    if (!pendingJobAction) return;
+    if (pendingJobAction === 'close') {
+      executeCloseJob();
+    } else if (pendingJobAction === 'delete') {
+      executeDeleteJob();
+    }
+    hideJobConfirmModal();
+  }
+
+  // Close job
+  function closeJob() {
+    showJobConfirmModal(
+      'Close Job',
+      `Are you sure you want to close "${jobData ? jobData.title : 'this job'}"? It will no longer accept new applications.`,
+      'emp-btn-warning',
+      'Yes, Close Job',
+      'close'
+    );
+  }
+
+  async function executeCloseJob() {
+    showToast('Closing job...', 'info');
+    try {
+      await AngaziaAPI.jobs.close(jobId);
       jobData.is_active = false;
       renderJobDetails(jobData);
     } catch (error) {
@@ -236,16 +401,20 @@
   }
 
   // Delete job
-  async function deleteJob() {
-    if (!confirm(`⚠️ Are you sure you want to permanently delete "${jobData.title}"?\n\nThis action cannot be undone.`)) {
-      return;
-    }
-    
+  function deleteJob() {
+    showJobConfirmModal(
+      'Delete Job',
+      `Are you sure you want to permanently delete "${jobData ? jobData.title : 'this job'}"? This action cannot be undone. All associated applications will also be removed.`,
+      'emp-btn-danger',
+      'Yes, Delete Job',
+      'delete'
+    );
+  }
+
+  async function executeDeleteJob() {
     showToast('Deleting job...', 'info');
-    
     try {
       await AngaziaAPI.jobs.delete(jobId);
-      // Redirect to jobs list
       setTimeout(() => {
         window.location.href = '/employer/jobs';
       }, 1500);
@@ -408,6 +577,9 @@
         .emp-req-list { list-style: none; padding: 0; margin: 0; }
         .emp-req-item { padding: 6px 0 6px 20px; font-size: 14px; line-height: 1.6; color: var(--text); position: relative; }
         .emp-req-item::before { content: "\\2713"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+        .emp-application-avatar { width: 36px; height: 36px; border-radius: 50%; overflow: hidden; flex-shrink: 0; margin-right: 12px; }
+        .emp-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .emp-avatar-placeholder { width: 100%; height: 100%; background: var(--purple); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; border-radius: 50%; }
       `;
       document.head.appendChild(style);
     }

@@ -74,6 +74,30 @@
   </div>
 </div>
 
+{{/* Confirmation Modal */}}
+<div class="emp-modal-overlay" id="ja-confirm-modal" style="display:none;">
+  <div class="emp-modal emp-modal-sm">
+    <div class="emp-modal-head">
+      <h3 class="emp-modal-title" id="ja-confirm-title">Confirm Action</h3>
+      <button class="emp-modal-close" id="ja-confirm-close">&times;</button>
+    </div>
+    <div class="emp-modal-body">
+      <div class="emp-modal-icon-wrap">
+        <span class="emp-modal-icon" id="ja-confirm-icon"></span>
+      </div>
+      <h4 class="emp-modal-heading" id="ja-confirm-heading">Are you sure?</h4>
+      <p class="emp-modal-desc" id="ja-confirm-desc"></p>
+    </div>
+    <div class="emp-modal-foot">
+      <button class="emp-btn emp-btn-ghost" id="ja-confirm-no">Cancel</button>
+      <button class="emp-btn" id="ja-confirm-yes">
+        <span class="emp-btn-label" id="ja-confirm-yes-label">Confirm</span>
+        <span class="emp-btn-spinner"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <style>
 .emp-loading, .emp-error {
   text-align: center;
@@ -220,6 +244,32 @@
   .emp-page-head { flex-direction: column; align-items: flex-start; }
   .emp-card-header { flex-direction: column; align-items: flex-start; }
 }
+
+/* ── Enhanced Confirmation Modal ── */
+.emp-modal-overlay { animation: empFadeIn 0.15s ease; position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000; }
+@keyframes empFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.emp-modal { animation: empScaleIn 0.2s ease; background:var(--s1);border:1px solid var(--border);border-radius:16px;width:90%;max-width:500px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2); }
+@keyframes empScaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.emp-modal-head { display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid var(--border); }
+.emp-modal-title { font-family:var(--fh);font-size:18px;font-weight:600;margin:0; }
+.emp-modal-close { background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted); }
+.emp-modal-body { padding:24px; }
+.emp-modal-foot { display:flex;justify-content:flex-end;gap:12px;padding:16px 24px;border-top:1px solid var(--border); }
+.emp-modal-icon-wrap { text-align:center;margin-bottom:16px; }
+.emp-modal-icon { display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;font-size:26px; }
+.emp-modal-icon.icon-danger { background:rgba(239,68,68,0.1); }
+.emp-modal-icon.icon-warning { background:rgba(245,166,35,0.1); }
+.emp-modal-icon.icon-success { background:rgba(0,229,160,0.1); }
+.emp-modal-icon.icon-info { background:rgba(59,130,246,0.1); }
+.emp-modal-icon.icon-primary { background:rgba(139,92,246,0.1); }
+.emp-modal-heading { font-family:var(--fh);font-size:18px;font-weight:600;color:var(--text);text-align:center;margin:0 0 8px; }
+.emp-modal-desc { font-size:13px;line-height:1.6;color:var(--muted);text-align:center;margin:0; }
+.emp-btn-loading { position:relative;pointer-events:none; }
+.emp-btn-loading .emp-btn-label { opacity:0; }
+.emp-btn-loading .emp-btn-spinner { display:inline-block!important; }
+.emp-btn-spinner { display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:empSpin 0.6s linear infinite;position:absolute;top:50%;left:50%;margin:-8px 0 0 -8px; }
+@keyframes empSpin { to { transform:rotate(360deg); } }
+.emp-modal-sm .emp-modal { max-width:400px; }
 </style>
 
 <script src="/static/js/pages/employer/job-applications.js"></script>

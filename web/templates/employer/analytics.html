@@ -86,6 +86,11 @@
       <section class="emp-section">
         <div class="emp-section-head">
           <h2 class="emp-section-title">Applications Over Time</h2>
+          <div class="an-period-type" id="an-period-type">
+            <button class="an-period-btn active" data-period="daily">Daily</button>
+            <button class="an-period-btn" data-period="weekly">Weekly</button>
+            <button class="an-period-btn" data-period="monthly">Monthly</button>
+          </div>
         </div>
         <div class="emp-chart-wrap">
           <canvas id="an-trends-chart"></canvas>
@@ -156,9 +161,29 @@
     <div class="emp-grid-2col">
       <section class="emp-section">
         <div class="emp-section-head">
+          <h2 class="emp-section-title">Applicant Demographics</h2>
+        </div>
+        <div id="an-demographics">
+          <div class="emp-loading-small">Loading…</div>
+        </div>
+      </section>
+
+      <section class="emp-section">
+        <div class="emp-section-head">
           <h2 class="emp-section-title">Time to Hire</h2>
         </div>
         <div id="an-time-to-hire">
+          <div class="emp-loading-small">Loading…</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="emp-grid-2col">
+      <section class="emp-section">
+        <div class="emp-section-head">
+          <h2 class="emp-section-title">Stage Duration</h2>
+        </div>
+        <div id="an-stage-durations">
           <div class="emp-loading-small">Loading…</div>
         </div>
       </section>
@@ -586,6 +611,137 @@
 .emp-quality-item.medium .emp-quality-value { color: #f59e0b; }
 .emp-quality-item.low .emp-quality-value { color: var(--danger); }
 
+/* ── Period type toggle ── */
+.an-period-type {
+  display: flex;
+  gap: 2px;
+  background: var(--s2);
+  border-radius: 8px;
+  padding: 2px;
+}
+.an-period-btn {
+  padding: 5px 12px;
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--fm);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.an-period-btn:hover { color: var(--text); }
+.an-period-btn.active {
+  background: var(--s1);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* ── Demographics ── */
+.an-demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.an-demo-group { }
+.an-demo-title {
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--fm);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.an-demo-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.an-demo-label {
+  font-size: 11px;
+  color: var(--text);
+  min-width: 60px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.an-demo-track {
+  flex: 1;
+  height: 18px;
+  background: var(--s2);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+.an-demo-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: linear-gradient(90deg, var(--purple), #ec4899);
+  min-width: 2px;
+}
+.an-demo-fill.alt { background: linear-gradient(90deg, #3b82f6, #14b8a6); }
+.an-demo-pct {
+  font-size: 10px;
+  color: var(--muted2);
+  min-width: 32px;
+  text-align: right;
+}
+.an-demo-empty {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  padding: 16px 0;
+}
+
+/* ── Stage Duration ── */
+.an-sd-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.an-sd-item {
+  text-align: center;
+  padding: 14px 8px;
+  background: var(--s2);
+  border-radius: 10px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  cursor: default;
+}
+.an-sd-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  background: var(--s1);
+}
+.an-sd-arrow {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.an-sd-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: var(--fh);
+  color: var(--text);
+  transition: color 0.2s;
+}
+.an-sd-item:hover .an-sd-value { color: var(--purple); }
+.an-sd-label {
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.an-sd-meta {
+  font-size: 9px;
+  color: var(--muted2);
+  margin-top: 4px;
+}
+.an-sd-empty {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  padding: 24px 0;
+}
+
 /* ── Time to hire ── */
 .emp-tth-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .emp-tth-item {
@@ -690,5 +846,5 @@
   .emp-stats-grid { grid-template-columns: 1fr; }
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="/static/js/pages/employer/analytics.js"></script>

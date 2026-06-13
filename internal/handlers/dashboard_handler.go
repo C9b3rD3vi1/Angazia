@@ -61,6 +61,18 @@ func (h *DashboardHandler) GetEmployerDashboard(c *fiber.Ctx) error {
 		return utils.InternalServerError(c, err.Error())
 	}
 
+	if quality, qErr := h.analyticsService.GetApplicationQualityScores(c.Context(), userID.(string)); qErr == nil {
+		dashboard.ApplicationQuality = quality
+	}
+
+	if tth, tErr := h.analyticsService.GetTimeToHireMetrics(c.Context(), userID.(string)); tErr == nil {
+		dashboard.TimeToHire = tth
+	}
+
+	if sources, sErr := h.analyticsService.GetSourceAnalytics(c.Context(), userID.(string)); sErr == nil {
+		dashboard.SourceAnalytics = sources
+	}
+
 	if sub, subErr := h.subscriptionService.GetCurrentSubscription(c.Context(), userID.(string)); subErr == nil && sub != nil {
 		jobsUsed := 0
 		if dashboard.Stats != nil {

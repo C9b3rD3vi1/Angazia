@@ -5,6 +5,10 @@
   var toastEl;
 
   var deletePoolId = null;
+  var removeModal, removeMsg, removeConfirm, removeCancel, removeClose, removeHeading, removeDesc;
+  var pendingRemovePoolId = null;
+  var pendingRemoveCandId = null;
+  var pendingRemoveCandName = '';
 
   function cacheEls() {
     loadingEl = document.getElementById('tp-loading');
@@ -33,6 +37,14 @@
     deleteErrorMsg = document.getElementById('tp-delete-error-msg');
 
     toastEl = document.getElementById('tp-toast');
+
+    removeModal = document.getElementById('tp-remove-modal');
+    removeMsg = document.getElementById('tp-remove-message');
+    removeConfirm = document.getElementById('tp-remove-confirm');
+    removeCancel = document.getElementById('tp-remove-cancel');
+    removeClose = document.getElementById('tp-remove-close');
+    removeHeading = document.getElementById('tp-remove-heading');
+    removeDesc = document.getElementById('tp-remove-desc');
   }
 
   function showLoading() {
@@ -105,15 +117,13 @@
 
         containerEl.querySelectorAll('.remove-candidate').forEach(function (btn) {
           btn.addEventListener('click', function () {
-            var pid = this.getAttribute('data-pool-id');
-            var cid = this.getAttribute('data-cand-id');
-            AngaziaAPI.talentPools.removeCandidate(pid, cid)
-              .then(function () {
-                loadAllPools();
-              })
-              .catch(function (err) {
-                console.error(err);
-              });
+            pendingRemovePoolId = this.getAttribute('data-pool-id');
+            pendingRemoveCandId = this.getAttribute('data-cand-id');
+            var nameEl = this.closest('.tp-candidate-main').querySelector('.tp-candidate-name');
+            pendingRemoveCandName = nameEl ? nameEl.textContent.trim() : '';
+            if (removeHeading) removeHeading.textContent = 'Remove Candidate' + (pendingRemoveCandName ? ': ' + pendingRemoveCandName : '');
+            if (removeDesc) removeDesc.textContent = 'Remove this candidate from the talent pool? They can be added again later.';
+            if (removeModal) removeModal.style.display = 'flex';
           });
         });
 
@@ -251,6 +261,38 @@
       });
   }
 
+  function setRemoveLoading(loading) {
+    if (!removeConfirm) return;
+    removeConfirm.disabled = loading;
+    removeConfirm.classList.toggle('emp-btn-loading', loading);
+  }
+
+  function executeRemoveCandidate() {
+    if (!pendingRemovePoolId || !pendingRemoveCandId) return;
+    setRemoveLoading(true);
+    AngaziaAPI.talentPools.removeCandidate(pendingRemovePoolId, pendingRemoveCandId)
+      .then(function () {
+        if (removeModal) removeModal.style.display = 'none';
+        setRemoveLoading(false);
+        pendingRemovePoolId = null;
+        pendingRemoveCandId = null;
+        pendingRemoveCandName = '';
+        loadAllPools();
+      })
+      .catch(function (err) {
+        console.error(err);
+        setRemoveLoading(false);
+      });
+  }
+
+  function closeRemoveModal() {
+    if (removeModal) removeModal.style.display = 'none';
+    setRemoveLoading(false);
+    pendingRemovePoolId = null;
+    pendingRemoveCandId = null;
+    pendingRemoveCandName = '';
+  }
+
   function initHandlers() {
     if (createBtn) createBtn.addEventListener('click', openCreateModal);
     if (createModalClose) createModalClose.addEventListener('click', closeCreateModal);
@@ -271,6 +313,13 @@
       deleteModal.addEventListener('click', function (e) { if (e.target === deleteModal) closeDeleteModal(); });
     }
     if (deleteConfirm) deleteConfirm.addEventListener('click', handleDelete);
+
+    if (removeConfirm) removeConfirm.addEventListener('click', executeRemoveCandidate);
+    if (removeCancel) removeCancel.addEventListener('click', closeRemoveModal);
+    if (removeClose) removeClose.addEventListener('click', closeRemoveModal);
+    if (removeModal) {
+      removeModal.addEventListener('click', function (e) { if (e.target === removeModal) closeRemoveModal(); });
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function () {

@@ -320,6 +320,44 @@ func (h *ApplicationHandler) RejectApplication(c *fiber.Ctx) error {
 	return utils.SuccessWithMessage(c, "Application rejected", nil)
 }
 
+// SaveNotes saves employer notes on an application
+// @Summary Save employer notes
+// @Description Save employer notes for an application
+// @Tags Applications
+// @Security BearerAuth
+// @Param id path string true "Application ID"
+// @Param notes body string false "Employer notes"
+// @Success 200 {object} APIResponse
+// @Router /employer/applications/{id}/notes [post]
+func (h *ApplicationHandler) SaveNotes(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+
+	applicationID := c.Params("id")
+	if applicationID == "" {
+		return utils.BadRequest(c, "Application ID is required")
+	}
+
+	var req struct {
+		Notes string `json:"notes"`
+	}
+	c.BodyParser(&req)
+
+	if err := h.applicationService.SaveNotes(c.Context(), applicationID, userID.(string), req.Notes); err != nil {
+		statusCode := fiber.StatusInternalServerError
+		if err.Error() == "application not found" {
+			statusCode = fiber.StatusNotFound
+		} else if err.Error() == "unauthorized: you don't own this job" {
+			statusCode = fiber.StatusForbidden
+		}
+		return utils.Error(c, statusCode, err.Error())
+	}
+
+	return utils.SuccessWithMessage(c, "Notes saved", nil)
+}
+
 // ScheduleInterview schedules an interview
 // @Summary Schedule interview
 // @Description Schedule an interview for an application

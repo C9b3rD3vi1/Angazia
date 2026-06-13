@@ -115,12 +115,15 @@ type DropOffPoint struct {
 
 // DashboardResponse combines all dashboard data into a single API response
 type DashboardResponse struct {
-	Stats            *DashboardStats           `json:"stats"`
+	Stats            *DashboardStats            `json:"stats"`
 	Trends           *ApplicationTrendsResponse `json:"trends"`
-	Funnel           *FunnelResponse           `json:"funnel"`
-	Jobs             []JobPerformance          `json:"jobs"`
-	RecentApps       []RecentApplication       `json:"recent_applications"`
-	Subscription     *SubscriptionInfo         `json:"subscription"`
+	Funnel           *FunnelResponse            `json:"funnel"`
+	Jobs             []JobPerformance           `json:"jobs"`
+	RecentApps       []RecentApplication        `json:"recent_applications"`
+	ApplicationQuality *ApplicationQualityScore `json:"application_quality"`
+	TimeToHire       *TimeToHireMetric          `json:"time_to_hire"`
+	SourceAnalytics  []SourceAnalytics          `json:"source_analytics"`
+	Subscription     *SubscriptionInfo          `json:"subscription"`
 }
 
 // RecentApplication is a lightweight application for dashboard lists
@@ -134,6 +137,28 @@ type RecentApplication struct {
 	Status        string `json:"status"`
 	MatchScore    float64 `json:"match_score"`
 	AppliedAt     string `json:"applied_at"`
+}
+
+// DemographicBucket holds a single demographic slice (e.g. experience level, location)
+type DemographicBucket struct {
+	Label      string  `json:"label"`
+	Count      int     `json:"count"`
+	Percentage float64 `json:"percentage"`
+}
+
+// DemographicsResponse groups applicant demographic breakdowns
+type DemographicsResponse struct {
+	ExperienceLevels []DemographicBucket `json:"experience_levels"`
+	Locations        []DemographicBucket `json:"locations"`
+}
+
+// StageDuration holds the average time (in hours) between funnel stages
+type StageDuration struct {
+	FromStage   string  `json:"from_stage"`
+	ToStage     string  `json:"to_stage"`
+	AvgHours    float64 `json:"avg_hours"`
+	AvgDays     float64 `json:"avg_days"`
+	SampleCount int     `json:"sample_count"`
 }
 
 // SubscriptionInfo is a lightweight subscription view for the dashboard

@@ -12,6 +12,16 @@
   let selectedIds = [];
   let currentFilters = {};
   let pendingInterviewId = null;
+  let pendingConfirmAction = null;
+  let pendingConfirmPayload = null;
+  let pendingConfirmEntity = '';
+
+  const actionIcons = {
+    shortlist: { icon: '\u2B50', cls: 'icon-info', heading: 'Shortlist Candidate' },
+    bulkShortlist: { icon: '\u2B50', cls: 'icon-info', heading: 'Bulk Shortlist' },
+    reject: { icon: '\u2715', cls: 'icon-danger', heading: 'Reject Candidate' },
+    hire: { icon: '\u2714', cls: 'icon-success', heading: 'Hire Candidate' },
+  };
 
   // DOM Elements
   const elements = {
@@ -36,7 +46,17 @@
     interviewNotes: document.getElementById('interview-notes'),
     interviewConfirm: document.getElementById('interview-modal-confirm'),
     interviewCancel: document.getElementById('interview-modal-cancel'),
-    interviewClose: document.getElementById('interview-modal-close')
+    interviewClose: document.getElementById('interview-modal-close'),
+
+    confirmModal: document.getElementById('app-confirm-modal'),
+    confirmTitle: document.getElementById('app-confirm-title'),
+    confirmIcon: document.getElementById('app-confirm-icon'),
+    confirmHeading: document.getElementById('app-confirm-heading'),
+    confirmDesc: document.getElementById('app-confirm-desc'),
+    confirmYes: document.getElementById('app-confirm-yes'),
+    confirmYesLabel: document.getElementById('app-confirm-yes-label'),
+    confirmNo: document.getElementById('app-confirm-no'),
+    confirmClose: document.getElementById('app-confirm-close')
   };
 
   // Add styles
@@ -244,7 +264,7 @@
   }
 
   // Handle action button clicks
-  async function handleActionClick(e) {
+  function handleActionClick(e) {
     e.stopPropagation();
     const btn = e.currentTarget;
     const action = btn.getAttribute('data-action');
@@ -254,25 +274,119 @@
     
     switch (action) {
       case 'shortlist':
-        await shortlistApplication(id, btn);
+        shortlistApplication(id);
         break;
       case 'reject':
-        await rejectApplication(id, btn);
+        rejectApplication(id);
         break;
       case 'interview':
         openInterviewModal(id);
         break;
       case 'hire':
-        await hireCandidate(id, btn);
+        hireCandidate(id);
         break;
     }
   }
 
+  function getCandidateNameById(id) {
+    var row = document.querySelector('.emp-app-row[data-id="' + id + '"]');
+    if (!row) return '';
+    var nameEl = row.querySelector('.emp-app-name');
+    return nameEl ? nameEl.textContent.trim() : '';
+  }
+
+  function setConfirmLoading(loading) {
+    if (!elements.confirmYes) return;
+    elements.confirmYes.disabled = loading;
+    elements.confirmYes.classList.toggle('emp-btn-loading', loading);
+  }
+
+  // Confirmation modal helpers
+  function showConfirmModal(title, message, action, payload, entityName) {
+    var ico = actionIcons[action] || { icon: '\u26A0', cls: 'icon-warning', heading: title };
+    if (elements.confirmTitle) elements.confirmTitle.textContent = title;
+    if (elements.confirmIcon) {
+      elements.confirmIcon.textContent = ico.icon;
+      elements.confirmIcon.className = 'emp-modal-icon ' + ico.cls;
+    }
+    if (elements.confirmHeading) {
+      elements.confirmHeading.textContent = entityName ? ico.heading + ': ' + entityName : ico.heading;
+    }
+    if (elements.confirmDesc) elements.confirmDesc.textContent = message;
+    if (elements.confirmYesLabel) elements.confirmYesLabel.textContent = 'Confirm';
+    elements.confirmYes.className = 'emp-btn';
+    setConfirmLoading(false);
+    pendingConfirmAction = action;
+    pendingConfirmPayload = payload;
+    pendingConfirmEntity = entityName || '';
+    if (elements.confirmModal) elements.confirmModal.style.display = 'flex';
+  }
+
+  function hideConfirmModal() {
+    if (elements.confirmModal) elements.confirmModal.style.display = 'none';
+    setConfirmLoading(false);
+    pendingConfirmAction = null;
+    pendingConfirmPayload = null;
+    pendingConfirmEntity = '';
+  }
+
+  function handleConfirmYes() {
+    setConfirmLoading(true);
+    switch (pendingConfirmAction) {
+      case 'shortlist':
+        executeShortlist(pendingConfirmPayload).then(function () {
+          hideConfirmModal();
+        }).catch(function () {
+          setConfirmLoading(false);
+        });
+        break;
+      case 'bulkShortlist':
+        executeBulkShortlist().then(function () {
+          hideConfirmModal();
+        }).catch(function () {
+          setConfirmLoading(false);
+        });
+        break;
+      case 'reject':
+        executeReject(pendingConfirmPayload).then(function () {
+          hideConfirmModal();
+        }).catch(function () {
+          setConfirmLoading(false);
+        });
+        break;
+      case 'hire':
+        executeHire(pendingConfirmPayload).then(function () {
+          hideConfirmModal();
+        }).catch(function () {
+          setConfirmLoading(false);
+        });
+        break;
+      case 'bulkReject':
+        executeBulkReject().then(function () {
+          hideConfirmModal();
+        }).catch(function () {
+          setConfirmLoading(false);
+        });
+        break;
+      default:
+        hideConfirmModal();
+    }
+  }
+
   // Shortlist application
-  async function shortlistApplication(id, btn) {
+  function shortlistApplication(id) {
+    var name = getCandidateNameById(id);
+    showConfirmModal(
+      'Shortlist Candidate',
+      'They will be moved to shortlisted status and considered for the next stage.',
+      'shortlist',
+      id,
+      name
+    );
+  }
+
+  async function executeShortlist(id) {
     try {
-      if (btn) btn.disabled = true;
-      
       await AngaziaAPI.applications.shortlist(id);
       showToast('Application shortlisted!', 'success');
       
@@ -298,18 +412,23 @@
     } catch (error) {
       console.error('Shortlist failed:', error);
       showToast(error.message || 'Failed to shortlist application', 'error');
-    } finally {
-      if (btn) btn.disabled = false;
     }
   }
 
   // Reject application
-  async function rejectApplication(id, btn) {
-    if (!confirm('Are you sure you want to reject this application?')) return;
-    
+  function rejectApplication(id, btn) {
+    var name = getCandidateNameById(id);
+    showConfirmModal(
+      'Reject Application',
+      'This application will be moved to rejected status and the candidate will be notified.',
+      'reject',
+      id,
+      name
+    );
+  }
+
+  async function executeReject(id) {
     try {
-      if (btn) btn.disabled = true;
-      
       await AngaziaAPI.applications.reject(id);
       showToast('Application rejected', 'success');
       
@@ -326,14 +445,14 @@
     } catch (error) {
       console.error('Reject failed:', error);
       showToast(error.message || 'Failed to reject application', 'error');
-    } finally {
-      if (btn) btn.disabled = false;
+      throw error;
     }
   }
 
   // Open interview modal
   function openInterviewModal(id) {
     pendingInterviewId = id;
+    setInterviewLoading(false);
     if (elements.interviewModal) {
       elements.interviewModal.style.display = 'flex';
       // Set default datetime to tomorrow at 10 AM
@@ -346,6 +465,12 @@
       if (elements.interviewType) elements.interviewType.value = 'technical';
       if (elements.interviewNotes) elements.interviewNotes.value = '';
     }
+  }
+
+  function setInterviewLoading(loading) {
+    if (!elements.interviewConfirm) return;
+    elements.interviewConfirm.disabled = loading;
+    elements.interviewConfirm.classList.toggle('emp-btn-loading', loading);
   }
 
   // Schedule interview
@@ -361,9 +486,11 @@
       return;
     }
     
+    setInterviewLoading(true);
+    
     try {
       await AngaziaAPI.applications.interview(pendingInterviewId, {
-        scheduled_at: datetime,
+        interview_date: datetime,
         interview_type: interviewType,
         notes: notes
       });
@@ -395,6 +522,7 @@
     } catch (error) {
       console.error('Schedule interview failed:', error);
       showToast(error.message || 'Failed to schedule interview', 'error');
+      setInterviewLoading(false);
     }
   }
 
@@ -407,12 +535,19 @@
   }
 
   // Hire candidate
-  async function hireCandidate(id, btn) {
-    if (!confirm('Mark this candidate as hired?')) return;
-    
+  function hireCandidate(id, btn) {
+    var name = getCandidateNameById(id);
+    showConfirmModal(
+      'Hire Candidate',
+      'This candidate will be marked as hired. Congratulations!',
+      'hire',
+      id,
+      name
+    );
+  }
+
+  async function executeHire(id) {
     try {
-      if (btn) btn.disabled = true;
-      
       await AngaziaAPI.applications.hire(id);
       showToast('Candidate marked as hired!', 'success');
       
@@ -432,18 +567,26 @@
     } catch (error) {
       console.error('Hire failed:', error);
       showToast(error.message || 'Failed to mark as hired', 'error');
-    } finally {
-      if (btn) btn.disabled = false;
+      throw error;
     }
   }
 
   // Bulk actions
-  async function bulkShortlist() {
+  function bulkShortlist() {
     if (selectedIds.length === 0) {
       showToast('Select at least one application', 'warning');
       return;
     }
-    
+    showConfirmModal(
+      'Bulk Shortlist',
+      `${selectedIds.length} candidate(s) will be shortlisted and moved to the next stage.`,
+      'bulkShortlist',
+      null,
+      selectedIds.length + ' ' + (selectedIds.length === 1 ? 'Candidate' : 'Candidates')
+    );
+  }
+
+  async function executeBulkShortlist() {
     try {
       await AngaziaAPI.applications.bulkShortlist({ application_ids: selectedIds });
       showToast(`${selectedIds.length} application(s) shortlisted`, 'success');
@@ -469,20 +612,27 @@
   }
 
   // Bulk reject
-  async function bulkReject() {
+  function bulkReject() {
     if (selectedIds.length === 0) {
       showToast('Select at least one application', 'warning');
       return;
     }
-    
-    if (!confirm(`Reject ${selectedIds.length} application(s)?`)) return;
-    
+    showConfirmModal(
+      'Bulk Reject',
+      selectedIds.length + ' application(s) will be rejected and moved to rejected status.',
+      'bulkReject',
+      null,
+      selectedIds.length + ' ' + (selectedIds.length === 1 ? 'Candidate' : 'Candidates')
+    );
+  }
+
+  async function executeBulkReject() {
     try {
       await AngaziaAPI.applications.bulkReject({ application_ids: selectedIds });
       
-      showToast(`${selectedIds.length} application(s) rejected`, 'success');
+      showToast(selectedIds.length + ' application(s) rejected', 'success');
       
-      selectedIds.forEach(id => {
+      selectedIds.forEach(function (id) {
         const row = document.querySelector(`.emp-app-row[data-id="${id}"]`);
         if (row) {
           const statusBadge = row.querySelector('.emp-status-badge');
@@ -498,6 +648,7 @@
     } catch (error) {
       console.error('Bulk reject failed:', error);
       showToast(error.message || 'Bulk action failed', 'error');
+      throw error;
     }
   }
 
@@ -686,6 +837,29 @@
         if (e.target === elements.interviewModal) closeInterviewModal();
       });
     }
+    
+    // Confirmation modal events
+    if (elements.confirmYes) {
+      elements.confirmYes.addEventListener('click', handleConfirmYes);
+    }
+    if (elements.confirmNo) {
+      elements.confirmNo.addEventListener('click', hideConfirmModal);
+    }
+    if (elements.confirmClose) {
+      elements.confirmClose.addEventListener('click', hideConfirmModal);
+    }
+    if (elements.confirmModal) {
+      elements.confirmModal.addEventListener('click', (e) => {
+        if (e.target === elements.confirmModal) hideConfirmModal();
+      });
+    }
+
+    // Escape key dismisses modals
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      if (elements.interviewModal && elements.interviewModal.style.display === 'flex') closeInterviewModal();
+      if (elements.confirmModal && elements.confirmModal.style.display === 'flex') hideConfirmModal();
+    });
   }
 
   // Initialize the page

@@ -82,6 +82,29 @@
   </div>
 </div>
 
+<div class="emp-modal-overlay" id="tp-remove-modal" style="display:none;">
+  <div class="emp-modal emp-modal-sm">
+    <div class="emp-modal-head">
+      <h3 class="emp-modal-title">Remove Candidate</h3>
+      <button class="emp-modal-close" id="tp-remove-close">&times;</button>
+    </div>
+    <div class="emp-modal-body">
+      <div class="emp-modal-icon-wrap">
+        <span class="emp-modal-icon icon-danger">&#x2715;</span>
+      </div>
+      <h4 class="emp-modal-heading" id="tp-remove-heading">Remove Candidate</h4>
+      <p class="emp-modal-desc" id="tp-remove-desc">Remove this candidate from the talent pool? They can be added again later.</p>
+    </div>
+    <div class="emp-modal-foot">
+      <button class="emp-btn emp-btn-ghost" id="tp-remove-cancel">Cancel</button>
+      <button class="emp-btn emp-btn-danger" id="tp-remove-confirm">
+        <span class="emp-btn-label">Remove</span>
+        <span class="emp-btn-spinner"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="tp-toast" class="emp-toast" style="display:none;"></div>
 
 <style>
@@ -316,57 +339,29 @@
   color: var(--danger);
   font-size: 13px;
 }
-.emp-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
-}
-.emp-label {
-  font-family: var(--fm);
-  font-size: 11px;
-  letter-spacing: 0.5px;
-  color: var(--muted);
-  text-transform: uppercase;
-}
-.emp-input {
-  padding: 10px 12px;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text);
-  font-size: 13px;
-  outline: none;
-}
-.emp-input:focus { border-color: var(--purple); }
-.emp-textarea {
-  padding: 10px 12px;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text);
-  font-size: 13px;
-  resize: vertical;
-  font-family: inherit;
-}
 
-.emp-toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  padding: 14px 20px;
-  border-radius: 10px;
-  font-size: 13px;
-  z-index: 2000;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  animation: toast-in 0.25s ease-out;
-}
-@keyframes toast-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.emp-toast.success { background: var(--accent); color: #000; }
-.emp-toast.error { background: var(--danger); color: #fff; }
+/* ── Enhanced Confirmation Modal ── */
+.emp-modal-overlay { animation: empFadeIn 0.15s ease; }
+@keyframes empFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.emp-modal { animation: empScaleIn 0.2s ease; }
+@keyframes empScaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.emp-modal-icon-wrap { text-align: center; margin-bottom: 16px; }
+.emp-modal-icon { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; font-size: 26px; }
+.emp-modal-icon.icon-danger { background: rgba(239,68,68,0.1); }
+.emp-modal-icon.icon-warning { background: rgba(245,166,35,0.1); }
+.emp-modal-icon.icon-success { background: rgba(0,229,160,0.1); }
+.emp-modal-icon.icon-info { background: rgba(59,130,246,0.1); }
+.emp-modal-icon.icon-primary { background: rgba(139,92,246,0.1); }
+
+.emp-modal-heading { font-family: var(--fh); font-size: 18px; font-weight: 600; color: var(--text); text-align: center; margin: 0 0 8px; }
+.emp-modal-desc { font-size: 13px; line-height: 1.6; color: var(--muted); text-align: center; margin: 0; }
+
+.emp-btn-loading { position: relative; pointer-events: none; }
+.emp-btn-loading .emp-btn-label { opacity: 0; }
+.emp-btn-loading .emp-btn-spinner { display: inline-block !important; }
+.emp-btn-spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: empSpin 0.6s linear infinite; position: absolute; top: 50%; left: 50%; margin: -8px 0 0 -8px; }
+@keyframes empSpin { to { transform: rotate(360deg); } }
 
 @media (max-width: 860px) {
   .emp-page-head { flex-direction: column; align-items: flex-start; }

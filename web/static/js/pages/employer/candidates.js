@@ -29,10 +29,27 @@
     locationFilter: document.getElementById('location-filter'),
     expFilter: document.getElementById('exp-filter'),
     availabilityFilter: document.getElementById('availability-filter'),
-    clearFiltersBtn: document.getElementById('clear-filters')
+    clearFiltersBtn: document.getElementById('clear-filters'),
+
+    poolModal: document.getElementById('cand-pool-modal'),
+    poolTitle: document.getElementById('cand-pool-title'),
+    poolHeading: document.getElementById('cand-pool-heading'),
+    poolDesc: document.getElementById('cand-pool-desc'),
+    poolSelect: document.getElementById('cand-pool-select'),
+    poolNewSection: document.getElementById('cand-new-pool-section'),
+    poolNewName: document.getElementById('cand-new-pool-name'),
+    poolCreateToggle: document.getElementById('cand-create-toggle'),
+    poolSave: document.getElementById('cand-pool-save'),
+    poolSaveLabel: document.getElementById('cand-pool-save').querySelector('.emp-btn-label'),
+    poolCancel: document.getElementById('cand-pool-cancel'),
+    poolClose: document.getElementById('cand-pool-close'),
+    poolError: document.getElementById('cand-pool-error'),
+    poolErrorMsg: document.getElementById('cand-pool-error-msg'),
   };
 
-  // Current filter state
+  let pendingSaveCandidateId = null;
+  let pendingSaveCandidateName = '';
+  let cachedPools = [];
   let currentFilters = {
     search: '',
     skill: '',
@@ -243,74 +260,128 @@
     }
   }
 
-  // Handle save button click
-  async function handleSaveClick(e) {
-    e.stopPropagation();
-    const btn = e.currentTarget;
-    const candidateId = btn.getAttribute('data-id');
-    await saveCandidate(candidateId, btn);
+  // ── Pool Picker Modal ──
+
+  function setPoolLoading(loading) {
+    if (!elements.poolSave) return;
+    elements.poolSave.disabled = loading;
+    elements.poolSave.classList.toggle('emp-btn-loading', loading);
   }
 
-  // Save candidate to talent pool
-  async function saveCandidate(candidateId, btn) {
-    try {
-      // Check if candidate is already in a pool
-      var existingPools = await AngaziaAPI.candidates.pools(candidateId);
-      if (existingPools && existingPools.length > 0) {
-        if (btn) {
-          btn.textContent = '✅ Saved';
-          btn.disabled = true;
-          btn.style.opacity = '0.6';
-        }
-        showToast('Candidate is already in your talent pool.', 'success');
-        return;
-      }
+  function showPoolError(msg) {
+    if (elements.poolError) elements.poolError.style.display = msg ? 'block' : 'none';
+    if (elements.poolErrorMsg) elements.poolErrorMsg.textContent = msg || '';
+  }
 
-      // Get or create a default talent pool
-      var resp = await AngaziaAPI.talentPools.list();
-      var pools = resp && resp.pools ? resp.pools : (Array.isArray(resp) ? resp : []);
-      
-      // Find existing "Saved Candidates" pool by name to avoid creating duplicates
-      var defaultPool = null;
-      for (var i = 0; i < pools.length; i++) {
-        var poolName = pools[i].name || pools[i].Name || '';
-        if (poolName === 'Saved Candidates') {
-          defaultPool = pools[i];
-          break;
+  function loadPools() {
+    return AngaziaAPI.talentPools.list({ limit: 100 })
+      .then(function (resp) {
+        cachedPools = resp && resp.pools ? resp.pools : (Array.isArray(resp) ? resp : []);
+        if (elements.poolSelect) {
+          var html = '<option value="">— Select a pool —</option>';
+          cachedPools.forEach(function (p) {
+            html += '<option value="' + (p.id || p.ID) + '">' + (p.name || 'Unnamed') + '</option>';
+          });
+          elements.poolSelect.innerHTML = html;
+          elements.poolSelect.value = '';
         }
-      }
-      // Fall back to first pool if no named match found
-      if (!defaultPool && pools.length > 0) {
-        defaultPool = pools[0];
-      }
-      
-      var defaultPoolId = defaultPool ? (defaultPool.id || defaultPool.ID) : null;
-      if (!defaultPoolId) {
-        // Create a default pool if none exists
-        var newPool = await AngaziaAPI.talentPools.create({
-          name: 'Saved Candidates',
-          description: 'Auto-generated pool for saved candidates'
+      })
+      .catch(function () {
+        cachedPools = [];
+      });
+  }
+
+  function openPoolPicker(candidateId, candidateName) {
+    pendingSaveCandidateId = candidateId;
+    pendingSaveCandidateName = candidateName || '';
+
+    if (elements.poolHeading) elements.poolHeading.textContent = 'Save' + (pendingSaveCandidateName ? ': ' + pendingSaveCandidateName : ' to Talent Pool');
+
+    // Reset UI
+    if (elements.poolNewSection) elements.poolNewSection.style.display = 'none';
+    if (elements.poolNewName) elements.poolNewName.value = '';
+    if (elements.poolDesc) elements.poolDesc.textContent = 'Choose a pool or create a new one to save this candidate for future reference.';
+    showPoolError('');
+    setPoolLoading(false);
+    loadPools().then(function () {
+      if (elements.poolModal) elements.poolModal.style.display = 'flex';
+    });
+  }
+
+  function closePoolPicker() {
+    if (elements.poolModal) elements.poolModal.style.display = 'none';
+    setPoolLoading(false);
+    showPoolError('');
+    pendingSaveCandidateId = null;
+    pendingSaveCandidateName = '';
+  }
+
+  function handlePoolSave() {
+    var candidateId = pendingSaveCandidateId;
+    var candidateName = pendingSaveCandidateName;
+    if (!candidateId) return;
+
+    var selectedPoolId = elements.poolSelect ? elements.poolSelect.value : '';
+    var newPoolName = elements.poolNewName ? elements.poolNewName.value.trim() : '';
+
+    // Validate
+    if (!selectedPoolId && !newPoolName) {
+      showPoolError('Please select a pool or enter a name for a new one.');
+      return;
+    }
+    if (newPoolName && newPoolName.length < 2) {
+      showPoolError('Pool name must be at least 2 characters.');
+      return;
+    }
+
+    showPoolError('');
+    setPoolLoading(true);
+
+    var poolPromise;
+    if (selectedPoolId) {
+      poolPromise = Promise.resolve(selectedPoolId);
+    } else {
+      poolPromise = AngaziaAPI.talentPools.create({ name: newPoolName })
+        .then(function (newPool) {
+          return newPool.id || newPool.ID || (newPool.data && newPool.data.id);
         });
-        defaultPoolId = newPool.id || newPool.ID;
-      }
-      
-      if (defaultPoolId) {
-        await AngaziaAPI.talentPools.addCandidate(defaultPoolId, {
-          employee_id: candidateId,
-          notes: 'Saved from candidate search',
-          match_score: 0
-        });
-        
+    }
+
+    poolPromise.then(function (poolId) {
+      return AngaziaAPI.talentPools.addCandidate(poolId, {
+        employee_id: candidateId,
+        notes: 'Saved from candidate search',
+        match_score: 0
+      }).then(function () {
+        closePoolPicker();
+        var btn = document.querySelector('.save-candidate-btn[data-id="' + candidateId + '"]');
         if (btn) {
           btn.textContent = '✅ Saved';
           btn.disabled = true;
           btn.style.opacity = '0.6';
         }
+        showToast((candidateName || 'Candidate') + ' saved to talent pool!', 'success');
+      });
+    }).catch(function (err) {
+      console.error('Failed to save candidate:', err);
+      setPoolLoading(false);
+      if (err && err.message) {
+        showPoolError(err.message);
+      } else {
+        showPoolError('Failed to save candidate. Please try again.');
       }
-    } catch (error) {
-      console.error('Failed to save candidate:', error);
-      console.error('Failed to save candidate:', error);
-    }
+    });
+  }
+
+  // Handle save button click
+  function handleSaveClick(e) {
+    e.stopPropagation();
+    var btn = e.currentTarget;
+    var candidateId = btn.getAttribute('data-id');
+    if (!candidateId) return;
+    var nameEl = btn.closest('.emp-candidate-card').querySelector('.emp-candidate-name');
+    var candidateName = nameEl ? nameEl.textContent.trim() : '';
+    openPoolPicker(candidateId, candidateName);
   }
 
   // Update pagination controls
@@ -495,6 +566,46 @@
     if (elements.nextBtn) {
       elements.nextBtn.addEventListener('click', nextPage);
     }
+
+    // Pool picker modal events
+    if (elements.poolSave) elements.poolSave.addEventListener('click', handlePoolSave);
+    if (elements.poolCancel) elements.poolCancel.addEventListener('click', closePoolPicker);
+    if (elements.poolClose) elements.poolClose.addEventListener('click', closePoolPicker);
+    if (elements.poolModal) {
+      elements.poolModal.addEventListener('click', function (e) {
+        if (e.target === elements.poolModal) closePoolPicker();
+      });
+    }
+    if (elements.poolCreateToggle) {
+      elements.poolCreateToggle.addEventListener('click', function () {
+        if (elements.poolNewSection) elements.poolNewSection.style.display = 'block';
+        if (elements.poolNewName) elements.poolNewName.focus();
+        if (elements.poolSelect) elements.poolSelect.value = '';
+        this.style.display = 'none';
+      });
+    }
+    if (elements.poolSelect) {
+      elements.poolSelect.addEventListener('change', function () {
+        if (this.value) {
+          if (elements.poolNewSection) elements.poolNewSection.style.display = 'none';
+          if (elements.poolNewName) elements.poolNewName.value = '';
+          if (elements.poolCreateToggle) elements.poolCreateToggle.style.display = 'flex';
+        }
+        showPoolError('');
+      });
+    }
+    if (elements.poolNewName) {
+      elements.poolNewName.addEventListener('input', function () {
+        showPoolError('');
+      });
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        if (elements.poolModal && elements.poolModal.style.display === 'flex') {
+          closePoolPicker();
+        }
+      }
+    });
   }
 
   // Initialize the page

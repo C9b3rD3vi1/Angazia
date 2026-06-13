@@ -40,6 +40,12 @@ type AnalyticsRepository interface {
 	// Source analytics
 	GetSourceAnalytics(ctx context.Context, employerID string) ([]models.SourceAnalytics, error)
 	
+	// Demographics
+	GetDemographics(ctx context.Context, employerID string) (*models.DemographicsResponse, error)
+	
+	// Stage durations
+	GetStageDurations(ctx context.Context, employerID string) ([]models.StageDuration, error)
+	
 	// Export data
 	ExportApplicationsData(ctx context.Context, employerID string, startDate, endDate time.Time) ([]map[string]interface{}, error)
 }
@@ -111,7 +117,7 @@ func (r *AnalyticsRepositoryImpl) GetDailyTrends(ctx context.Context, employerID
 	
 	query := `
 		SELECT 
-			DATE(a.applied_at) as date,
+			TO_CHAR(DATE(a.applied_at), 'YYYY-MM-DD') as date,
 			COUNT(*) as total,
 			SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) as pending,
 			SUM(CASE WHEN a.status = 'viewed' THEN 1 ELSE 0 END) as viewed,
@@ -136,7 +142,7 @@ func (r *AnalyticsRepositoryImpl) GetWeeklyTrends(ctx context.Context, employerI
 	
 	query := `
 		SELECT 
-			DATE_TRUNC('week', a.applied_at) as date,
+			TO_CHAR(DATE_TRUNC('week', a.applied_at), 'YYYY-MM-DD') as date,
 			COUNT(*) as total,
 			SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) as pending,
 			SUM(CASE WHEN a.status = 'viewed' THEN 1 ELSE 0 END) as viewed,
@@ -161,7 +167,7 @@ func (r *AnalyticsRepositoryImpl) GetMonthlyTrends(ctx context.Context, employer
 	
 	query := `
 		SELECT 
-			DATE_TRUNC('month', a.applied_at) as date,
+			TO_CHAR(DATE_TRUNC('month', a.applied_at), 'YYYY-MM-DD') as date,
 			COUNT(*) as total,
 			SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) as pending,
 			SUM(CASE WHEN a.status = 'viewed' THEN 1 ELSE 0 END) as viewed,
@@ -450,6 +456,128 @@ func (r *AnalyticsRepositoryImpl) GetSourceAnalytics(ctx context.Context, employ
 	
 	err := r.db.WithContext(ctx).Raw(query, employerID).Scan(&sources).Error
 	return sources, err
+}
+
+func (r *AnalyticsRepositoryImpl) GetDemographics(ctx context.Context, employerID string) (*models.DemographicsResponse, error) {
+	var levels []models.DemographicBucket
+	r.db.WithContext(ctx).Raw(`
+		SELECT 
+			COALESCE(ep.experience_level, 'Unknown') as label,
+			COUNT(*) as count
+		FROM applications a
+		JOIN jobs j ON a.job_id = j.id
+		JOIN employee_profiles ep ON a.employee_id = ep.user_id
+		WHERE j.employer_id = ?
+		GROUP BY ep.experience_level
+		ORDER BY count DESC
+	`, employerID).Scan(&levels)
+
+	totalLevel := 0
+	for i := range levels {
+		totalLevel += levels[i].Count
+	}
+	if totalLevel > 0 {
+		for i := range levels {
+			levels[i].Percentage = float64(levels[i].Count) / float64(totalLevel) * 100
+		}
+	}
+
+	var locs []models.DemographicBucket
+	r.db.WithContext(ctx).Raw(`
+		SELECT 
+			COALESCE(NULLIF(ep.location, ''), 'Unknown') as label,
+			COUNT(*) as count
+		FROM applications a
+		JOIN jobs j ON a.job_id = j.id
+		JOIN employee_profiles ep ON a.employee_id = ep.user_id
+		WHERE j.employer_id = ?
+		GROUP BY ep.location
+		ORDER BY count DESC
+		LIMIT 10
+	`, employerID).Scan(&locs)
+
+	totalLoc := 0
+	for i := range locs {
+		totalLoc += locs[i].Count
+	}
+	if totalLoc > 0 {
+		for i := range locs {
+			locs[i].Percentage = float64(locs[i].Count) / float64(totalLoc) * 100
+		}
+	}
+
+	return &models.DemographicsResponse{
+		ExperienceLevels: levels,
+		Locations:        locs,
+	}, nil
+}
+
+func (r *AnalyticsRepositoryImpl) GetStageDurations(ctx context.Context, employerID string) ([]models.StageDuration, error) {
+	var durations []models.StageDuration
+
+	type raw struct {
+		FromStage   string
+		ToStage     string
+		AvgHours    float64
+		SampleCount int
+	}
+
+	r.db.WithContext(ctx).Raw(`
+		SELECT 'applied' as from_stage, 'viewed' as to_stage,
+			COALESCE(AVG(EXTRACT(EPOCH FROM (a.viewed_at - a.applied_at))/3600), 0) as avg_hours,
+			COUNT(*) as sample_count
+		FROM applications a
+		JOIN jobs j ON a.job_id = j.id
+		WHERE j.employer_id = ? AND a.viewed_at IS NOT NULL AND a.applied_at IS NOT NULL
+	`, employerID).Scan(&raw{})
+
+	var rows []raw
+	r.db.WithContext(ctx).Raw(`
+		SELECT 'applied' as from_stage, 'viewed' as to_stage,
+			COALESCE(AVG(EXTRACT(EPOCH FROM (a.viewed_at - a.applied_at))/3600), 0) as avg_hours,
+			COUNT(*) as sample_count
+		FROM applications a
+		JOIN jobs j ON a.job_id = j.id
+		WHERE j.employer_id = ? AND a.viewed_at IS NOT NULL AND a.applied_at IS NOT NULL
+
+		UNION ALL
+
+		SELECT 'viewed' as from_stage, 'shortlisted' as to_stage,
+			COALESCE(AVG(EXTRACT(EPOCH FROM (a.responded_at - a.viewed_at))/3600), 0) as avg_hours,
+			COUNT(*) as sample_count
+		FROM applications a
+		JOIN jobs j ON a.job_id = j.id
+		WHERE j.employer_id = ? AND a.responded_at IS NOT NULL AND a.viewed_at IS NOT NULL AND a.status IN ('shortlisted', 'hired')
+
+		UNION ALL
+
+		SELECT 'shortlisted' as from_stage, 'interviewed' as to_stage,
+			COALESCE(AVG(EXTRACT(EPOCH FROM (a.interview_date - a.responded_at))/3600), 0) as avg_hours,
+			COUNT(*) as sample_count
+		FROM applications a
+		JOIN jobs j ON a.job_id = j.id
+		WHERE j.employer_id = ? AND a.interview_date IS NOT NULL AND a.responded_at IS NOT NULL
+
+		UNION ALL
+
+		SELECT 'interviewed' as from_stage, 'hired' as to_stage,
+			COALESCE(AVG(EXTRACT(EPOCH FROM (a.responded_at - a.interview_date))/3600), 0) as avg_hours,
+			COUNT(*) as sample_count
+		FROM applications a
+		JOIN jobs j ON a.job_id = j.id
+		WHERE j.employer_id = ? AND a.responded_at IS NOT NULL AND a.interview_date IS NOT NULL AND a.status = 'hired'
+	`, employerID, employerID, employerID, employerID).Scan(&rows)
+
+	for _, r := range rows {
+		durations = append(durations, models.StageDuration{
+			FromStage:   r.FromStage,
+			ToStage:     r.ToStage,
+			AvgHours:    r.AvgHours,
+			AvgDays:     r.AvgHours / 24,
+			SampleCount: r.SampleCount,
+		})
+	}
+	return durations, nil
 }
 
 func (r *AnalyticsRepositoryImpl) ExportApplicationsData(ctx context.Context, employerID string, startDate, endDate time.Time) ([]map[string]interface{}, error) {

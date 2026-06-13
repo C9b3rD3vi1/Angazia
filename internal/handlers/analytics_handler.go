@@ -135,6 +135,34 @@ func (h *AnalyticsHandler) GetApplicationQualityScores(c *fiber.Ctx) error {
 	return utils.Success(c, scores)
 }
 
+func (h *AnalyticsHandler) GetDemographics(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+
+	demo, err := h.analyticsService.GetDemographics(c.Context(), userID.(string))
+	if err != nil {
+		return utils.InternalServerError(c, err.Error())
+	}
+
+	return utils.Success(c, demo)
+}
+
+func (h *AnalyticsHandler) GetStageDurations(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+
+	durations, err := h.analyticsService.GetStageDurations(c.Context(), userID.(string))
+	if err != nil {
+		return utils.InternalServerError(c, err.Error())
+	}
+
+	return utils.Success(c, durations)
+}
+
 func (h *AnalyticsHandler) GetSourceAnalytics(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {

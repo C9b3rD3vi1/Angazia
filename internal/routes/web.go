@@ -72,7 +72,6 @@ func SetupWebRoutes(
 	employer.Get("/talent-pool", webHandler.EmployerTalentPoolPage)
 	employer.Get("/analytics", webHandler.EmployerAnalyticsPage)
 	employer.Get("/company", webHandler.EmployerCompanyPage)
-	employer.Get("/company-edit", webHandler.EmployerCompanyEditPage)
 	employer.Get("/matches", webHandler.EmployerMatchesPage)
 	employer.Get("/job-post", jobHandler.EmployerJobPostPage)
 	employer.Get("/job-edit/:id", jobHandler.EmployerJobEditPage)

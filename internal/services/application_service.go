@@ -23,6 +23,7 @@ type ApplicationService interface {
 	ListCompanyApplications(ctx context.Context, employerID string, status string, page, limit int) (*ApplicationListResponse, error)
 	ShortlistApplication(ctx context.Context, applicationID string, employerID string, notes string) error
 	RejectApplication(ctx context.Context, applicationID string, employerID string, notes string) error
+	SaveNotes(ctx context.Context, applicationID string, employerID string, notes string) error
 	ScheduleInterview(ctx context.Context, applicationID string, employerID string, interviewDate time.Time, interviewType string) error
 	MarkAsHired(ctx context.Context, applicationID string, employerID string) error
 	GetApplicationStats(ctx context.Context, userID string, role string) (*repository.ApplicationStats, error)
@@ -372,6 +373,22 @@ func (s *ApplicationServiceImpl) RejectApplication(ctx context.Context, applicat
 	}
 
 	return nil
+}
+
+func (s *ApplicationServiceImpl) SaveNotes(ctx context.Context, applicationID string, employerID string, notes string) error {
+	application, err := s.applicationRepo.GetByIDWithDetails(ctx, applicationID)
+	if err != nil {
+		return err
+	}
+	if application == nil {
+		return errors.New("application not found")
+	}
+
+	if application.Job.EmployerID != employerID {
+		return errors.New("unauthorized: you don't own this job")
+	}
+
+	return s.applicationRepo.UpdateNotes(ctx, applicationID, notes)
 }
 
 func (s *ApplicationServiceImpl) ScheduleInterview(ctx context.Context, applicationID string, employerID string, interviewDate time.Time, interviewType string) error {

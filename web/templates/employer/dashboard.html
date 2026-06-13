@@ -1,4 +1,4 @@
-{{/* Employer Dashboard - SPA */}}
+{{/* Employer Dashboard - Comprehensive SPA */}}
 
 <div class="emp-dash">
   {{/* Loading State */}}
@@ -22,11 +22,12 @@
     <div class="emp-welcome">
       <div class="emp-welcome-text">
         <h1 class="emp-greeting" id="dash-greeting">Welcome back</h1>
-        <p class="emp-subtitle">Here's what's happening with your job listings today.</p>
+        <p class="emp-subtitle" id="dash-subtitle">Here's what's happening with your job listings today.</p>
       </div>
       <div class="emp-welcome-actions">
         <a href="/employer/job-post" class="emp-btn-primary">+ Post a Job</a>
         <a href="/employer/company" class="emp-btn-secondary">&#x2699;&#xFE0F; Company Settings</a>
+        <button class="emp-btn-secondary" id="dash-export-btn" title="Export dashboard data">&#x1F4E4; Export</button>
       </div>
     </div>
 
@@ -65,7 +66,7 @@
         </div>
         <div class="emp-stat-value">
           <span class="emp-stat-number" id="stat-new-applications">--</span>
-          <span class="emp-stat-label">New Applications</span>
+          <span class="emp-stat-label">New (30d)</span>
         </div>
         <div class="emp-stat-footer">
           <span class="emp-stat-trend" id="stat-new-applications-trend"></span>
@@ -138,26 +139,75 @@
         </div>
         <span class="emp-action-arrow">&rarr;</span>
       </a>
-      <a href="/employer/talent-pool" class="emp-action-card">
-        <span class="emp-action-icon">&#x1F5C2;&#xFE0F;</span>
+      <a href="/employer/analytics" class="emp-action-card">
+        <span class="emp-action-icon">&#x1F4CA;</span>
         <div>
-          <div class="emp-action-label">Talent Pool</div>
-          <div class="emp-action-desc">View saved candidates</div>
+          <div class="emp-action-label">Full Analytics</div>
+          <div class="emp-action-desc">Detailed reports and metrics</div>
         </div>
         <span class="emp-action-arrow">&rarr;</span>
       </a>
+    </div>
+
+    {{/* Insights Banner */}}
+    <div class="emp-insights-banner" id="insights-banner" style="display:none">
+      <div class="emp-insights-icon">&#x1F4A1;</div>
+      <div class="emp-insights-text">
+        <strong>AI Insight:</strong>
+        <span id="insights-text">Analyzing your hiring data...</span>
+      </div>
     </div>
 
     {{/* Main Dashboard Grid */}}
     <div class="emp-dashboard-grid">
       {{/* Left Column */}}
       <div class="emp-dashboard-left">
+
+        {{/* Application Quality Scores */}}
+        <div class="emp-card" id="card-quality" style="display:none">
+          <div class="emp-card-header">
+            <div>
+              <h3 class="emp-card-title">Application Quality</h3>
+              <p class="emp-card-subtitle">Match score distribution across applicants</p>
+            </div>
+            <span class="emp-quality-badge" id="quality-avg-score">--</span>
+          </div>
+          <div class="emp-card-body">
+            <div class="emp-quality-bars">
+              <div class="emp-quality-row">
+                <span class="emp-quality-label">High (&ge;80)</span>
+                <div class="emp-quality-bar-track">
+                  <div class="emp-quality-bar high" id="quality-bar-high" style="width:0%"></div>
+                </div>
+                <span class="emp-quality-count" id="quality-count-high">0</span>
+              </div>
+              <div class="emp-quality-row">
+                <span class="emp-quality-label">Medium (50-79)</span>
+                <div class="emp-quality-bar-track">
+                  <div class="emp-quality-bar medium" id="quality-bar-medium" style="width:0%"></div>
+                </div>
+                <span class="emp-quality-count" id="quality-count-medium">0</span>
+              </div>
+              <div class="emp-quality-row">
+                <span class="emp-quality-label">Low (&lt;50)</span>
+                <div class="emp-quality-bar-track">
+                  <div class="emp-quality-bar low" id="quality-bar-low" style="width:0%"></div>
+                </div>
+                <span class="emp-quality-count" id="quality-count-low">0</span>
+              </div>
+            </div>
+            <div class="emp-quality-footer">
+              <span>Avg response time: <strong id="quality-response-time">--</strong></span>
+            </div>
+          </div>
+        </div>
+
         {{/* Application Trends Chart */}}
         <div class="emp-card">
           <div class="emp-card-header">
             <div>
               <h3 class="emp-card-title">Application Trends</h3>
-              <p class="emp-card-subtitle">Daily application volume over time</p>
+              <p class="emp-card-subtitle" id="chart-subtitle">Daily application volume</p>
             </div>
             <div class="emp-card-actions">
               <select id="chart-period" class="emp-period-select">
@@ -205,12 +255,26 @@
 
       {{/* Right Column */}}
       <div class="emp-dashboard-right">
+
+        {{/* Source Analytics */}}
+        <div class="emp-card" id="card-source" style="display:none">
+          <div class="emp-card-header">
+            <div>
+              <h3 class="emp-card-title">Application Sources</h3>
+              <p class="emp-card-subtitle">Where applicants come from</p>
+            </div>
+          </div>
+          <div class="emp-card-body">
+            <div class="emp-source-list" id="source-list"></div>
+          </div>
+        </div>
+
         {{/* Conversion Funnel */}}
         <div class="emp-card">
           <div class="emp-card-header">
             <div>
               <h3 class="emp-card-title">Conversion Funnel</h3>
-              <p class="emp-card-subtitle">Application to hire conversion</p>
+              <p class="emp-card-subtitle">Application to hire pipeline</p>
             </div>
           </div>
           <div class="emp-card-body">
@@ -244,6 +308,34 @@
                 <div class="emp-funnel-bar" id="funnel-hired-bar" style="width:0%;background:#c4b5fd;"></div>
               </div>
             </div>
+            <div class="emp-funnel-meta" id="funnel-meta"></div>
+          </div>
+        </div>
+
+        {{/* Time to Hire */}}
+        <div class="emp-card" id="card-tth" style="display:none">
+          <div class="emp-card-header">
+            <div>
+              <h3 class="emp-card-title">Time to Hire</h3>
+              <p class="emp-card-subtitle">Average days from application to hire</p>
+            </div>
+          </div>
+          <div class="emp-card-body">
+            <div class="emp-tth-grid">
+              <div class="emp-tth-metric">
+                <span class="emp-tth-value" id="tth-average">--</span>
+                <span class="emp-tth-label">Avg days</span>
+              </div>
+              <div class="emp-tth-metric">
+                <span class="emp-tth-value" id="tth-min">--</span>
+                <span class="emp-tth-label">Min days</span>
+              </div>
+              <div class="emp-tth-metric">
+                <span class="emp-tth-value" id="tth-max">--</span>
+                <span class="emp-tth-label">Max days</span>
+              </div>
+            </div>
+            <div class="emp-tth-detail" id="tth-detail"></div>
           </div>
         </div>
 
@@ -252,7 +344,7 @@
           <div class="emp-card-header">
             <div>
               <h3 class="emp-card-title">Top Performing Jobs</h3>
-              <p class="emp-card-subtitle">Jobs with most applications</p>
+              <p class="emp-card-subtitle">Most applications received</p>
             </div>
             <a href="/employer/jobs" class="emp-link">View all &rarr;</a>
           </div>
@@ -296,12 +388,14 @@
       <div class="emp-card-header">
         <div>
           <h3 class="emp-card-title">Job Performance</h3>
-          <p class="emp-card-subtitle">Views and applications by job</p>
+          <p class="emp-card-subtitle">Views, applications, and conversion rates by job</p>
         </div>
         <div class="emp-card-actions">
           <select id="job-performance-sort" class="emp-period-select">
             <option value="views">Sort by Views</option>
             <option value="applications" selected>Sort by Applications</option>
+            <option value="shortlisted">Sort by Shortlisted</option>
+            <option value="hired">Sort by Hired</option>
           </select>
         </div>
       </div>
@@ -311,10 +405,13 @@
             <thead>
               <tr>
                 <th>Job Title</th>
-                <th>Posted Date</th>
+                <th>Posted</th>
                 <th>Views</th>
-                <th>Applications</th>
-                <th>Conversion</th>
+                <th>Apps</th>
+                <th>Shortlisted</th>
+                <th>Hired</th>
+                <th>View&rarr;App</th>
+                <th>App&rarr;Short</th>
                 <th>Status</th>
                 <th></th>
               </tr>
@@ -358,7 +455,7 @@
   padding: 80px 20px;
 }
 .emp-error-icon { font-size: 48px; margin-bottom: 16px; }
-.emp-error-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+.emp-error-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
 .emp-error-desc { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
 .emp-welcome {
   display: flex;
@@ -378,7 +475,7 @@
   margin-bottom: 8px;
 }
 .emp-subtitle { color: var(--muted); font-size: 14px; }
-.emp-welcome-actions { display: flex; gap: 12px; }
+.emp-welcome-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 
 .emp-stats-grid {
   display: grid;
@@ -396,6 +493,7 @@
 .emp-stat-card:hover {
   transform: translateY(-2px);
   border-color: var(--purple);
+  box-shadow: 0 4px 12px rgba(99,102,241,0.1);
 }
 .emp-stat-header {
   display: flex;
@@ -455,6 +553,19 @@
 .emp-action-desc { font-size: 12px; color: var(--muted); }
 .emp-action-arrow { margin-left: auto; font-size: 20px; color: var(--muted); }
 
+.emp-insights-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(236,72,153,0.08));
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+.emp-insights-icon { font-size: 24px; }
+.emp-insights-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+
 .emp-dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 360px;
@@ -496,6 +607,36 @@
   cursor: pointer;
 }
 
+{{/* Application Quality */}}
+.emp-quality-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(99,102,241,0.12);
+  color: var(--purple);
+  font-weight: 700;
+  font-size: 18px;
+}
+.emp-quality-bars { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+.emp-quality-row { display: flex; align-items: center; gap: 12px; }
+.emp-quality-label { width: 90px; font-size: 12px; color: var(--muted); flex-shrink: 0; }
+.emp-quality-bar-track { flex: 1; height: 20px; background: var(--s2); border-radius: 10px; overflow: hidden; }
+.emp-quality-bar { height: 100%; border-radius: 10px; transition: width 0.6s ease; }
+.emp-quality-bar.high { background: linear-gradient(90deg, #10b981, #34d399); }
+.emp-quality-bar.medium { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.emp-quality-bar.low { background: linear-gradient(90deg, #ef4444, #f87171); }
+.emp-quality-count { width: 30px; text-align: right; font-size: 13px; font-weight: 600; }
+.emp-quality-footer { border-top: 1px solid var(--border); padding-top: 12px; font-size: 12px; color: var(--muted); }
+
+{{/* Source Analytics */}}
+.emp-source-list { display: flex; flex-direction: column; gap: 10px; }
+.emp-source-row { display: flex; align-items: center; gap: 12px; }
+.emp-source-name { width: 80px; font-size: 12px; font-weight: 500; flex-shrink: 0; text-transform: capitalize; }
+.emp-source-bar-track { flex: 1; height: 16px; background: var(--s2); border-radius: 8px; overflow: hidden; }
+.emp-source-bar { height: 100%; border-radius: 8px; transition: width 0.6s ease; background: linear-gradient(90deg, var(--purple), #ec4899); }
+.emp-source-count { width: 40px; text-align: right; font-size: 12px; font-weight: 600; }
+.emp-source-pct { width: 36px; text-align: right; font-size: 11px; color: var(--muted); }
+
+{{/* Funnel */}}
 .emp-funnel { display: flex; flex-direction: column; gap: 16px; }
 .emp-funnel-stage { position: relative; }
 .emp-funnel-label {
@@ -509,6 +650,18 @@
   display: flex; align-items: center; justify-content: flex-end;
   padding-right: 12px; color: white; font-size: 12px; font-weight: 500;
 }
+.emp-funnel-meta { margin-top: 12px; font-size: 11px; color: var(--muted); text-align: center; }
+
+{{/* Time to Hire */}}
+.emp-tth-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+.emp-tth-metric { text-align: center; padding: 16px; background: var(--s2); border-radius: 12px; }
+.emp-tth-value { display: block; font-size: 28px; font-weight: 700; color: var(--purple); margin-bottom: 4px; }
+.emp-tth-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.emp-tth-detail { border-top: 1px solid var(--border); padding-top: 12px; }
+.emp-tth-job-row { display: flex; justify-content: space-between; font-size: 12px; padding: 6px 0; }
+.emp-tth-job-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+.emp-tth-job-name { color: var(--text); }
+.emp-tth-job-days { color: var(--muted); }
 
 .emp-list { display: flex; flex-direction: column; }
 .emp-list-item {
@@ -516,10 +669,10 @@
   padding: 16px 20px; border-bottom: 1px solid var(--border);
 }
 .emp-list-item:last-child { border-bottom: none; }
-.emp-list-item-info { flex: 1; }
-.emp-list-item-title { font-weight: 500; margin-bottom: 4px; }
+.emp-list-item-info { flex: 1; min-width: 0; }
+.emp-list-item-title { font-weight: 500; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .emp-list-item-meta { font-size: 12px; color: var(--muted); }
-.emp-list-item-value { font-weight: 600; font-size: 18px; color: var(--accent); }
+.emp-list-item-value { font-weight: 600; font-size: 18px; color: var(--accent); flex-shrink: 0; margin-left: 12px; }
 
 .emp-subscription-card {
   background: linear-gradient(135deg, var(--s1) 0%, var(--s2) 100%);
@@ -547,7 +700,7 @@
 .emp-table th {
   text-align: left; padding: 12px 16px; background: var(--s2);
   font-size: 11px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 0.5px; color: var(--muted);
+  letter-spacing: 0.5px; color: var(--muted); white-space: nowrap;
 }
 .emp-table td { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
 .emp-table-hover tbody tr:hover { background: var(--s2); cursor: pointer; }
@@ -558,11 +711,11 @@
   display: inline-block; padding: 4px 10px; border-radius: 20px;
   font-size: 11px; font-weight: 500;
 }
-.emp-status-badge.pending { background: rgba(245,166,35,0.12); color: var(--warn); }
+.emp-status-badge.pending { background: rgba(245,166,35,0.12); color: #f59e0b; }
 .emp-status-badge.shortlisted { background: rgba(16,185,129,0.12); color: #10b981; }
 .emp-status-badge.rejected { background: rgba(239,68,68,0.12); color: #ef4444; }
 .emp-status-badge.hired { background: rgba(16,185,129,0.2); color: #10b981; }
-.emp-status-badge.interview { background: rgba(139,92,246,0.12); color: var(--purple); }
+.emp-status-badge.interview { background: rgba(139,92,246,0.12); color: #8b5cf6; }
 .emp-status-badge.active { background: rgba(16,185,129,0.12); color: #10b981; }
 .emp-status-badge.closed { background: rgba(239,68,68,0.12); color: #ef4444; }
 
@@ -582,13 +735,15 @@
 @media (max-width: 900px) {
   .emp-dashboard-grid { grid-template-columns: 1fr; }
   .emp-full-width { grid-column: span 1; }
+  .emp-tth-grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 640px) {
   .emp-stats-grid { grid-template-columns: 1fr; }
   .emp-actions-grid { grid-template-columns: 1fr; }
   .emp-welcome { flex-direction: column; align-items: flex-start; }
+  .emp-tth-grid { grid-template-columns: 1fr; }
 }
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="/static/js/pages/employer/dashboard.js"></script>

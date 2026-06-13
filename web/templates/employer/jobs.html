@@ -216,19 +216,8 @@
   transition: opacity 0.12s;
 }
 .emp-action-link:hover { opacity: 0.7; }
-.emp-action-delete {
-  font-family: var(--fm);
-  font-size: 10px;
-  letter-spacing: 0.5px;
-  color: var(--danger);
-  text-transform: uppercase;
-  text-decoration: none;
-  margin-left: 12px;
-  cursor: pointer;
-}
-.emp-action-delete:hover { opacity: 0.7; text-decoration: underline; }
 
-.emp-status {
+@media (max-width: 860px) {
   display: inline-block;
   font-family: var(--fm);
   font-size: 9px;
@@ -274,27 +263,6 @@
 @keyframes slideIn {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
-}
-
-.emp-action-btn {
-  background: none;
-  border: none;
-  font-family: var(--fm);
-  font-size: 10px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  cursor: pointer;
-  padding: 0;
-  transition: opacity 0.12s;
-}
-.emp-action-btn:hover { opacity: 0.7; }
-.emp-action-close {
-  color: var(--warn);
-  margin-left: 12px;
-}
-.emp-action-delete {
-  color: var(--danger);
-  margin-left: 12px;
 }
 
 @media (max-width: 860px) {

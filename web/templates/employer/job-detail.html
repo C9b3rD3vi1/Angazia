@@ -60,7 +60,7 @@
     <div class="emp-card">
       <div class="emp-card-header">
         <h2 class="emp-card-title">Job Information</h2>
-        <a href="/employer/job-edit/${jobId}" class="emp-link">Edit Job</a>
+        <a href="/employer/job-edit/{{.JobID}}" class="emp-link">Edit Job</a>
       </div>
       <div class="emp-card-body">
         <div class="emp-detail-grid">
@@ -110,6 +110,16 @@
       </div>
     </div>
 
+    {{/* Responsibilities Card */}}
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">Responsibilities</h2>
+      </div>
+      <div class="emp-card-body">
+        <div id="detail-responsibilities" class="emp-rich-text"></div>
+      </div>
+    </div>
+
     {{/* Requirements Card */}}
     <div class="emp-card">
       <div class="emp-card-header">
@@ -130,15 +140,49 @@
       </div>
     </div>
 
+    {{/* Nice-to-Have Skills Card */}}
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <h2 class="emp-card-title">Nice-to-Have Skills</h2>
+      </div>
+      <div class="emp-card-body">
+        <div id="detail-nice-skills" class="emp-skills-container"></div>
+      </div>
+    </div>
+
     {{/* Applications Section */}}
     <div class="emp-card">
       <div class="emp-card-header">
         <h2 class="emp-card-title">Recent Applications</h2>
-        <a href="/employer/job-applications/${jobId}" class="emp-link">View All →</a>
+        <a href="/employer/job-applications/{{.JobID}}" class="emp-link">View All →</a>
       </div>
       <div class="emp-card-body">
         <div id="recent-applications" class="emp-applications-list"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+{{/* Confirmation Modal */}}
+<div class="emp-modal-overlay" id="jd-confirm-modal" style="display:none;">
+  <div class="emp-modal emp-modal-sm">
+    <div class="emp-modal-head">
+      <h3 class="emp-modal-title" id="jd-confirm-title">Confirm Action</h3>
+      <button class="emp-modal-close" id="jd-confirm-close">&times;</button>
+    </div>
+    <div class="emp-modal-body">
+      <div class="emp-modal-icon-wrap">
+        <span class="emp-modal-icon" id="jd-confirm-icon"></span>
+      </div>
+      <h4 class="emp-modal-heading" id="jd-confirm-heading">Are you sure?</h4>
+      <p class="emp-modal-desc" id="jd-confirm-desc"></p>
+    </div>
+    <div class="emp-modal-foot">
+      <button class="emp-btn emp-btn-ghost" id="jd-confirm-no">Cancel</button>
+      <button class="emp-btn" id="jd-confirm-yes">
+        <span class="emp-btn-label" id="jd-confirm-yes-label">Confirm</span>
+        <span class="emp-btn-spinner"></span>
+      </button>
     </div>
   </div>
 </div>
@@ -341,6 +385,31 @@
   background: rgba(255,79,79,0.1);
   color: var(--danger);
 }
+.emp-modal-sm .emp-modal { max-width: 400px; }
+
+/* ── Enhanced Confirmation Modal ── */
+.emp-modal-overlay { animation: empFadeIn 0.15s ease; }
+@keyframes empFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.emp-modal { animation: empScaleIn 0.2s ease; }
+@keyframes empScaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.emp-modal-icon-wrap { text-align: center; margin-bottom: 16px; }
+.emp-modal-icon { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; font-size: 26px; }
+.emp-modal-icon.icon-danger { background: rgba(239,68,68,0.1); }
+.emp-modal-icon.icon-warning { background: rgba(245,166,35,0.1); }
+.emp-modal-icon.icon-success { background: rgba(0,229,160,0.1); }
+.emp-modal-icon.icon-info { background: rgba(59,130,246,0.1); }
+.emp-modal-icon.icon-primary { background: rgba(139,92,246,0.1); }
+
+.emp-modal-heading { font-family: var(--fh); font-size: 18px; font-weight: 600; color: var(--text); text-align: center; margin: 0 0 8px; }
+.emp-modal-desc { font-size: 13px; line-height: 1.6; color: var(--muted); text-align: center; margin: 0; }
+
+.emp-btn-loading { position: relative; pointer-events: none; }
+.emp-btn-loading .emp-btn-label { opacity: 0; }
+.emp-btn-loading .emp-btn-spinner { display: inline-block !important; }
+.emp-btn-spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: empSpin 0.6s linear infinite; position: absolute; top: 50%; left: 50%; margin: -8px 0 0 -8px; }
+@keyframes empSpin { to { transform: rotate(360deg); } }
+
 .emp-link {
   font-family: var(--fm);
   font-size: 10px;

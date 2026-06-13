@@ -33,6 +33,9 @@ type ApplicationRepository interface {
 	MarkAsViewed(ctx context.Context, id string) error
 	ScheduleInterview(ctx context.Context, id string, interviewDate time.Time, interviewType string) error
 	
+	// Notes
+	UpdateNotes(ctx context.Context, id string, notes string) error
+	
 	// Checks
 	HasApplied(ctx context.Context, jobID, employeeID string) (bool, error)
 	GetApplicationCount(ctx context.Context, jobID string) (int64, error)
@@ -262,6 +265,13 @@ func (r *ApplicationRepositoryImpl) ScheduleInterview(ctx context.Context, id st
 		Model(&models.Application{}).
 		Where("id = ?", id).
 		Updates(updates).Error
+}
+
+func (r *ApplicationRepositoryImpl) UpdateNotes(ctx context.Context, id string, notes string) error {
+	return r.db.WithContext(ctx).
+		Model(&models.Application{}).
+		Where("id = ?", id).
+		Update("employer_notes", notes).Error
 }
 
 func (r *ApplicationRepositoryImpl) HasApplied(ctx context.Context, jobID, employeeID string) (bool, error) {
