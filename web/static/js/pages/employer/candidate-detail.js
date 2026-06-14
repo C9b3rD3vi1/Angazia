@@ -1,4 +1,22 @@
 (function () {
+  function fmtNum(n) {
+    if (!n) return '0';
+    if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'K';
+    return String(n);
+  }
+
+  function fmtDateLocal(d) {
+    if (!d) return '';
+    var dt = new Date(d);
+    var now = new Date();
+    var diff = Math.floor((now - dt) / 86400000);
+    if (diff === 0) return 'today';
+    if (diff === 1) return 'yesterday';
+    if (diff < 30) return diff + 'd ago';
+    if (diff < 365) return Math.floor(diff / 30) + 'mo ago';
+    return Math.floor(diff / 365) + 'yr ago';
+  }
+
   var candidateId = window.location.pathname.split('/').pop();
   var candidateName = '';
 
@@ -241,13 +259,84 @@
     if (githubEl) {
       var gh = profile.github_profile;
       if (gh && gh.github_username) {
+        var langs = gh.repo_languages || {};
+        var langEntries = Object.keys(langs).sort(function (a, b) { return (langs[b] || 0) - (langs[a] || 0); });
+        var totalPct = langEntries.reduce(function (s, l) { return s + (langs[l] || 0); }, 0);
+        var topRepos = gh.top_repositories || [];
+        var joinedDate = gh.github_joined ? new Date(gh.github_joined).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : '';
+        var catColor = gh.overall_score >= 80 ? 'var(--accent)' : gh.overall_score >= 60 ? '#58a6ff' : gh.overall_score >= 40 ? '#f59e0b' : 'var(--muted2)';
+        var catLabel = gh.overall_score >= 80 ? 'Exceptional' : gh.overall_score >= 60 ? 'Active Contributor' : gh.overall_score >= 40 ? 'Casual Developer' : 'Getting Started';
+
         githubEl.innerHTML =
-          '<a href="' + (gh.github_url || 'https://github.com/' + gh.github_username) + '" target="_blank">' +
-          '@' + gh.github_username +
-          (gh.public_repos ? ' (' + gh.public_repos + ' repos)' : '') +
-          '</a>';
+          '<div class="ce-profile">' +
+            '<div class="ce-header">' +
+              '<div class="ce-header-left">' +
+                '<span class="ce-avatar">' + (gh.github_avatar ? '<img src="' + gh.github_avatar + '" alt=""/>' : '&#x1F43E;') + '</span>' +
+                '<div>' +
+                  '<div class="ce-username">' +
+                    '<a href="' + (gh.github_url || 'https://github.com/' + gh.github_username) + '" target="_blank">@' + esc(gh.github_username) + '</a>' +
+                    '<span class="ce-category" style="background:' + catColor + '15;color:' + catColor + '">' + catLabel + '</span>' +
+                  '</div>' +
+                  '<div class="ce-header-meta">' +
+                    (gh.github_bio ? '<div class="ce-bio">' + esc(gh.github_bio) + '</div>' : '') +
+                    '<div class="ce-header-details">' +
+                      (gh.github_location ? '<span>&#x1F4CD; ' + esc(gh.github_location) + '</span>' : '') +
+                      (gh.github_company ? '<span>&#x1F3E2; ' + esc(gh.github_company) + '</span>' : '') +
+                      (joinedDate ? '<span>&#x1F4C5; Joined ' + joinedDate + '</span>' : '') +
+                    '</div>' +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="ce-scores">' +
+                '<div class="ce-score-bar">' +
+                  '<div class="ce-score-label">Activity</div>' +
+                  '<div class="ce-score-track"><div class="ce-score-fill" style="width:' + (gh.activity_score || 0) + '%"></div></div>' +
+                  '<div class="ce-score-val">' + (gh.activity_score || 0) + '</div>' +
+                '</div>' +
+                '<div class="ce-score-bar">' +
+                  '<div class="ce-score-label">Quality</div>' +
+                  '<div class="ce-score-track"><div class="ce-score-fill ce-quality" style="width:' + (gh.quality_score || 0) + '%"></div></div>' +
+                  '<div class="ce-score-val">' + (gh.quality_score || 0) + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="ce-stats-grid">' +
+              '<div class="ce-stat"><div class="ce-stat-val">' + (gh.public_repos || 0) + '</div><div class="ce-stat-lbl">Repos</div></div>' +
+              '<div class="ce-stat"><div class="ce-stat-val">' + esc(fmtNum(gh.total_commits)) + '</div><div class="ce-stat-lbl">Commits</div></div>' +
+              '<div class="ce-stat"><div class="ce-stat-val">' + (gh.total_prs || 0) + '</div><div class="ce-stat-lbl">PRs</div></div>' +
+              '<div class="ce-stat"><div class="ce-stat-val">' + (gh.total_issues || 0) + '</div><div class="ce-stat-lbl">Issues</div></div>' +
+              '<div class="ce-stat"><div class="ce-stat-val">' + (gh.followers || 0) + '</div><div class="ce-stat-lbl">Followers</div></div>' +
+              '<div class="ce-stat"><div class="ce-stat-val">' + (gh.contribution_streak || 0) + '</div><div class="ce-stat-lbl">Streak</div></div>' +
+            '</div>' +
+            (langEntries.length ? '<div class="ce-langs"><div class="ce-langs-title">Languages</div><div class="ce-langs-list">' +
+              langEntries.slice(0, 8).map(function (l) {
+                var pct = totalPct > 0 ? Math.round((langs[l] || 0) / totalPct * 100) : 0;
+                return '<div class="ce-lang-item"><span class="ce-lang-name">' + esc(l) + '</span><div class="ce-lang-track"><div class="ce-lang-fill" style="width:' + pct + '%"></div></div><span class="ce-lang-pct">' + pct + '%</span></div>';
+              }).join('') +
+            '</div></div>' : '') +
+            (topRepos.length ? '<div class="ce-repos"><div class="ce-repos-title">Top Repositories</div>' +
+              topRepos.slice(0, 5).map(function (r) {
+                var repoName = r.name || r.full_name || '';
+                var desc = r.description || '';
+                var stars = r.stars || r.stargazers_count || 0;
+                var lang = r.language || '';
+                return '<div class="ce-repo">' +
+                  '<div class="ce-repo-top">' +
+                    '<a href="' + (r.html_url || '#') + '" target="_blank" class="ce-repo-name">' + esc(repoName) + '</a>' +
+                    (stars ? '<span class="ce-repo-stars">&#x2B50; ' + stars + '</span>' : '') +
+                  '</div>' +
+                  (desc ? '<div class="ce-repo-desc">' + esc(desc) + '</div>' : '') +
+                  (lang ? '<span class="ce-repo-lang">' + esc(lang) + '</span>' : '') +
+                '</div>';
+              }).join('') +
+            '</div></div>' : '') +
+            '<div class="ce-footer">' +
+              '<span class="ce-footer-item">Commit frequency: <strong>' + esc(gh.commit_frequency || 'N/A') + '</strong></span>' +
+              (gh.last_synced_at ? '<span class="ce-footer-item">Last synced: ' + fmtDateLocal(gh.last_synced_at) + '</span>' : '') +
+            '</div>' +
+          '</div>';
       } else {
-        githubEl.innerHTML = '<span class="cd-empty">No GitHub profile linked.</span>';
+        githubEl.innerHTML = '<span class="cd-empty">No GitHub profile linked. Candidates can connect their GitHub to showcase evidence of their technical skills.</span>';
       }
     }
 

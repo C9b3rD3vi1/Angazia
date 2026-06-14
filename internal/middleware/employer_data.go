@@ -90,7 +90,7 @@ func EmployerPageData(authService services.AuthService, notificationService serv
 		candidateCount := 0
 		if stats, err := jobService.GetJobStats(c.Context(), userID); err == nil {
 			jobCount = int(stats.ActiveJobs)
-			candidateCount = int(stats.TotalApplications)
+			candidateCount = int(stats.TotalCandidates)
 		}
 
 		data := fiber.Map{

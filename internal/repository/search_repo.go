@@ -161,7 +161,7 @@ func (r *SearchRepositoryImpl) SearchCandidates(ctx context.Context, filters mod
 	var candidates []*models.EmployeeProfile
 	var total int64
 	
-	query := r.db.WithContext(ctx).Model(&models.EmployeeProfile{}).Preload("User")
+	query := r.db.WithContext(ctx).Model(&models.EmployeeProfile{}).Preload("User").Preload("GithubProfile")
 	
 	// Full-text search
 	if filters.Keywords != "" {

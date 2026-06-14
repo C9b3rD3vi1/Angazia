@@ -70,6 +70,7 @@ type JobStats struct {
 	TotalJobs        int64 `json:"total_jobs"`
 	ActiveJobs       int64 `json:"active_jobs"`
 	TotalApplications int64 `json:"total_applications"`
+	TotalCandidates   int64 `json:"total_candidates"`
 	TotalViews       int64 `json:"total_views"`
 	JobsByStatus     map[string]int64 `json:"jobs_by_status"`
 }
@@ -426,6 +427,16 @@ func (r *JobRepositoryImpl) GetStatsByEmployer(ctx context.Context, employerID s
 		return nil, err
 	}
 	
+	// Total unique candidates
+	if err := r.db.WithContext(ctx).
+		Model(&models.Application{}).
+		Joins("JOIN jobs ON jobs.id = applications.job_id").
+		Where("jobs.employer_id = ?", employerID).
+		Select("COUNT(DISTINCT applications.employee_id)").
+		Scan(&stats.TotalCandidates).Error; err != nil {
+		return nil, err
+	}
+
 	// Total views
 	if err := r.db.WithContext(ctx).
 		Model(&models.Job{}).

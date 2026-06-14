@@ -89,6 +89,61 @@
           border-radius: 4px;
           font-size: 10px;
         }
+        .ce-evidence {
+          margin: 8px 0 6px;
+          padding: 8px 10px;
+          background: rgba(88, 166, 255, 0.04);
+          border: 1px solid rgba(88, 166, 255, 0.12);
+          border-radius: 6px;
+          font-size: 11px;
+        }
+        .ce-evidence-head {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          flex-wrap: wrap;
+          color: var(--muted);
+        }
+        .ce-evidence-icon { font-size: 13px; }
+        .ce-evidence-user { font-weight: 600; color: #58a6ff; }
+        .ce-evidence-dot { color: var(--border); font-size: 8px; }
+        .ce-evidence-stat { color: var(--text); }
+        .ce-evidence-streak { color: #f59e0b; }
+        .ce-evidence-langs {
+          display: flex;
+          gap: 4px;
+          flex-wrap: wrap;
+          margin: 4px 0 2px;
+        }
+        .ce-evidence-lang {
+          font-size: 9px;
+          padding: 1px 7px;
+          background: rgba(139, 92, 246, 0.08);
+          color: var(--purple);
+          border-radius: 3px;
+          letter-spacing: 0.3px;
+        }
+        .ce-evidence-meta {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          flex-wrap: wrap;
+          font-size: 10px;
+          color: var(--muted2);
+          margin-top: 2px;
+        }
+        .ce-evidence-score { font-weight: 500; }
+        .ce-evidence-badge {
+          padding: 1px 6px;
+          border-radius: 3px;
+          font-size: 9px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          background: rgba(0, 229, 160, 0.1);
+          color: var(--accent);
+        }
+        .ce-evidence-synced { font-size: 9px; color: var(--muted2); }
       `;
       document.head.appendChild(style);
     }
@@ -202,49 +257,99 @@
     }
   }
 
+  function fmtNum(n) {
+    if (!n) return '0';
+    if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'K';
+    return String(n);
+  }
+
+  function fmtDate(d) {
+    if (!d) return '';
+    var dt = new Date(d);
+    var now = new Date();
+    var diff = Math.floor((now - dt) / 86400000);
+    if (diff === 0) return 'today';
+    if (diff === 1) return 'yesterday';
+    if (diff < 30) return diff + 'd ago';
+    if (diff < 365) return Math.floor(diff / 30) + 'mo ago';
+    return Math.floor(diff / 365) + 'yr ago';
+  }
+
+  function ghCategory(score) {
+    if (score >= 80) return 'Exceptional';
+    if (score >= 60) return 'Active Contributor';
+    if (score >= 40) return 'Casual Developer';
+    return 'Getting Started';
+  }
+
+  function renderEvidence(gh) {
+    if (!gh) return '';
+    var langs = gh.repo_languages || {};
+    var topLangs = Object.keys(langs).sort(function (a, b) { return (langs[b] || 0) - (langs[a] || 0); }).slice(0, 4);
+    var category = ghCategory(gh.overall_score);
+    return '<div class="ce-evidence">' +
+      '<div class="ce-evidence-head">' +
+        '<span class="ce-evidence-icon">&#x1F43E;</span>' +
+        '<span class="ce-evidence-user">' + escapeHtml(gh.github_username) + '</span>' +
+        '<span class="ce-evidence-dot">&middot;</span>' +
+        '<span class="ce-evidence-stat">' + (gh.public_repos || 0) + ' repos</span>' +
+        '<span class="ce-evidence-dot">&middot;</span>' +
+        '<span class="ce-evidence-stat">' + fmtNum(gh.total_commits) + ' commits</span>' +
+        (gh.contribution_streak ? '<span class="ce-evidence-dot">&middot;</span><span class="ce-evidence-stat ce-evidence-streak">&#x1F525; ' + gh.contribution_streak + ' day streak</span>' : '') +
+      '</div>' +
+      (topLangs.length ? '<div class="ce-evidence-langs">' + topLangs.map(function (l) { return '<span class="ce-evidence-lang">' + escapeHtml(l) + '</span>'; }).join('') + '</div>' : '') +
+      '<div class="ce-evidence-meta">' +
+        '<span class="ce-evidence-score" style="color:' + (gh.activity_score >= 60 ? 'var(--accent)' : 'var(--warning)') + '">Activity: ' + (gh.activity_score || 0) + '/100</span>' +
+        '<span class="ce-evidence-dot">&middot;</span>' +
+        '<span class="ce-evidence-score">Quality: ' + (gh.quality_score || 0) + '/100</span>' +
+        '<span class="ce-evidence-dot">&middot;</span>' +
+        '<span class="ce-evidence-badge">' + category + '</span>' +
+        (gh.last_synced_at ? '<span class="ce-evidence-dot">&middot;</span><span class="ce-evidence-synced">Synced ' + fmtDate(gh.last_synced_at) + '</span>' : '') +
+      '</div>' +
+    '</div>';
+  }
+
   // Render candidates list
   function renderCandidates(candidates) {
     if (!elements.candidatesList) return;
     
-    elements.candidatesList.innerHTML = candidates.map(candidate => {
-      // Extract candidate data from the result structure
-      const candidateData = candidate.data || candidate;
-      const candidateId = candidateData.user_id || candidateData.id;
-      const fullName = candidateData.full_name || candidateData.name || 'Anonymous';
-      const headline = candidateData.headline || candidate.title || 'Tech Professional';
-      const skills = candidateData.skills || [];
-      const location = candidateData.location || 'Location not specified';
-      const yearsExp = candidateData.years_of_experience || 0;
-      const matchScore = candidate.score || candidateData.match_score || 0;
-      const githubConnected = candidateData.github_connected || false;
-      const avatarUrl = candidateData.user?.avatar_url || '';
+    elements.candidatesList.innerHTML = candidates.map(function (candidate) {
+      var candidateData = candidate.data || candidate;
+      var candidateId = candidateData.user_id || candidateData.id;
+      var fullName = candidateData.full_name || candidateData.name || 'Anonymous';
+      var headline = candidateData.headline || candidate.title || 'Tech Professional';
+      var skills = candidateData.skills || [];
+      var location = candidateData.location || 'Location not specified';
+      var yearsExp = candidateData.years_of_experience || 0;
+      var matchScore = candidate.score || candidateData.match_score || 0;
+      var githubConnected = candidateData.github_connected || false;
+      var avatarUrl = (candidateData.user && candidateData.user.avatar_url) || '';
+      var gh = candidateData.github_profile || null;
       
-      return `
-        <div class="emp-candidate-card" data-candidate-id="${candidateId}" onclick="window.location.href='/employer/candidates/${candidateId}'">
-          <div class="emp-candidate-avatar">
-            ${avatarUrl ? '<img src="' + avatarUrl + '" alt="' + escapeHtml(fullName) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">' : '<span class="emp-candidate-initials">' + getInitials(fullName) + '</span>'}
-          </div>
-          <div class="emp-candidate-info">
-            <div class="emp-candidate-top">
-              <h3 class="emp-candidate-name">${escapeHtml(fullName)}</h3>
-              <span class="emp-candidate-score">${matchScore}% match</span>
-            </div>
-            <span class="emp-candidate-headline">${escapeHtml(headline)}</span>
-            <div class="emp-candidate-tags">
-              ${skills.slice(0, 5).map(skill => `<span class="emp-tag">${escapeHtml(skill)}</span>`).join('')}
-              ${skills.length > 5 ? `<span class="emp-tag">+${skills.length - 5}</span>` : ''}
-              ${githubConnected ? `<span class="emp-github-badge">🐙 GitHub Connected</span>` : ''}
-            </div>
-            <div class="emp-candidate-meta">
-              <span>📍 ${escapeHtml(location)}</span>
-              <span>💼 ${yearsExp} yr${yearsExp !== 1 ? 's' : ''} exp</span>
-            </div>
-          </div>
-          <div class="emp-candidate-actions">
-            <button class="emp-btn emp-btn-sm emp-btn-outline save-candidate-btn" data-id="${candidateId}" onclick="event.stopPropagation()">❤️ Save</button>
-          </div>
-        </div>
-      `;
+      return '<div class="emp-candidate-card" data-candidate-id="' + candidateId + '" onclick="window.location.href=\'/employer/candidates/' + candidateId + '\'">' +
+        '<div class="emp-candidate-avatar">' +
+          (avatarUrl ? '<img src="' + avatarUrl + '" alt="' + escapeHtml(fullName) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">' : '<span class="emp-candidate-initials">' + getInitials(fullName) + '</span>') +
+        '</div>' +
+        '<div class="emp-candidate-info">' +
+          '<div class="emp-candidate-top">' +
+            '<h3 class="emp-candidate-name">' + escapeHtml(fullName) + '</h3>' +
+            '<span class="emp-candidate-score">' + matchScore + '% match</span>' +
+          '</div>' +
+          '<span class="emp-candidate-headline">' + escapeHtml(headline) + '</span>' +
+          '<div class="emp-candidate-tags">' +
+            skills.slice(0, 5).map(function (skill) { return '<span class="emp-tag">' + escapeHtml(skill) + '</span>'; }).join('') +
+            (skills.length > 5 ? '<span class="emp-tag">+' + (skills.length - 5) + '</span>' : '') +
+          '</div>' +
+          renderEvidence(gh) +
+          '<div class="emp-candidate-meta">' +
+            '<span>&#x1F4CD; ' + escapeHtml(location) + '</span>' +
+            '<span>&#x1F4BC; ' + yearsExp + ' yr' + (yearsExp !== 1 ? 's' : '') + ' exp</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="emp-candidate-actions">' +
+          '<button class="emp-btn emp-btn-sm emp-btn-outline save-candidate-btn" data-id="' + candidateId + '" onclick="event.stopPropagation()">&#x2764;&#xFE0F; Save</button>' +
+        '</div>' +
+      '</div>';
     }).join('');
     
     // Add event listeners to save buttons (re-attach because innerHTML was replaced)
