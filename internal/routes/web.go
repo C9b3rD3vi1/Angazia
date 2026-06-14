@@ -48,6 +48,7 @@ func SetupWebRoutes(
 	employee.Get("/jobs", jobHandler.EmployeeJobsPage)
 	employee.Get("/jobs/:id", jobHandler.EmployeeJobDetailPage)
 	employee.Get("/applications", webHandler.EmployeeApplicationsPage)
+	employee.Get("/applications/:id", webHandler.EmployeeApplicationsPage)
 	employee.Get("/saved", jobHandler.EmployeeSavedJobsPage)
 	employee.Get("/alerts", jobHandler.EmployeeJobAlertsPage)
 	employee.Get("/skills", webHandler.EmployeeSkillsPage)

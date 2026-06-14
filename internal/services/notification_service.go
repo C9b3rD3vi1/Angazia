@@ -440,14 +440,28 @@ func (s *NotificationServiceImpl) NotifyApplicationStatusChange(ctx context.Cont
 	}
 	
 	input := &NotificationInput{
-			Type:      "application",
-			Title:     "Application Status Update",
-			Content:   message,
-			Priority:  "high",
-			ActionURL: fmt.Sprintf("/applications/%s", applicationID),
-			Icon:      "briefcase",
-		}
+		Type:      "application",
+		Title:     "Application Status Update",
+		Content:   message,
+		Priority:  "high",
+		ActionURL: fmt.Sprintf("/employee/applications/%s", applicationID),
+		Icon:      "briefcase",
+	}
 		
+	_, err := s.SendNotification(ctx, employeeID, input)
+	return err
+}
+
+func (s *NotificationServiceImpl) NotifyInterviewScheduled(ctx context.Context, applicationID, employeeID, employerID string, interviewDate time.Time) error {
+	input := &NotificationInput{
+		Type:      "interview",
+		Title:     "Interview Scheduled",
+		Content:   fmt.Sprintf("Your interview has been scheduled for %s", interviewDate.Format("Monday, January 2, 2006 at 3:04 PM")),
+		Priority:  "high",
+		ActionURL: fmt.Sprintf("/employee/applications/%s", applicationID),
+		Icon:      "calendar",
+	}
+
 	_, err := s.SendNotification(ctx, employeeID, input)
 	return err
 }
@@ -463,20 +477,6 @@ func (s *NotificationServiceImpl) NotifyNewApplication(ctx context.Context, jobI
 	}
 	
 	_, err := s.SendNotification(ctx, employerID, input)
-	return err
-}
-
-func (s *NotificationServiceImpl) NotifyInterviewScheduled(ctx context.Context, applicationID, employeeID, employerID string, interviewDate time.Time) error {
-	input := &NotificationInput{
-		Type:      "interview",
-		Title:     "Interview Scheduled",
-		Content:   fmt.Sprintf("Your interview has been scheduled for %s", interviewDate.Format("Monday, January 2, 2006 at 3:04 PM")),
-		Priority:  "high",
-		ActionURL: fmt.Sprintf("/applications/%s", applicationID),
-		Icon:      "calendar",
-	}
-	
-	_, err := s.SendNotification(ctx, employeeID, input)
 	return err
 }
 
@@ -509,12 +509,17 @@ func (s *NotificationServiceImpl) NotifyJobAlert(ctx context.Context, employeeID
 }
 
 func (s *NotificationServiceImpl) NotifyMessageReceived(ctx context.Context, userID string, fromUserID string, message string) error {
+	messagesPath := "/employee/messages"
+	if user, err := s.userRepo.GetByID(ctx, userID); err == nil && user != nil && user.Role == "employer" {
+		messagesPath = "/employer/messages"
+	}
+
 	input := &NotificationInput{
 		Type:      "message",
 		Title:     "New Message",
 		Content:   message,
 		Priority:  "normal",
-		ActionURL: "/messages",
+		ActionURL: messagesPath,
 		Icon:      "message",
 	}
 	
