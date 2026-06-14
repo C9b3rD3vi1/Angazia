@@ -347,6 +347,7 @@
           '</div>' +
         '</div>' +
         '<div class="emp-candidate-actions">' +
+          '<button class="emp-btn emp-btn-sm emp-btn-outline msg-candidate-btn" data-id="' + candidateId + '" onclick="event.stopPropagation()">&#x1F4AC; Message</button>' +
           '<button class="emp-btn emp-btn-sm emp-btn-outline save-candidate-btn" data-id="' + candidateId + '" onclick="event.stopPropagation()">&#x2764;&#xFE0F; Save</button>' +
         '</div>' +
       '</div>';
@@ -356,6 +357,10 @@
     document.querySelectorAll('.save-candidate-btn').forEach(btn => {
       btn.removeEventListener('click', handleSaveClick);
       btn.addEventListener('click', handleSaveClick);
+    });
+    document.querySelectorAll('.msg-candidate-btn').forEach(btn => {
+      btn.removeEventListener('click', handleMessageClick);
+      btn.addEventListener('click', handleMessageClick);
     });
     
     // Update results title
@@ -476,6 +481,28 @@
         showPoolError('Failed to save candidate. Please try again.');
       }
     });
+  }
+
+  // Handle message button click
+  function handleMessageClick(e) {
+    e.stopPropagation();
+    var btn = e.currentTarget;
+    var candidateId = btn.getAttribute('data-id');
+    if (!candidateId) return;
+    var card = btn.closest('.emp-candidate-card');
+    var nameEl = card ? card.querySelector('.emp-candidate-name') : null;
+    var candidateName = nameEl ? nameEl.textContent.trim() : 'Candidate';
+    btn.disabled = true;
+    btn.textContent = '...';
+    AngaziaAPI.messages.create({ recipient_id: candidateId, subject: 'Regarding ' + candidateName, content: '' })
+      .then(function (conv) {
+        window.location.href = '/employer/messages';
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.textContent = '\uD83D\uDCAC Message';
+        showToast('Failed to open conversation. Please try again.', 'error');
+      });
   }
 
   // Handle save button click

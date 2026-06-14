@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -645,12 +646,45 @@ func (s *GitHubServiceImpl) updateGitHubScores(ctx context.Context, userID strin
 		qualityScore += 10
 	}
 	
+	// Build top repositories (sorted by stars, top 6)
+	sort.Slice(repos, func(i, j int) bool {
+		return repos[i].Stars > repos[j].Stars
+	})
+	topRepos := make(models.JSONArray, 0, 6)
+	for i, repo := range repos {
+		if i >= 6 {
+			break
+		}
+		topRepos = append(topRepos, map[string]interface{}{
+			"name":        repo.Name,
+			"full_name":   repo.FullName,
+			"description": repo.Description,
+			"language":    repo.Language,
+			"stars":       repo.Stars,
+			"forks":       repo.Forks,
+		})
+	}
+	
+	// Build repo language aggregate
+	langCounts := make(map[string]int)
+	for _, repo := range repos {
+		if repo.Language != "" {
+			langCounts[repo.Language]++
+		}
+	}
+	repoLanguages := make(models.JSONMap)
+	for lang, count := range langCounts {
+		repoLanguages[lang] = count
+	}
+	
 	// Update profile
 	updates := map[string]interface{}{
-		"total_commits":  totalCommits,
-		"activity_score": activityScore,
-		"quality_score":  qualityScore,
-		"overall_score":  (activityScore + qualityScore) / 2,
+		"total_commits":    totalCommits,
+		"activity_score":   activityScore,
+		"quality_score":    qualityScore,
+		"overall_score":    (activityScore + qualityScore) / 2,
+		"top_repositories": topRepos,
+		"repo_languages":   repoLanguages,
 	}
 	
 	s.githubRepo.UpdateProfileStats(ctx, userID, updates)

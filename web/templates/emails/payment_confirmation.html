@@ -1,0 +1,29 @@
+{{define "payment_confirmation"}}
+<h2>Payment Successful!</h2>
+
+<p>Dear {{.Name}},</p>
+
+<p>Your payment has been successfully processed. Thank you for your subscription!</p>
+
+<div class="success-box">
+    <strong>✅ Payment Details:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Plan: {{.Name}}</li>
+        <li>Amount: {{.Company}}</li>
+        <li>Invoice: {{.Status}}</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/subscriptions" class="button">View Subscription</a>
+</div>
+
+<div class="info-box">
+    <strong>📄 Invoice</strong>
+    <p>Your invoice is available in your account dashboard.</p>
+</div>
+
+<hr>
+
+<p class="text-muted">If you have any questions, please contact our support team.</p>
+{{end}}

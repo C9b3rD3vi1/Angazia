@@ -158,11 +158,14 @@ func (r *MessageRepositoryImpl) MarkConversationRead(ctx context.Context, conver
 
 func (r *MessageRepositoryImpl) GetUnreadCount(ctx context.Context, userID string) (int, error) {
 	var count int64
-	err := r.db.WithContext(ctx).
-		Model(&models.Message{}).
-		Joins("JOIN conversation_participants ON conversation_participants.conversation_id = messages.conversation_id AND conversation_participants.user_id = ?", userID).
-		Where("messages.sender_id != ? AND messages.created_at > conversation_participants.last_read_at", userID, userID).
-		Count(&count).Error
+	err := r.db.WithContext(ctx).Raw(`
+		SELECT COUNT(*)
+		FROM messages
+		JOIN conversation_participants ON conversation_participants.conversation_id = messages.conversation_id
+			AND conversation_participants.user_id = ?
+		WHERE messages.sender_id != ?
+			AND messages.created_at > conversation_participants.last_read_at
+	`, userID, userID).Scan(&count).Error
 	return int(count), err
 }
 

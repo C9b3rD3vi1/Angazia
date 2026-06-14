@@ -3,14 +3,13 @@
 
 <p>Dear {{.Name}},</p>
 
-<p>We were unable to process your payment for the <strong>{{.PlanName}}</strong> subscription.</p>
+<p>We were unable to process your payment for the <strong>{{.Name}}</strong> subscription.</p>
 
 <div class="alert-box">
     <strong>❌ Payment Details:</strong>
     <ul style="margin: 10px 0 0 20px;">
-        <li>Amount: {{.Currency}} {{.Amount}}</li>
-        <li>Due Date: {{.DueDate}}</li>
-        <li>Failure Reason: {{.FailureReason}}</li>
+        <li>Amount: {{.Company}}</li>
+        <li>Reason: {{.Reason}}</li>
     </ul>
 </div>
 

@@ -439,6 +439,16 @@ var AngaziaAPI = (function () {
       contributions: function (days) { return apiGet('/github/contributions', days ? { days: days } : undefined); },
     },
 
+    messages: {
+      list: function (params) { return apiGet('/messages', params); },
+      get: function (id) { return apiGet('/messages/' + id); },
+      create: function (data) { return apiPost('/messages', data); },
+      send: function (convId, data) { return apiPost('/messages/' + convId + '/messages', data); },
+      listMessages: function (convId, params) { return apiGet('/messages/' + convId + '/messages', params); },
+      markRead: function (convId) { return apiPost('/messages/' + convId + '/read'); },
+      unreadCount: function () { return apiGet('/messages/unread-count'); },
+    },
+
     preferences: {
       get: function () { return apiGet('/preferences'); },
       update: function (data) { return apiPut('/preferences', data); },

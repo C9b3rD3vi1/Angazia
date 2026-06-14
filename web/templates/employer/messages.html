@@ -8,6 +8,9 @@
 
   <div class="msg-layout">
     <aside class="msg-sidebar">
+      <div class="msg-sidebar-head">
+        <button class="msg-new-btn" id="msg-new-btn">+ New Conversation</button>
+      </div>
       <div class="msg-search-wrap">
         <input type="text" class="msg-search" id="msg-search" placeholder="Search conversations...">
       </div>
@@ -42,6 +45,40 @@
   </div>
 </div>
 
+<div class="emp-modal-overlay" id="msg-new-modal" style="display:none;">
+  <div class="emp-modal" style="max-width:480px;">
+    <div class="emp-modal-head">
+      <h3>New Conversation</h3>
+      <button class="emp-modal-close" id="msg-new-close">&times;</button>
+    </div>
+    <div class="emp-modal-body">
+      <div class="emp-field">
+        <label class="emp-label">Search Candidate</label>
+        <input type="text" class="emp-input" id="msg-new-search" placeholder="Type a candidate name...">
+        <div id="msg-new-results" class="msg-new-results"></div>
+      </div>
+      <div class="emp-field" id="msg-new-subject-field" style="display:none;">
+        <label class="emp-label">Subject (optional)</label>
+        <input type="text" class="emp-input" id="msg-new-subject" placeholder="e.g. Regarding your application">
+      </div>
+      <div class="emp-field" id="msg-new-message-field" style="display:none;">
+        <label class="emp-label">Message</label>
+        <textarea class="emp-textarea" id="msg-new-message" rows="3" placeholder="Type your first message..."></textarea>
+      </div>
+      <div id="msg-new-error" class="emp-modal-error" style="display:none;">
+        <p id="msg-new-error-msg"></p>
+      </div>
+    </div>
+    <div class="emp-modal-foot">
+      <button class="emp-btn emp-btn-ghost" id="msg-new-cancel" type="button">Cancel</button>
+      <button class="emp-btn emp-btn-primary" id="msg-new-start" disabled type="button">
+        <span class="emp-btn-label">Start Conversation</span>
+        <span class="emp-btn-spinner" style="display:none;"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <style>
 .emp-page { display: flex; flex-direction: column; gap: 20px; height: 100%; }
 .emp-page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
@@ -50,6 +87,13 @@
 
 .msg-layout { display: flex; gap: 0; flex: 1; min-height: 500px; background: var(--s1); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
 .msg-sidebar { width: 320px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+.msg-sidebar-head { padding: 12px; border-bottom: 1px solid var(--border); }
+.msg-new-btn { width: 100%; padding: 9px; font-family: var(--fm); font-size: 12px; font-weight: 600; background: var(--accent); color: var(--bg); border: none; border-radius: var(--radius); cursor: pointer; transition: opacity 0.15s; }
+.msg-new-btn:hover { opacity: 0.9; }
+.msg-new-results { margin-top: 8px; max-height: 200px; overflow-y: auto; }
+.msg-new-result-item { padding: 8px 10px; cursor: pointer; border-radius: 6px; font-size: 13px; color: var(--text); transition: background 0.1s; }
+.msg-new-result-item:hover { background: var(--s2); }
+.msg-new-result-item.selected { background: rgba(0,229,160,0.1); border: 1px solid var(--accent); }
 .msg-search-wrap { padding: 12px; border-bottom: 1px solid var(--border); }
 .msg-search { width: 100%; padding: 9px 14px; font-family: var(--fm); font-size: 12px; background: var(--s2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); outline: none; transition: border-color 0.15s; }
 .msg-search:focus { border-color: var(--accent); }
@@ -60,7 +104,9 @@
 .msg-conv-item { display: flex; gap: 12px; padding: 14px 16px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.1s; }
 .msg-conv-item:hover { background: var(--s2); }
 .msg-conv-item.active { background: rgba(0,229,160,0.05); border-left: 3px solid var(--accent); }
-.msg-conv-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--s2); display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--purple); flex-shrink: 0; font-weight: 600; }
+.msg-conv-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--s2); display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--purple); flex-shrink: 0; font-weight: 600; overflow: hidden; }
+.msg-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.msg-avatar-initial { font-size: 14px; font-weight: 600; color: var(--purple); }
 .msg-conv-body { flex: 1; min-width: 0; }
 .msg-conv-name { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
 .msg-conv-preview { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -125,6 +171,21 @@
   var msgInput = document.getElementById('msg-input');
   var sendBtn = document.getElementById('msg-send-btn');
   var searchInput = document.getElementById('msg-search');
+  var newBtn = document.getElementById('msg-new-btn');
+  var newModal = document.getElementById('msg-new-modal');
+  var newSearch = document.getElementById('msg-new-search');
+  var newResults = document.getElementById('msg-new-results');
+  var newSubject = document.getElementById('msg-new-subject');
+  var newMessage = document.getElementById('msg-new-message');
+  var newSubjectField = document.getElementById('msg-new-subject-field');
+  var newMessageField = document.getElementById('msg-new-message-field');
+  var newStart = document.getElementById('msg-new-start');
+  var newCancel = document.getElementById('msg-new-cancel');
+  var newClose = document.getElementById('msg-new-close');
+  var newError = document.getElementById('msg-new-error');
+  var newErrorMsg = document.getElementById('msg-new-error-msg');
+  var selectedRecipient = null;
+  var searchTimer = null;
 
   function loadConversations() {
     convListEl.innerHTML = '<div class="msg-loading">Loading conversations...</div>';
@@ -136,6 +197,13 @@
     });
   }
 
+  function renderAvatarHTML(user) {
+    if (!user) return '?';
+    var src = user.avatar_url || '';
+    if (src) return '<img src="' + src + '" alt="" class="msg-avatar-img">';
+    return '<span class="msg-avatar-initial">' + (user.name ? user.name.charAt(0).toUpperCase() : '?') + '</span>';
+  }
+
   function renderConversations() {
     if (state.conversations.length === 0) {
       convListEl.innerHTML = '<div class="msg-empty">No conversations yet</div>';
@@ -144,15 +212,15 @@
     convListEl.innerHTML = '';
     state.conversations.forEach(function(conv) {
       var other = (conv.participants || []).find(function(p) { return p.user_id !== '{{.User.ID}}'; });
-      var name = other && other.user ? other.user.name : 'Unknown';
-      var initial = name ? name.charAt(0).toUpperCase() : '?';
+      var otherUser = other && other.user ? other.user : null;
+      var name = otherUser ? otherUser.name : 'Unknown';
       var lastMsg = conv.last_message;
       var preview = lastMsg ? lastMsg.content : '';
       var time = lastMsg ? timeAgo(lastMsg.created_at) : '';
 
       var el = document.createElement('div');
       el.className = 'msg-conv-item' + (conv.id === state.currentConvId ? ' active' : '');
-      el.innerHTML = '<div class="msg-conv-avatar">' + initial + '</div>'
+      el.innerHTML = '<div class="msg-conv-avatar">' + renderAvatarHTML(otherUser) + '</div>'
         + '<div class="msg-conv-body">'
         + '<div class="msg-conv-name">' + escapeHtml(name) + '</div>'
         + '<div class="msg-conv-preview">' + escapeHtml(preview) + '</div>'
@@ -267,11 +335,107 @@
     return d.toLocaleDateString();
   }
 
+  function openNewModal() {
+    if (newModal) newModal.style.display = 'flex';
+    if (newSearch) { newSearch.value = ''; newSearch.focus(); }
+    if (newResults) newResults.innerHTML = '';
+    if (newSubject) newSubject.value = '';
+    if (newMessage) newMessage.value = '';
+    if (newSubjectField) newSubjectField.style.display = 'none';
+    if (newMessageField) newMessageField.style.display = 'none';
+    if (newStart) { newStart.disabled = true; newStart.querySelector('.emp-btn-label').textContent = 'Start Conversation'; newStart.querySelector('.emp-btn-spinner').style.display = 'none'; }
+    if (newError) newError.style.display = 'none';
+    selectedRecipient = null;
+  }
+
+  function closeNewModal() {
+    if (newModal) newModal.style.display = 'none';
+  }
+
+  function doCandidateSearch(q) {
+    if (!q || q.length < 2) {
+      if (newResults) newResults.innerHTML = '';
+      return;
+    }
+    AngaziaAPI.search.candidates({ q: q, limit: 10 }).then(function(data) {
+      var candidates = [];
+      if (data && data.results) candidates = data.results;
+      else if (Array.isArray(data)) candidates = data;
+      else if (data && data.data && data.data.results) candidates = data.data.results;
+      if (!newResults) return;
+      if (candidates.length === 0) {
+        newResults.innerHTML = '<div style="padding:8px;font-size:12px;color:var(--muted2);">No candidates found</div>';
+        return;
+      }
+      newResults.innerHTML = '';
+      candidates.forEach(function(c) {
+        var cd = c.data || c;
+        var id = cd.user_id || cd.id;
+        var name = cd.full_name || cd.name || 'Unknown';
+        var headline = cd.headline || '';
+        var el = document.createElement('div');
+        el.className = 'msg-new-result-item';
+        el.dataset.id = id;
+        el.dataset.name = name;
+        el.innerHTML = '<strong>' + escapeHtml(name) + '</strong>' + (headline ? '<br><span style="font-size:11px;color:var(--muted);">' + escapeHtml(headline) + '</span>' : '');
+        el.addEventListener('click', function() {
+          document.querySelectorAll('.msg-new-result-item').forEach(function(i) { i.classList.remove('selected'); });
+          el.classList.add('selected');
+          selectedRecipient = { id: id, name: name };
+          if (newSubjectField) newSubjectField.style.display = '';
+          if (newMessageField) newMessageField.style.display = '';
+          if (newStart) newStart.disabled = false;
+        });
+        newResults.appendChild(el);
+      });
+    }).catch(function() {
+      if (newResults) newResults.innerHTML = '<div style="padding:8px;font-size:12px;color:var(--danger);">Search failed</div>';
+    });
+  }
+
+  function startNewConversation() {
+    if (!selectedRecipient) return;
+    if (newStart) {
+      newStart.disabled = true;
+      newStart.querySelector('.emp-btn-label').textContent = 'Creating...';
+      newStart.querySelector('.emp-btn-spinner').style.display = 'inline-block';
+    }
+    if (newError) newError.style.display = 'none';
+    var subject = newSubject ? newSubject.value.trim() : '';
+    if (!subject) subject = 'Regarding ' + selectedRecipient.name;
+    var content = newMessage ? newMessage.value.trim() : '';
+    AngaziaAPI.post('/messages', { recipient_id: selectedRecipient.id, subject: subject, content: content })
+      .then(function(conv) {
+        closeNewModal();
+        loadConversations();
+        if (conv && conv.id) openConversation(conv.id);
+      })
+      .catch(function(err) {
+        if (newStart) {
+          newStart.disabled = false;
+          newStart.querySelector('.emp-btn-label').textContent = 'Start Conversation';
+          newStart.querySelector('.emp-btn-spinner').style.display = 'none';
+        }
+        if (newError) { newError.style.display = ''; if (newErrorMsg) newErrorMsg.textContent = err.body && err.body.error ? err.body.error : 'Failed to create conversation'; }
+      });
+  }
+
   function initMessages() {
     if (sendBtn) sendBtn.addEventListener('click', sendMessage);
     if (msgInput) {
       msgInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+      });
+    }
+    if (newBtn) newBtn.addEventListener('click', openNewModal);
+    if (newCancel) newCancel.addEventListener('click', closeNewModal);
+    if (newClose) newClose.addEventListener('click', closeNewModal);
+    if (newModal) newModal.addEventListener('click', function(e) { if (e.target === newModal) closeNewModal(); });
+    if (newStart) newStart.addEventListener('click', startNewConversation);
+    if (newSearch) {
+      newSearch.addEventListener('input', function() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function() { doCandidateSearch(newSearch.value.trim()); }, 300);
       });
     }
     if (searchInput) {

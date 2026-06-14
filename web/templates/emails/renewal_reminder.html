@@ -3,15 +3,14 @@
 
 <p>Dear {{.Name}},</p>
 
-<p>Your <strong>{{.PlanName}}</strong> subscription is set to renew on <strong>{{.RenewalDate}}</strong>.</p>
+<p>Your <strong>{{.Name}}</strong> subscription is set to renew in <strong>{{.Count}} days</strong>.</p>
 
 <div class="info-box">
     <p><strong>Subscription Details:</strong></p>
     <ul style="margin: 10px 0 0 20px;">
-        <li>Plan: {{.PlanName}}</li>
-        <li>Amount: {{.Currency}} {{.Amount}}</li>
-        <li>Renewal Date: {{.RenewalDate}}</li>
-        <li>Auto-Renew: {{if .AutoRenew}}Enabled{{else}}Disabled{{end}}</li>
+        <li>Plan: {{.Name}}</li>
+        <li>Amount: {{.Company}}</li>
+        <li>Days Until Renewal: {{.Count}}</li>
     </ul>
 </div>
 

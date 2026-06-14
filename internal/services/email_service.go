@@ -200,17 +200,23 @@ func (s *EmailServiceImpl) loadTemplates() error {
 		"welcome":                      filepath.Join(templateDir, "welcome.html"),
 		"employer_welcome":             filepath.Join(templateDir, "employer_welcome.html"),
 		"application_confirmation":     filepath.Join(templateDir, "application_confirmation.html"),
-		"new_application_notification": filepath.Join(templateDir, "new_application_notification.html"),
+		"new_application_notification": filepath.Join(templateDir, "new_application_notifications.html"),
 		"application_status_update":    filepath.Join(templateDir, "application_status_update.html"),
-		"interview_invitation":         filepath.Join(templateDir, "interview_invitation.html"),
+		"interview_invitation":         filepath.Join(templateDir, "interview_notification.html"),
 		"hired_notification":           filepath.Join(templateDir, "hired_notification.html"),
 		"job_alert":                    filepath.Join(templateDir, "job_alert.html"),
-		// New templates
 		"admin_verification":           filepath.Join(templateDir, "admin_verification.html"),
 		"verification_approved":        filepath.Join(templateDir, "verification_approved.html"),
 		"verification_rejected":        filepath.Join(templateDir, "verification_rejected.html"),
 		"team_invitation_existing":     filepath.Join(templateDir, "team_invitation_existing.html"),
 		"team_invitation_new":          filepath.Join(templateDir, "team_invitation_new.html"),
+		// Billing templates
+		"payment_confirmation":         filepath.Join(templateDir, "payment_confirmation.html"),
+		"payment_failed":               filepath.Join(templateDir, "payment_failed.html"),
+		"subscription_cancelled":       filepath.Join(templateDir, "subscription_cancelled.html"),
+		"subscription_reactivated":     filepath.Join(templateDir, "subscription_reactivated.html"),
+		"renewal_reminder":             filepath.Join(templateDir, "renewal_reminder.html"),
+		"invoice_available":            filepath.Join(templateDir, "invoice_available.html"),
 		// 2FA templates
 		"twofa_code":                   filepath.Join(templateDir, "twofa_code.html"),
 		"twofa_backup_codes":           filepath.Join(templateDir, "twofa_backup_codes.html"),
@@ -219,17 +225,20 @@ func (s *EmailServiceImpl) loadTemplates() error {
 		"twofa_recovery":               filepath.Join(templateDir, "twofa_recovery.html"),
 	}
 	
+	loaded := 0
 	for name, tmplPath := range templates {
 		tmpl, err := template.ParseFiles(baseTemplate, tmplPath)
 		if err != nil {
-			return fmt.Errorf("failed to parse template %s: %w", name, err)
+			fmt.Printf("Warning: failed to parse email template %s (%s): %v\n", name, tmplPath, err)
+			continue
 		}
 		s.mu.Lock()
 		s.templateCache[name] = tmpl
 		s.mu.Unlock()
+		loaded++
 	}
 
-	fmt.Printf("📧 Loaded %d email templates\n", len(templates))
+	fmt.Printf("📧 Loaded %d/%d email templates\n", loaded, len(templates))
 	return nil
 }
 

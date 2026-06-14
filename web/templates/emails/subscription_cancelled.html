@@ -1,0 +1,27 @@
+{{define "subscription_cancelled"}}
+<h2>Subscription Cancelled</h2>
+
+<p>Dear {{.Name}},</p>
+
+<p>Your <strong>{{.Name}}</strong> subscription has been cancelled.</p>
+
+<div class="feature-box">
+    <strong>📅 Access Until:</strong>
+    <p style="margin: 8px 0 0;">{{.Status}}</p>
+</div>
+
+<p>You will continue to have access to all features until the end of your current billing period.</p>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/subscriptions" class="button">Manage Subscription</a>
+</div>
+
+<div class="info-box">
+    <strong>💡 Did you know?</strong>
+    <p>You can reactivate your subscription at any time from your account settings.</p>
+</div>
+
+<hr>
+
+<p class="text-muted">We're sorry to see you go. If you have feedback, we'd love to hear it.</p>
+{{end}}

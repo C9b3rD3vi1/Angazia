@@ -1,0 +1,23 @@
+{{define "invoice_available"}}
+<h2>Invoice Available</h2>
+
+<p>Dear {{.Name}},</p>
+
+<p>Your invoice is now available for viewing and download.</p>
+
+<div class="feature-box">
+    <strong>📄 Invoice Details:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Invoice: {{.Name}}</li>
+        <li>Amount: {{.Company}}</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.VerificationURL}}" class="button">View Invoice</a>
+</div>
+
+<hr>
+
+<p class="text-muted">Please keep this invoice for your records. If you have any questions, contact our support team.</p>
+{{end}}

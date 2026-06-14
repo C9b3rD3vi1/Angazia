@@ -350,7 +350,7 @@ func (s *ApplicationServiceImpl) ShortlistApplication(ctx context.Context, appli
 	}
 
 	if s.notificationService != nil {
-		go s.notificationService.NotifyApplicationStatusChange(context.Background(), applicationID, application.EmployeeID, employerID, "shortlisted")
+		go s.notificationService.NotifyApplicationStatusChange(context.Background(), applicationID, application.EmployeeID, "shortlisted")
 	}
 
 	return nil
@@ -384,7 +384,7 @@ func (s *ApplicationServiceImpl) RejectApplication(ctx context.Context, applicat
 	}
 
 	if s.notificationService != nil {
-		go s.notificationService.NotifyApplicationStatusChange(context.Background(), applicationID, application.EmployeeID, employerID, "rejected")
+		go s.notificationService.NotifyApplicationStatusChange(context.Background(), applicationID, application.EmployeeID, "rejected")
 	}
 
 	return nil
@@ -471,7 +471,7 @@ func (s *ApplicationServiceImpl) MarkAsHired(ctx context.Context, applicationID 
 	}
 
 	if s.notificationService != nil {
-		go s.notificationService.NotifyApplicationStatusChange(context.Background(), applicationID, application.EmployeeID, employerID, "hired")
+		go s.notificationService.NotifyApplicationStatusChange(context.Background(), applicationID, application.EmployeeID, "hired")
 	}
 
 	return nil
@@ -562,7 +562,7 @@ func (s *ApplicationServiceImpl) BulkShortlist(ctx context.Context, applicationI
 
 	for _, app := range apps {
 		if s.notificationService != nil {
-			s.notificationService.NotifyApplicationStatusChange(ctx, app.ID, app.EmployeeID, employerID, "shortlisted")
+			s.notificationService.NotifyApplicationStatusChange(ctx, app.ID, app.EmployeeID, "shortlisted")
 		}
 	}
 
@@ -590,7 +590,7 @@ func (s *ApplicationServiceImpl) BulkReject(ctx context.Context, applicationIDs 
 
 	for _, app := range apps {
 		if s.notificationService != nil {
-			s.notificationService.NotifyApplicationStatusChange(ctx, app.ID, app.EmployeeID, employerID, "rejected")
+			s.notificationService.NotifyApplicationStatusChange(ctx, app.ID, app.EmployeeID, "rejected")
 		}
 	}
 

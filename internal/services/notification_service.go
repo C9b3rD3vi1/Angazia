@@ -44,8 +44,11 @@ type NotificationService interface {
 	DeleteOldNotifications(ctx context.Context, days int) error
 	StartCleanupRoutine(ctx context.Context, interval time.Duration, retentionDays int)
 
+	// Deferred delivery
+	StartDeferredDeliveryRoutine(ctx context.Context, interval time.Duration)
+
 	// Event triggers (called by other services)
-	NotifyApplicationStatusChange(ctx context.Context, applicationID, employeeID, employerID, status string) error
+	NotifyApplicationStatusChange(ctx context.Context, applicationID, employeeID, status string) error
 	NotifyNewApplication(ctx context.Context, jobID, employerID, employeeID string) error
 	NotifyInterviewScheduled(ctx context.Context, applicationID, employeeID, employerID string, interviewDate time.Time) error
 	NotifyNewJobMatch(ctx context.Context, employeeID string, jobID string, matchScore int) error
@@ -105,13 +108,15 @@ func NewNotificationService(
 	userRepo repository.UserRepository,
 	emailService EmailService,
 ) NotificationService {
-	return &NotificationServiceImpl{
+	svc := &NotificationServiceImpl{
 		cfg:              cfg,
 		notificationRepo: notificationRepo,
 		userRepo:         userRepo,
 		websocketHub:     GetHub(),
 		emailService:     emailService,
 	}
+	svc.StartDeferredDeliveryRoutine(context.Background(), 5*time.Minute)
+	return svc
 }
 
 func (s *NotificationServiceImpl) SendNotification(ctx context.Context, userID string, input *NotificationInput) (*models.Notification, error) {
@@ -130,11 +135,11 @@ func (s *NotificationServiceImpl) SendNotification(ctx context.Context, userID s
 		return nil, nil
 	}
 	
-	// Check quiet hours
+	// Check quiet hours — defer instead of dropping
 	if s.isInQuietHours(prefs) {
-		return nil, nil
+		return s.deferNotification(ctx, userID, input, prefs)
 	}
-	
+
 	// Create notification record
 	metadataJSON, _ := json.Marshal(input.Metadata)
 	var metadata models.JSONMap
@@ -420,7 +425,7 @@ func (s *NotificationServiceImpl) UpdatePreferences(ctx context.Context, userID 
 
 // Event triggers
 
-func (s *NotificationServiceImpl) NotifyApplicationStatusChange(ctx context.Context, applicationID, employeeID, employerID, status string) error {
+func (s *NotificationServiceImpl) NotifyApplicationStatusChange(ctx context.Context, applicationID, employeeID, status string) error {
 	statusMessages := map[string]string{
 		"shortlisted": "Your application has been shortlisted!",
 		"rejected":    "Your application was not selected",
@@ -580,6 +585,130 @@ func (s *NotificationServiceImpl) NotifyApplicationWithdrawn(ctx context.Context
 	}
 	_, err := s.SendNotification(ctx, employerID, input)
 	return err
+}
+
+// Deferred delivery
+
+func (s *NotificationServiceImpl) deferNotification(ctx context.Context, userID string, input *NotificationInput, prefs *models.NotificationPreferences) (*models.Notification, error) {
+	scheduledFor := s.getQuietHoursEnd(prefs)
+
+	metadataJSON, _ := json.Marshal(input.Metadata)
+	var metadata models.JSONMap
+	if len(metadataJSON) > 0 {
+		json.Unmarshal(metadataJSON, &metadata)
+	}
+	if metadata == nil {
+		metadata = make(models.JSONMap)
+	}
+
+	notification := &models.Notification{
+		UserID:      userID,
+		Type:        input.Type,
+		Title:       input.Title,
+		Content:     input.Content,
+		Metadata:    metadata,
+		ActionURL:   input.ActionURL,
+		Icon:        input.Icon,
+		Priority:    input.Priority,
+		IsRead:      false,
+		ScheduledFor: &scheduledFor,
+		CreatedAt:   time.Now(),
+	}
+
+	if notification.Priority == "" {
+		notification.Priority = "normal"
+	}
+	if notification.Icon == "" {
+		notification.Icon = s.getIconForType(input.Type)
+	}
+
+	if err := s.notificationRepo.Create(ctx, notification); err != nil {
+		return nil, fmt.Errorf("failed to create deferred notification: %w", err)
+	}
+
+	return notification, nil
+}
+
+func (s *NotificationServiceImpl) getQuietHoursEnd(prefs *models.NotificationPreferences) time.Time {
+	loc := time.Local
+	if prefs.QuietTimezone != "" {
+		if l, err := time.LoadLocation(prefs.QuietTimezone); err == nil {
+			loc = l
+		}
+	}
+	now := time.Now().In(loc)
+
+	endHour := prefs.QuietEndHour
+	endDay := now
+
+	if prefs.QuietStartHour > prefs.QuietEndHour {
+		// Overnight (e.g. 22:00 - 08:00)
+		if now.Hour() >= prefs.QuietStartHour {
+			// Currently in first half of quiet period, ends tomorrow
+			endDay = now.AddDate(0, 0, 1)
+		}
+	}
+
+	return time.Date(endDay.Year(), endDay.Month(), endDay.Day(), endHour, 0, 0, 0, loc)
+}
+
+func (s *NotificationServiceImpl) StartDeferredDeliveryRoutine(ctx context.Context, interval time.Duration) {
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		// Run once immediately on start
+		s.deliverDeferredNotifications(context.Background())
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				s.deliverDeferredNotifications(context.Background())
+			}
+		}
+	}()
+}
+
+func (s *NotificationServiceImpl) deliverDeferredNotifications(ctx context.Context) {
+	notifications, err := s.notificationRepo.ListDeferred(ctx)
+	if err != nil {
+		return
+	}
+
+	for _, n := range notifications {
+		prefs, err := s.notificationRepo.GetPreferences(ctx, n.UserID)
+		if err != nil {
+			continue
+		}
+
+		// Re-check quiet hours in case they've changed
+		if s.isInQuietHours(prefs) {
+			newSchedule := s.getQuietHoursEnd(prefs)
+			n.ScheduledFor = &newSchedule
+			s.notificationRepo.Update(ctx, n)
+			continue
+		}
+
+		now := time.Now()
+		n.DeliveredAt = &now
+		n.ScheduledFor = nil
+
+		if err := s.notificationRepo.Update(ctx, n); err != nil {
+			continue
+		}
+
+		if prefs.InAppEnabled {
+			s.websocketHub.SendToUser(n.UserID, models.WebSocketMessage{
+				Type:      "notification",
+				Data:      n,
+				Timestamp: time.Now(),
+			})
+		}
+
+		if prefs.EmailEnabled && n.Priority == "high" {
+			go s.sendEmailNotification(n, n.UserID)
+		}
+	}
 }
 
 // Helper methods

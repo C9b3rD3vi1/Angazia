@@ -21,7 +21,7 @@
   var candidateName = '';
 
   var loadingEl, errorEl, errorMsgEl, contentEl;
-  var saveBtn, modalOverlay, modalClose, modalCancel, modalConfirm, modalNameEl;
+  var saveBtn, msgBtn, modalOverlay, modalClose, modalCancel, modalConfirm, modalNameEl;
   var poolSelect, poolNotes, poolLoading, poolForm, poolEmpty, poolError, poolErrorMsg;
   var toastEl, badgeEl, badgeWrap;
 
@@ -32,6 +32,7 @@
     contentEl = document.getElementById('cd-content');
 
     saveBtn = document.getElementById('cd-save-btn');
+    msgBtn = document.getElementById('cd-msg-btn');
     modalOverlay = document.getElementById('cd-pool-modal');
     modalClose = document.getElementById('cd-pool-modal-close');
     modalCancel = document.getElementById('cd-pool-cancel');
@@ -464,9 +465,27 @@
       });
   }
 
+  function handleMessageClick() {
+    if (!msgBtn || !candidateId) return;
+    msgBtn.disabled = true;
+    msgBtn.textContent = '...';
+    AngaziaAPI.messages.create({ recipient_id: candidateId, subject: 'Regarding ' + candidateName, content: '' })
+      .then(function () {
+        window.location.href = '/employer/messages';
+      })
+      .catch(function (err) {
+        msgBtn.disabled = false;
+        msgBtn.innerHTML = '\uD83D\uDCAC Message';
+        showToast((err.body && err.body.error ? err.body.error : 'Failed to open conversation') + '. Please try again.', 'error');
+      });
+  }
+
   function initSaveHandlers() {
     if (saveBtn) {
       saveBtn.addEventListener('click', openPoolModal);
+    }
+    if (msgBtn) {
+      msgBtn.addEventListener('click', handleMessageClick);
     }
     if (modalClose) {
       modalClose.addEventListener('click', closePoolModal);

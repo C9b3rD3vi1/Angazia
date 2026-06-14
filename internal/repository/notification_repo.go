@@ -42,6 +42,9 @@ type NotificationRepository interface {
 	UpdatePreferences(ctx context.Context, userID string, updates map[string]interface{}) error
 	UpsertPreferences(ctx context.Context, prefs *models.NotificationPreferences) error
 	
+	// Deferred delivery
+	ListDeferred(ctx context.Context) ([]*models.Notification, error)
+
 	// Cleanup
 	DeleteOldNotifications(ctx context.Context, days int) error
 }
@@ -327,6 +330,15 @@ func (r *NotificationRepositoryImpl) UpsertPreferences(ctx context.Context, pref
 	}
 	
 	return r.CreatePreferences(ctx, prefs)
+}
+
+func (r *NotificationRepositoryImpl) ListDeferred(ctx context.Context) ([]*models.Notification, error) {
+	var notifications []*models.Notification
+	err := r.db.WithContext(ctx).
+		Where("scheduled_for IS NOT NULL AND scheduled_for <= ? AND delivered_at IS NULL", time.Now()).
+		Order("priority DESC, created_at ASC").
+		Find(&notifications).Error
+	return notifications, err
 }
 
 func (r *NotificationRepositoryImpl) DeleteOldNotifications(ctx context.Context, days int) error {

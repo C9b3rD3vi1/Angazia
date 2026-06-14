@@ -1,0 +1,24 @@
+{{define "subscription_reactivated"}}
+<h2>Welcome Back!</h2>
+
+<p>Dear {{.Name}},</p>
+
+<p>Your <strong>{{.Name}}</strong> subscription has been successfully reactivated. Welcome back!</p>
+
+<div class="success-box">
+    <strong>✅ What's next?</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>All features are now available</li>
+        <li>Your billing cycle has been resumed</li>
+        <li>You can start posting jobs and finding talent immediately</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/dashboard" class="button">Go to Dashboard</a>
+</div>
+
+<hr>
+
+<p class="text-muted">Thank you for choosing {{.AppName}}! If you have any questions, please contact our support team.</p>
+{{end}}

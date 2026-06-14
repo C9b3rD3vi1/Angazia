@@ -135,7 +135,12 @@ func AutoMigrate() error {
 	&models.SavedSearch{},
 	&models.AlertHistory{},
 
-	// Level 14: GDPR models
+	// Level 14: Messaging models
+	&models.Conversation{},
+	&models.ConversationParticipant{},
+	&models.Message{},
+
+	// Level 15: GDPR models
 	}
 	
 	// Migrate each model individually to isolate errors

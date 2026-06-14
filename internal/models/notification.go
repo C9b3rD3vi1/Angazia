@@ -18,6 +18,7 @@ type Notification struct {
 	IsRead      bool       `json:"is_read" gorm:"default:false;index"`
 	IsArchived  bool       `json:"is_archived" gorm:"default:false"`
 	ReadAt      *time.Time `json:"read_at,omitempty"`
+	ScheduledFor *time.Time `json:"scheduled_for,omitempty" gorm:"index"`          // deferred delivery time (quiet hours)
 	DeliveredAt *time.Time `json:"delivered_at,omitempty"`
 	CreatedAt   time.Time  `json:"created_at" gorm:"autoCreateTime;index"`
 	UpdatedAt   time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
