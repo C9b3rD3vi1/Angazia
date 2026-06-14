@@ -99,47 +99,46 @@
   {{end}}
 </div>
 {{else}}
-<div class="plans-grid">
+<div class="plans-grid" id="pricing-plans">
   <div class="plan-card">
     <div class="plan-name">FREE</div>
     <div class="plan-price"><span class="currency">KES</span> 0 <span class="period">/month</span></div>
-    <div class="plan-desc">Perfect for startups and small teams getting started with hiring.</div>
+    <div class="plan-desc">Perfect for getting started with basic job postings.</div>
     <div class="plan-features">
-      <div class="plan-feature"><span class="check">&#x2713;</span><span>1 active job posting</span></div>
-      <div class="plan-feature"><span class="check">&#x2713;</span><span>Basic company profile</span></div>
-      <div class="plan-feature"><span class="check">&#x2713;</span><span>30-day listing</span></div>
-      <div class="plan-feature"><span class="cross">&#x2717;</span><span class="muted-text">Applicant tracking</span></div>
-      <div class="plan-feature"><span class="cross">&#x2717;</span><span class="muted-text">Analytics dashboard</span></div>
-      <div class="plan-feature"><span class="cross">&#x2717;</span><span class="muted-text">Priority support</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>3 active job posts</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Basic job matching</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Basic analytics</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Email support</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Standard job listing</span></div>
     </div>
     <a href="/register" class="plan-cta secondary">Get Started</a>
   </div>
   <div class="plan-card featured">
     <div class="plan-badge">&#x2B50; MOST POPULAR</div>
     <div class="plan-name">PROFESSIONAL</div>
-    <div class="plan-price"><span class="currency">KES</span> 5,000 <span class="period">/month</span></div>
-    <div class="plan-desc">Ideal for growing teams with regular hiring needs.</div>
+    <div class="plan-price"><span class="currency">KES</span> 2,500 <span class="period">/month</span></div>
+    <div class="plan-desc">For growing companies that need more features and reach.</div>
     <div class="plan-features">
-      <div class="plan-feature"><span class="check">&#x2713;</span><span>10 active job postings</span></div>
-      <div class="plan-feature"><span class="check">&#x2713;</span><span>Enhanced company profile</span></div>
-      <div class="plan-feature"><span class="check">&#x2713;</span><span>60-day listings</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>20 active job posts</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Advanced AI matching</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Advanced analytics</span></div>
       <div class="plan-feature"><span class="check">&#x2713;</span><span>Applicant tracking system</span></div>
-      <div class="plan-feature"><span class="check">&#x2713;</span><span>Basic analytics</span></div>
-      <div class="plan-feature"><span class="cross">&#x2717;</span><span class="muted-text">Priority support</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Talent pool access</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Featured job listings</span></div>
     </div>
     <a href="/register" class="plan-cta primary">Get Started</a>
   </div>
   <div class="plan-card">
-    <div class="plan-name">ENTERPRISE</div>
-    <div class="plan-price"><span class="currency">KES</span> 25,000 <span class="period">/month</span></div>
-    <div class="plan-desc">For organisations with high-volume hiring and advanced needs.</div>
+    <div class="plan-name">BUSINESS</div>
+    <div class="plan-price"><span class="currency">KES</span> 7,500 <span class="period">/month</span></div>
+    <div class="plan-desc">For scaling teams with high-volume hiring needs.</div>
     <div class="plan-features">
-      <div class="plan-feature"><span class="check">&#x2713;</span><span>Unlimited job postings</span></div>
-      <div class="plan-feature"><span class="check">&#x2713;</span><span>Custom company branding</span></div>
-      <div class="plan-feature"><span class="check">&#x2713;</span><span>90-day listings</span></div>
-      <div class="plan-feature"><span class="check">&#x2713;</span><span>Advanced ATS + CRM</span></div>
-      <div class="plan-feature"><span class="check">&#x2713;</span><span>Full analytics &amp; reports</span></div>
-      <div class="plan-feature"><span class="check">&#x2713;</span><span>Priority support &amp; onboarding</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>100 active job posts</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Unlimited AI matching</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Full API access</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Custom branding</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>Dedicated account manager</span></div>
+      <div class="plan-feature"><span class="check">&#x2713;</span><span>24/7 priority support</span></div>
     </div>
     <a href="/register" class="plan-cta secondary">Contact Sales</a>
   </div>
@@ -209,6 +208,7 @@
 
 <script>
 var billing='monthly';
+
 function toggleBilling(val){
   var toggle=document.getElementById('billing-toggle');
   var monthly=document.getElementById('monthly-label');
@@ -224,26 +224,121 @@ function toggleBilling(val){
     monthly.classList.add('active');
     annual.classList.remove('active');
   }
-  updatePrices();
+  renderPlans();
 }
-function updatePrices(){
-  var prices=document.querySelectorAll('.plan-price .period');
-  var amt=document.querySelectorAll('.plan-price');
-  if(billing==='annual'){
-    if(amt.length>=2&&amt[1]){var p=amt[1].childNodes;for(var i=0;i<p.length;i++){if(p[i].nodeType===3&&p[i].textContent.trim()==='5,000'){p[i].textContent='50,000';}}}
-    if(amt.length>=3&&amt[2]){var p=amt[2].childNodes;for(var i=0;i<p.length;i++){if(p[i].nodeType===3&&p[i].textContent.trim()==='25,000'){p[i].textContent='250,000';}}}
-  }else{
-    if(amt.length>=2&&amt[1]){var p=amt[1].childNodes;for(var i=0;i<p.length;i++){if(p[i].nodeType===3&&p[i].textContent.trim()==='50,000'){p[i].textContent='5,000';}}}
-    if(amt.length>=3&&amt[2]){var p=amt[2].childNodes;for(var i=0;i<p.length;i++){if(p[i].nodeType===3&&p[i].textContent.trim()==='250,000'){p[i].textContent='25,000';}}}
-  }
-  for(var i=0;i<prices.length;i++){
-    prices[i].textContent='/'+billing;
-  }
+
+function formatPrice(amount, interval) {
+  var isAnnual = billing === 'annual';
+  var price = isAnnual && interval === 'month' ? amount * 12 : amount;
+  if (isAnnual && interval === 'year') price = amount;
+  if (!isAnnual && interval === 'year') price = Math.round(amount / 12);
+  return price;
 }
+
+function getIntervalLabel() {
+  return billing === 'annual' ? '/year' : '/month';
+}
+
+function renderPlans() {
+  var container = document.getElementById('pricing-plans');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">Loading plans...</div>';
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', '/api/v1/subscriptions/plans', true);
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      try {
+        var body = JSON.parse(xhr.responseText);
+        var plans = body.data || body;
+        if (!plans || !plans.length) { showFallbackPlans(); return; }
+
+        var monthlyPlans = plans.filter(function(p) { return p.interval === 'month' || p.interval === 'monthly'; });
+        var yearlyPlans = plans.filter(function(p) { return p.interval === 'year' || p.interval === 'yearly'; });
+        var displayPlans = billing === 'annual' && yearlyPlans.length ? yearlyPlans : monthlyPlans;
+        if (!displayPlans || !displayPlans.length) displayPlans = plans;
+
+        var html = '';
+        for (var i = 0; i < displayPlans.length; i++) {
+          var p = displayPlans[i];
+          var price = formatPrice(p.price, p.interval);
+          var isEnterprise = p.plan_id === 'enterprise';
+          var featured = p.is_popular;
+          var cls = 'plan-card';
+          if (featured) cls += ' featured';
+
+          html += '<div class="' + cls + '">';
+          if (featured) html += '<div class="plan-badge">&#x2B50; MOST POPULAR</div>';
+          html += '<div class="plan-name">' + (p.name || p.plan_id).toUpperCase() + '</div>';
+          html += '<div class="plan-price">';
+          if (isEnterprise) {
+            html += '<span style="font-family:var(--fh);font-size:24px">Custom</span>';
+          } else if (price > 0) {
+            html += '<span class="currency">' + (p.currency || 'KES') + '</span> ' + Number(price).toLocaleString() + ' <span class="period">' + getIntervalLabel() + '</span>';
+          } else {
+            html += '<span class="currency">' + (p.currency || 'KES') + '</span> 0 <span class="period">' + getIntervalLabel() + '</span>';
+          }
+          html += '</div>';
+          if (p.description) html += '<div class="plan-desc">' + p.description + '</div>';
+          if (p.features && p.features.length) {
+            html += '<div class="plan-features">';
+            for (var f = 0; f < p.features.length; f++) {
+              html += '<div class="plan-feature"><span class="check">&#x2713;</span><span>' + p.features[f] + '</span></div>';
+            }
+            html += '</div>';
+          }
+          if (isEnterprise) {
+            html += '<a href="/contact" class="plan-cta secondary">Contact Sales</a>';
+          } else {
+            html += '<a href="/register" class="plan-cta ' + (featured ? 'primary' : 'secondary') + '">Get Started</a>';
+          }
+          html += '</div>';
+        }
+        container.innerHTML = html;
+      } catch(e) {
+        showFallbackPlans();
+      }
+    } else {
+      showFallbackPlans();
+    }
+  };
+  xhr.onerror = function() { showFallbackPlans(); };
+  xhr.send();
+}
+
+function showFallbackPlans() {
+  var container = document.getElementById('pricing-plans');
+  if (!container) return;
+  container.innerHTML =
+    '<div class="plan-card">' +
+      '<div class="plan-name">FREE</div>' +
+      '<div class="plan-price"><span class="currency">KES</span> 0 <span class="period">/' + billing + '</span></div>' +
+      '<div class="plan-desc">Perfect for getting started with basic job postings.</div>' +
+      '<div class="plan-features"><div class="plan-feature"><span class="check">&#x2713;</span><span>3 active job posts</span></div><div class="plan-feature"><span class="check">&#x2713;</span><span>Basic job matching</span></div><div class="plan-feature"><span class="check">&#x2713;</span><span>Basic analytics</span></div><div class="plan-feature"><span class="check">&#x2713;</span><span>Email support</span></div></div>' +
+      '<a href="/register" class="plan-cta secondary">Get Started</a>' +
+    '</div>' +
+    '<div class="plan-card featured">' +
+      '<div class="plan-badge">&#x2B50; MOST POPULAR</div>' +
+      '<div class="plan-name">PROFESSIONAL</div>' +
+      '<div class="plan-price"><span class="currency">KES</span> 2,500 <span class="period">/' + billing + '</span></div>' +
+      '<div class="plan-desc">For growing companies that need more features.</div>' +
+      '<div class="plan-features"><div class="plan-feature"><span class="check">&#x2713;</span><span>20 active job posts</span></div><div class="plan-feature"><span class="check">&#x2713;</span><span>Advanced AI matching</span></div><div class="plan-feature"><span class="check">&#x2713;</span><span>Advanced analytics</span></div><div class="plan-feature"><span class="check">&#x2713;</span><span>Applicant tracking</span></div></div>' +
+      '<a href="/register" class="plan-cta primary">Get Started</a>' +
+    '</div>' +
+    '<div class="plan-card">' +
+      '<div class="plan-name">BUSINESS</div>' +
+      '<div class="plan-price"><span class="currency">KES</span> 7,500 <span class="period">/' + billing + '</span></div>' +
+      '<div class="plan-desc">For scaling teams with high-volume hiring needs.</div>' +
+      '<div class="plan-features"><div class="plan-feature"><span class="check">&#x2713;</span><span>100 active job posts</span></div><div class="plan-feature"><span class="check">&#x2713;</span><span>Unlimited AI matching</span></div><div class="plan-feature"><span class="check">&#x2713;</span><span>Full API access</span></div><div class="plan-feature"><span class="check">&#x2713;</span><span>Dedicated manager</span></div></div>' +
+      '<a href="/contact" class="plan-cta secondary">Contact Sales</a>' +
+    '</div>';
+}
+
 function showComparison(view){
   document.getElementById('monthly-view').classList.toggle('active',view==='monthly');
   document.getElementById('annual-view').classList.toggle('active',view==='annual');
 }
+
 function toggleFaq(btn){
   btn.classList.toggle('open');
   var answer=btn.nextElementSibling;
@@ -254,4 +349,6 @@ function toggleFaq(btn){
     answer.style.display='block';
   }
 }
+
+renderPlans();
 </script>

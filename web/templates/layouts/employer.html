@@ -11,19 +11,10 @@
       <a href="/employer/matches" class="nav-link">AI MATCHES</a>
     </div>
     <div class="nav-actions">
-      <div class="nav-notif-wrap">
-        <button class="nav-icon-btn" id="notif-btn"><span>&#x1F514;</span>{{if .UnreadCount}}<span class="notif-dot"></span>{{end}}</button>
-        <div class="notif-dropdown" id="notif-dropdown">
-          <div class="notif-header"><span class="notif-header-title">Notifications</span></div>
-          <div class="notif-list" id="notif-list">
-            <div class="notif-empty">No new notifications</div>
-          </div>
-          <a href="/employer/notifications" class="notif-footer">View All</a>
-        </div>
-      </div>
+      {{template "partials/notification-bell" .}}
       <div class="nav-avatar-wrap">
         <div class="nav-avatar" id="avatar-btn">
-          {{if .User.Avatar}}<img src="{{.User.Avatar}}" alt="{{.User.Name}}">{{else}}<span class="avatar-initials">{{.User.Initials}}</span>{{end}}
+          {{if .User.Avatar}}<img src="{{.User.Avatar}}" alt="{{.User.Name}}">{{else if .Company.Logo}}<img src="{{.Company.Logo}}" alt="{{.Company.Name}}">{{else}}<span class="avatar-initials">{{.User.Initials}}</span>{{end}}
         </div>
         <div class="avatar-dropdown" id="avatar-dropdown">
           <div class="dropdown-header"><div class="dropdown-name">{{.User.Name}}</div><div class="dropdown-email">{{.User.Email}}</div></div>
@@ -63,6 +54,7 @@
       <a href="/employer/analytics" class="epr-link {{if eq .ActivePage "analytics"}}active{{end}}"><span class="epr-link-icon">&#x1F4C8;</span><span class="epr-link-text">Analytics</span></a>
       <a href="/employer/company" class="epr-link {{if eq .ActivePage "company"}}active{{end}}"><span class="epr-link-icon">&#x1F3E2;</span><span class="epr-link-text">Company Profile</span></a>
       <a href="/employer/settings" class="epr-link {{if eq .ActivePage "settings"}}active{{end}}"><span class="epr-link-icon">&#x2699;&#xFE0F;</span><span class="epr-link-text">Settings</span></a>
+      <a href="/employer/billing" class="epr-link {{if eq .ActivePage "billing"}}active{{end}}"><span class="epr-link-icon">&#x1F4B3;</span><span class="epr-link-text">Billing</span></a>
       <a href="/employer/matches" class="epr-link {{if eq .ActivePage "matches"}}active{{end}}"><span class="epr-link-icon">&#x1F916;</span><span class="epr-link-text">AI Matches</span></a>
       <a href="/employer/messages" class="epr-link {{if eq .ActivePage "messages"}}active{{end}}"><span class="epr-link-icon">&#x1F4AC;</span><span class="epr-link-text">Messages</span></a>
       <a href="/employer/notifications" class="epr-link {{if eq .ActivePage "notifications"}}active{{end}}"><span class="epr-link-icon">&#x1F514;</span><span class="epr-link-text">Notifications</span>{{if .UnreadCount}}<span class="epr-badge-num">{{.UnreadCount}}</span>{{end}}</a>
@@ -402,55 +394,6 @@
 .dropdown-item:hover { background: var(--s2); }
 .dropdown-item-danger { color: var(--danger); }
 
-/* ── Notification Button ── */
-.nav-notif-wrap { position: relative; }
-.nav-icon-btn {
-  position: relative;
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 16px;
-  transition: border-color 0.15s;
-}
-.nav-icon-btn:hover { border-color: var(--purple); }
-.notif-dot {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 7px;
-  height: 7px;
-  background: var(--danger);
-  border-radius: 50%;
-}
-.notif-dropdown {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
-  width: 320px;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-4px);
-  transition: all 0.15s;
-  z-index: 100;
-}
-.notif-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
-.notif-header { padding: 14px 16px; border-bottom: 1px solid var(--border); }
-.notif-header-title { font-family: var(--fm); font-size: 10px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); }
-.notif-list { max-height: 280px; overflow-y: auto; }
-.notif-empty { padding: 24px 16px; text-align: center; font-size: 12px; color: var(--muted2); }
-.notif-footer { display: block; padding: 10px 16px; text-align: center; font-family: var(--fm); font-size: 10px; color: var(--purple); border-top: 1px solid var(--border); letter-spacing: 0.3px; transition: background 0.1s; }
-.notif-footer:hover { background: var(--s2); }
-
 /* ── Site Footer ── */
 .site-footer {
   border-top: 1px solid var(--border);
@@ -524,10 +467,9 @@
 }
 </style>
 <script>
-document.addEventListener('DOMContentLoaded',function(){initAvatarDropdown();initNotificationDropdown();initHamburger();initFlashMessages();});
+document.addEventListener('DOMContentLoaded',function(){initAvatarDropdown();initHamburger();initFlashMessages();});
 function initHamburger(){var h=document.getElementById('hamburger');if(h){h.addEventListener('click',function(){this.classList.toggle('is-open');document.body.classList.toggle('menu-open');});}}
 function initAvatarDropdown(){var a=document.getElementById('avatar-btn'),d=document.getElementById('avatar-dropdown');if(a&&d){a.addEventListener('click',function(e){e.stopPropagation();d.classList.toggle('open');});document.addEventListener('click',function(){d.classList.remove('open');});}}
-function initNotificationDropdown(){var b=document.getElementById('notif-btn'),d=document.getElementById('notif-dropdown');if(b&&d){b.addEventListener('click',function(e){e.stopPropagation();d.classList.toggle('open');});document.addEventListener('click',function(){d.classList.remove('open');});}}
 function initFlashMessages(){var f=document.querySelector('#flash-message');if(f){setTimeout(function(){f.classList.add('flash-fade');setTimeout(function(){if(f.parentNode)f.parentNode.removeChild(f);},400);},5000);}}
 </script>
 {{if .Scripts}}<script>{{.Scripts}}</script>{{end}}

@@ -7,6 +7,13 @@
   var currentPlanEl = document.getElementById('current-plan-content');
   var plansEl = document.getElementById('plans-content');
   var invoicesTbody = document.getElementById('invoices-tbody');
+  var paymentMethodsEl = document.getElementById('payment-methods-content');
+  var addPaymentBtn = document.getElementById('btn-add-payment-method');
+  var addPaymentForm = document.getElementById('add-payment-form');
+  var paymentPhone = document.getElementById('payment-phone');
+  var savePaymentBtn = document.getElementById('btn-save-payment');
+  var cancelPaymentBtn = document.getElementById('btn-cancel-payment');
+  var paymentMethodError = document.getElementById('payment-method-error');
 
   if (!contentEl) return;
 
@@ -37,7 +44,8 @@
     if (!planId) return '\u{1F3F0}';
     if (planId === 'enterprise') return '\u{1F451}';
     if (planId.indexOf('pro') === 0) return '\u{1F525}';
-    if (planId.indexOf('basic') === 0 || planId === 'basic') return '\u{1F4A0}';
+    if (planId.indexOf('business') === 0) return '\u{1F4BC}';
+    if (planId.indexOf('basic') === 0) return '\u{1F4A0}';
     return '\u{1F3F0}';
   }
 
@@ -216,7 +224,7 @@
       } else if (p.plan_id === 'enterprise') {
         html += '<a href="/employer/billing/upgrade/' + encodeURIComponent(p.plan_id) + '" class="emp-btn emp-btn-outline emp-btn-full">Contact Sales</a>';
       } else {
-        html += '<a href="/employer/billing/upgrade/' + encodeURIComponent(p.plan_id) + '" class="emp-btn ' + (featured ? 'emp-btn-primary' : 'emp-btn-outline') + ' emp-btn-full">Upgrade</a>';
+        html += '<a href="/employer/billing/upgrade/' + encodeURIComponent(p.plan_id) + '" class="emp-btn ' + (featured ? 'emp-btn-primary' : 'emp-btn-outline') + ' emp-btn-full">' + (currentSub ? 'Upgrade' : 'Subscribe') + '</a>';
       }
 
       html += '</div>';
@@ -249,13 +257,129 @@
     invoicesTbody.innerHTML = html;
   }
 
+  function renderPaymentMethods(methods) {
+    if (!paymentMethodsEl) return;
+    if (!methods || !methods.length) {
+      paymentMethodsEl.innerHTML = '<p style="font-size:13px;color:var(--muted2);text-align:center;padding:20px 0">No payment methods saved.</p>';
+      if (addPaymentBtn) addPaymentBtn.style.display = '';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < methods.length; i++) {
+      var m = methods[i];
+      var icon = m.type === 'mpesa' ? '\u{1F4F1}' : m.type === 'card' ? '\u{1F4B3}' : '\u{1F3E6}';
+      var detail = m.phone_number ? m.phone_number : (m.last4 ? '**** ' + m.last4 : m.type);
+      var provider = m.provider || '';
+      html += '<div class="emp-payment-method">' +
+        '<div class="emp-payment-method-info">' +
+        '<span class="emp-payment-method-icon">' + icon + '</span>' +
+        '<div>' +
+        '<div class="emp-payment-method-detail">' + detail + (provider ? ' (' + provider + ')' : '') + '</div>' +
+        '<div class="emp-payment-method-sub">' + (m.type || '') + (m.is_default ? ' <span class="emp-payment-default">Default</span>' : '') + '</div>' +
+        '</div>' +
+        '</div>' +
+        '<div>' +
+        (!m.is_default ? '<button class="emp-btn emp-btn-outline emp-btn-sm emp-btn-xs set-default-btn" data-id="' + m.id + '">Set Default</button> ' : '') +
+        '<button class="emp-btn emp-btn-danger emp-btn-sm emp-btn-xs remove-pm-btn" data-id="' + m.id + '">Remove</button>' +
+        '</div>' +
+        '</div>';
+    }
+    paymentMethodsEl.innerHTML = html;
+    if (addPaymentBtn) addPaymentBtn.style.display = '';
+
+    var setDefaultBtns = paymentMethodsEl.querySelectorAll('.set-default-btn');
+    for (var j = 0; j < setDefaultBtns.length; j++) {
+      (function(btn) {
+        btn.addEventListener('click', function() {
+          btn.disabled = true;
+          btn.textContent = 'Saving...';
+          AngaziaAPI.subscriptions.setDefaultPaymentMethod(btn.getAttribute('data-id'))
+            .then(function() {
+              if (AngaziaApp && AngaziaApp.showToast) AngaziaApp.showToast('Default payment method updated', 'success');
+              loadPaymentMethods();
+            })
+            .catch(function(err) {
+              btn.disabled = false;
+              btn.textContent = 'Set Default';
+              showError(err.message || 'Failed to update default');
+            });
+        });
+      })(setDefaultBtns[j]);
+    }
+
+    var removeBtns = paymentMethodsEl.querySelectorAll('.remove-pm-btn');
+    for (var k = 0; k < removeBtns.length; k++) {
+      (function(btn) {
+        btn.addEventListener('click', function() {
+          if (!confirm('Remove this payment method?')) return;
+          btn.disabled = true;
+          btn.textContent = 'Removing...';
+          AngaziaAPI.subscriptions.removePaymentMethod(btn.getAttribute('data-id'))
+            .then(function() {
+              if (AngaziaApp && AngaziaApp.showToast) AngaziaApp.showToast('Payment method removed', 'success');
+              loadPaymentMethods();
+            })
+            .catch(function(err) {
+              btn.disabled = false;
+              btn.textContent = 'Remove';
+              showError(err.message || 'Failed to remove');
+            });
+        });
+      })(removeBtns[k]);
+    }
+  }
+
+  function loadPaymentMethods() {
+    AngaziaAPI.subscriptions.paymentMethods()
+      .then(function(methods) { renderPaymentMethods(methods); })
+      .catch(function() { renderPaymentMethods(null); });
+  }
+
+  function toggleAddPaymentForm(show) {
+    if (addPaymentForm) addPaymentForm.style.display = show ? '' : 'none';
+    if (addPaymentBtn) addPaymentBtn.style.display = show ? 'none' : '';
+    if (paymentMethodError) paymentMethodError.style.display = 'none';
+    if (show && paymentPhone) paymentPhone.value = '254';
+  }
+
+  if (addPaymentBtn) {
+    addPaymentBtn.addEventListener('click', function() { toggleAddPaymentForm(true); });
+  }
+  if (cancelPaymentBtn) {
+    cancelPaymentBtn.addEventListener('click', function() { toggleAddPaymentForm(false); });
+  }
+  if (savePaymentBtn) {
+    savePaymentBtn.addEventListener('click', function() {
+      var phone = paymentPhone ? paymentPhone.value.trim() : '';
+      if (!phone) {
+        if (paymentMethodError) { paymentMethodError.textContent = 'Please enter a phone number'; paymentMethodError.style.display = ''; }
+        return;
+      }
+      savePaymentBtn.disabled = true;
+      savePaymentBtn.textContent = 'Saving...';
+      if (paymentMethodError) paymentMethodError.style.display = 'none';
+      AngaziaAPI.subscriptions.addPaymentMethod({ type: 'mpesa', phone_number: phone, set_default: true })
+        .then(function() {
+          if (AngaziaApp && AngaziaApp.showToast) AngaziaApp.showToast('Payment method added', 'success');
+          toggleAddPaymentForm(false);
+          loadPaymentMethods();
+        })
+        .catch(function(err) {
+          if (paymentMethodError) { paymentMethodError.textContent = err.message || 'Failed to add payment method'; paymentMethodError.style.display = ''; }
+        })
+        .finally(function() {
+          savePaymentBtn.disabled = false;
+          savePaymentBtn.textContent = 'Save';
+        });
+    });
+  }
+
   function init() {
     AngaziaAPI.subscriptions.plans()
       .then(function (plans) {
         return AngaziaAPI.subscriptions.current()
           .then(function (sub) { return { plans: plans, sub: sub }; })
           .catch(function () {
-            // No subscription record found — user is on the free plan
             return { plans: plans, sub: null };
           });
       })
@@ -270,8 +394,10 @@
           .then(function (invData) { renderInvoices(invData); })
           .catch(function () { renderInvoices(null); });
       })
+      .then(function () {
+        loadPaymentMethods();
+      })
       .catch(function (err) {
-        // If both plans and subscription failed, show error
         showError(err.message || 'Failed to load billing information. Please try again.');
       });
   }

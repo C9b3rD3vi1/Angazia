@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gofiber/fiber/v2"
 
+	"github.com/C9b3rD3vi1/Angazia/internal/models"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
@@ -32,6 +33,7 @@ func injectFlash(c *fiber.Ctx, data fiber.Map) {
 type WebHandler struct {
 	companyService      services.CompanyService
 	notificationService services.NotificationService
+	subscriptionService services.SubscriptionService
 }
 
 func NewWebHandler(companyService services.CompanyService) *WebHandler {
@@ -47,6 +49,18 @@ func NewWebHandlerWithNotifications(
 	return &WebHandler{
 		companyService:      companyService,
 		notificationService: notificationService,
+	}
+}
+
+func NewWebHandlerWithAll(
+	companyService services.CompanyService,
+	notificationService services.NotificationService,
+	subscriptionService services.SubscriptionService,
+) *WebHandler {
+	return &WebHandler{
+		companyService:      companyService,
+		notificationService: notificationService,
+		subscriptionService: subscriptionService,
 	}
 }
 
@@ -273,10 +287,45 @@ func (h *WebHandler) EmployerBillingInvoicesPage(c *fiber.Ctx) error {
 
 // EmployerBillingUpgradePage renders the employer billing upgrade page
 func (h *WebHandler) EmployerBillingUpgradePage(c *fiber.Ctx) error {
+	planID := c.Params("plan")
+	if planID == "" {
+		planID = "free"
+	}
 	return c.Render("employer/billing-upgrade", mergePageData(c, fiber.Map{
 		"Title":      "Upgrade Plan - Angazia",
 		"ActivePage": "billing",
+		"Plan":       planID,
 	}), "layouts/employer")
+}
+
+// InvoiceViewPage renders a printable invoice view
+func (h *WebHandler) InvoiceViewPage(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(404).SendString("Invoice not found")
+	}
+	if h.subscriptionService == nil {
+		return c.Status(500).SendString("Billing service not available")
+	}
+	invoice, err := h.subscriptionService.GetInvoice(c.Context(), id)
+	if err != nil {
+		return c.Status(404).SendString("Invoice not found")
+	}
+	items, err := h.subscriptionService.GetInvoiceItems(c.Context(), id)
+	if err != nil {
+		items = []*models.InvoiceItem{}
+	}
+	userName := "N/A"
+	userEmail := "N/A"
+	if invoice.User != nil {
+		userEmail = invoice.User.Email
+	}
+	return c.Render("public/invoice", fiber.Map{
+		"Invoice": invoice,
+		"Items":   items,
+		"User":    fiber.Map{"Name": userName, "Email": userEmail},
+		"Title":   "Invoice - " + invoice.InvoiceNumber,
+	})
 }
 
 // EmployerSettingsPage renders the employer settings page

@@ -169,26 +169,34 @@ func (h *SubscriptionHandler) UpgradeSubscription(c *fiber.Ctx) error {
 	var req struct {
 		SubscriptionID string `json:"subscription_id" validate:"required"`
 		NewPlanID      string `json:"new_plan_id" validate:"required"`
+		PhoneNumber    string `json:"phone_number"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
 
-	proration, err := h.subscriptionService.CalculateProration(c.Context(), req.SubscriptionID, req.NewPlanID)
-	if err != nil {
-		return utils.BadRequest(c, err.Error())
+	phoneNumber := req.PhoneNumber
+	if phoneNumber == "" {
+		pm, err := h.subscriptionService.GetPaymentMethods(c.Context(), userID.(string))
+		if err == nil {
+			for _, m := range pm {
+				if m.PhoneNumber != "" {
+					phoneNumber = m.PhoneNumber
+					break
+				}
+			}
+		}
 	}
 
-	if proration.DueNow > 0 {
-		return utils.Error(c, fiber.StatusPaymentRequired, "Additional payment required for upgrade")
-	}
-
-	sub, err := h.subscriptionService.UpgradeSubscription(c.Context(), userID.(string), req.SubscriptionID, req.NewPlanID)
+	sub, chargeResp, err := h.subscriptionService.UpgradeWithPayment(c.Context(), userID.(string), req.SubscriptionID, req.NewPlanID, phoneNumber)
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
 
-	return utils.SuccessWithMessage(c, "Subscription upgraded", sub)
+	return utils.SuccessWithMessage(c, "Subscription upgraded", fiber.Map{
+		"subscription": sub,
+		"charge":       chargeResp,
+	})
 }
 
 // DowngradeSubscription downgrades a subscription with prorated credit

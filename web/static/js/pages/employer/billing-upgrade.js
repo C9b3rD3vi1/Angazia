@@ -111,13 +111,33 @@
       subscription_id: subId,
       new_plan_id: planId
     })
-      .then(function () {
-        if (successDiv) {
-          successDiv.textContent = 'Successfully upgraded to ' + (planId.charAt(0).toUpperCase() + planId.slice(1)) + '!';
-          successDiv.style.display = '';
+      .then(function (data) {
+        var charge = data && data.charge;
+        if (charge && charge.status === 'pending') {
+          if (successDiv) {
+            successDiv.textContent = 'Payment request sent to your phone. Check M-Pesa and enter PIN to complete upgrade.';
+            successDiv.style.display = '';
+          }
+          btn.textContent = 'Waiting for payment...';
+          var poll = setInterval(function () {
+            AngaziaAPI.subscriptions.current().then(function (sub) {
+              if (sub && sub.plan_id === planId && sub.status === 'active') {
+                clearInterval(poll);
+                if (successDiv) successDiv.textContent = 'Upgrade successful!';
+                btn.textContent = 'Upgraded!';
+                setTimeout(function () { window.location.href = '/employer/billing'; }, 1500);
+              }
+            });
+          }, 3000);
+          setTimeout(function () { clearInterval(poll); btn.disabled = false; btn.textContent = 'Confirm Upgrade'; }, 120000);
+        } else {
+          if (successDiv) {
+            successDiv.textContent = 'Successfully upgraded to ' + (planId.charAt(0).toUpperCase() + planId.slice(1)) + '!';
+            successDiv.style.display = '';
+          }
+          btn.textContent = 'Upgraded!';
+          setTimeout(function () { window.location.href = '/employer/billing'; }, 2000);
         }
-        btn.textContent = 'Upgraded!';
-        setTimeout(function () { window.location.href = '/employer/billing'; }, 2000);
       })
       .catch(function (err) {
         btn.disabled = false;

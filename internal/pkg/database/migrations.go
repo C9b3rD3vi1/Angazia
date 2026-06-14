@@ -303,6 +303,42 @@ func getAllMigrations() []Migration {
 			},
 		},
 		{
+			ID:   "20250101000009",
+			Name: "Create payment_methods table",
+			Up: func(tx *gorm.DB) error {
+				queries := []string{
+					`CREATE TABLE IF NOT EXISTS payment_methods (
+						id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+						user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+						type VARCHAR(50) NOT NULL,
+						provider VARCHAR(50) DEFAULT '',
+						last4 VARCHAR(4) DEFAULT '',
+						phone_number VARCHAR(20) DEFAULT '',
+						card_brand VARCHAR(50) DEFAULT '',
+						expiry_month INT DEFAULT 0,
+						expiry_year INT DEFAULT 0,
+						is_default BOOLEAN DEFAULT FALSE,
+						is_valid BOOLEAN DEFAULT TRUE,
+						token VARCHAR(512) DEFAULT '',
+						metadata JSONB,
+						created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+						updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+					)`,
+					`CREATE INDEX IF NOT EXISTS idx_payment_methods_user_id ON payment_methods(user_id)`,
+					`ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS token VARCHAR(512) DEFAULT ''`,
+				}
+				for _, q := range queries {
+					if err := tx.Exec(q).Error; err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+			Down: func(tx *gorm.DB) error {
+				return tx.Exec(`DROP TABLE IF EXISTS payment_methods CASCADE`).Error
+			},
+		},
+		{
 			ID:   "20250101000008",
 			Name: "Add updated_at column to applications table",
 			Up: func(tx *gorm.DB) error {

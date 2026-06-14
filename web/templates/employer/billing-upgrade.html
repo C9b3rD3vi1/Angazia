@@ -14,7 +14,7 @@
   <div id="upgrade-content" style="display:none">
     <div class="emp-upgrade-layout">
       <div class="emp-upgrade-plan emp-card">
-        <div class="emp-upgrade-plan-icon">{{if eq .Plan "pro"}}&#x1F525;{{else if eq .Plan "pro_monthly"}}&#x1F525;{{else if eq .Plan "pro_annual"}}&#x1F525;{{else if eq .Plan "basic"}}&#x1F4A0;{{else}}&#x1F3F0;{{end}}</div>
+        <div class="emp-upgrade-plan-icon">{{if eq .Plan "pro_monthly"}}&#x1F525;{{else if eq .Plan "pro_yearly"}}&#x1F525;{{else if eq .Plan "business_monthly"}}&#x1F4BC;{{else if eq .Plan "business_yearly"}}&#x1F4BC;{{else if eq .Plan "enterprise"}}&#x1F451;{{else}}&#x1F3F0;{{end}}</div>
         <h2 class="emp-upgrade-plan-name" id="upgrade-plan-name">{{.Plan}}</h2>
         <p class="emp-upgrade-price" id="upgrade-plan-price"></p>
         <ul class="emp-upgrade-features" id="upgrade-plan-features"></ul>

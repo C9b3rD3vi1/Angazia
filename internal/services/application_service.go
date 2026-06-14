@@ -178,7 +178,22 @@ func (s *ApplicationServiceImpl) WithdrawApplication(ctx context.Context, applic
 		return errors.New("application cannot be withdrawn at this stage")
 	}
 
-	return s.applicationRepo.UpdateStatus(ctx, applicationID, "withdrawn", "Withdrawn by candidate")
+	if err := s.applicationRepo.UpdateStatus(ctx, applicationID, "withdrawn", "Withdrawn by candidate"); err != nil {
+		return err
+	}
+
+	if s.notificationService != nil {
+		job, _ := s.jobRepo.GetByID(ctx, application.JobID)
+		if job != nil {
+			employeeName := "A candidate"
+			if user, _ := s.userRepo.GetByID(ctx, application.EmployeeID); user != nil && user.Email != "" {
+				employeeName = user.Email
+			}
+			s.notificationService.NotifyApplicationWithdrawn(ctx, job.EmployerID, job.ID, employeeName)
+		}
+	}
+
+	return nil
 }
 
 func (s *ApplicationServiceImpl) GetApplication(ctx context.Context, applicationID string, userID string, role string) (*models.Application, error) {
@@ -527,6 +542,7 @@ func (s *ApplicationServiceImpl) GetJobApplicationStats(ctx context.Context, job
 }
 
 func (s *ApplicationServiceImpl) BulkShortlist(ctx context.Context, applicationIDs []string, employerID string) error {
+	apps := make([]*models.Application, 0, len(applicationIDs))
 	for _, id := range applicationIDs {
 		app, err := s.applicationRepo.GetByIDWithDetails(ctx, id)
 		if err != nil {
@@ -538,11 +554,23 @@ func (s *ApplicationServiceImpl) BulkShortlist(ctx context.Context, applicationI
 		if app.Job.EmployerID != employerID {
 			return fmt.Errorf("unauthorized: application %s belongs to another employer", id)
 		}
+		apps = append(apps, app)
 	}
-	return s.applicationRepo.BulkUpdateStatus(ctx, applicationIDs, "shortlisted")
+	if err := s.applicationRepo.BulkUpdateStatus(ctx, applicationIDs, "shortlisted"); err != nil {
+		return err
+	}
+
+	for _, app := range apps {
+		if s.notificationService != nil {
+			s.notificationService.NotifyApplicationStatusChange(ctx, app.ID, app.EmployeeID, employerID, "shortlisted")
+		}
+	}
+
+	return nil
 }
 
 func (s *ApplicationServiceImpl) BulkReject(ctx context.Context, applicationIDs []string, employerID string) error {
+	apps := make([]*models.Application, 0, len(applicationIDs))
 	for _, id := range applicationIDs {
 		app, err := s.applicationRepo.GetByIDWithDetails(ctx, id)
 		if err != nil {
@@ -554,8 +582,19 @@ func (s *ApplicationServiceImpl) BulkReject(ctx context.Context, applicationIDs 
 		if app.Job.EmployerID != employerID {
 			return fmt.Errorf("unauthorized: application %s belongs to another employer", id)
 		}
+		apps = append(apps, app)
 	}
-	return s.applicationRepo.BulkUpdateStatus(ctx, applicationIDs, "rejected")
+	if err := s.applicationRepo.BulkUpdateStatus(ctx, applicationIDs, "rejected"); err != nil {
+		return err
+	}
+
+	for _, app := range apps {
+		if s.notificationService != nil {
+			s.notificationService.NotifyApplicationStatusChange(ctx, app.ID, app.EmployeeID, employerID, "rejected")
+		}
+	}
+
+	return nil
 }
 
 func (s *ApplicationServiceImpl) calculateMatchScore(employee *models.EmployeeProfile, job *models.Job) int {

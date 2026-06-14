@@ -51,6 +51,15 @@ type NotificationService interface {
 	NotifyNewJobMatch(ctx context.Context, employeeID string, jobID string, matchScore int) error
 	NotifyJobAlert(ctx context.Context, employeeID string, jobCount int) error
 	NotifyMessageReceived(ctx context.Context, userID string, fromUserID string, message string) error
+
+	// Job event triggers
+	NotifyJobCreated(ctx context.Context, employerID string, jobID string, jobTitle string) error
+	NotifyJobUpdated(ctx context.Context, employerID string, jobID string, jobTitle string) error
+	NotifyJobClosed(ctx context.Context, employerID string, jobID string, jobTitle string) error
+	NotifyJobDeleted(ctx context.Context, employerID string, jobID string, jobTitle string) error
+
+	// Withdrawal trigger
+	NotifyApplicationWithdrawn(ctx context.Context, employerID string, jobID string, employeeName string) error
 }
 
 type NotificationInput struct {
@@ -417,6 +426,7 @@ func (s *NotificationServiceImpl) NotifyApplicationStatusChange(ctx context.Cont
 		"rejected":    "Your application was not selected",
 		"hired":       "Congratulations! You've been hired!",
 		"interview":   "Interview scheduled for your application",
+		"withdrawn":   "You have withdrawn your application",
 	}
 	
 	message, ok := statusMessages[status]
@@ -504,6 +514,71 @@ func (s *NotificationServiceImpl) NotifyMessageReceived(ctx context.Context, use
 	}
 	
 	_, err := s.SendNotification(ctx, userID, input)
+	return err
+}
+
+func (s *NotificationServiceImpl) NotifyJobCreated(ctx context.Context, employerID string, jobID string, jobTitle string) error {
+	input := &NotificationInput{
+		Type:      "system",
+		Title:     "Job Posted",
+		Content:   fmt.Sprintf("Your job \"%s\" has been posted successfully", jobTitle),
+		Priority:  "normal",
+		ActionURL: fmt.Sprintf("/employer/jobs/%s", jobID),
+		Icon:      "briefcase",
+	}
+	_, err := s.SendNotification(ctx, employerID, input)
+	return err
+}
+
+func (s *NotificationServiceImpl) NotifyJobUpdated(ctx context.Context, employerID string, jobID string, jobTitle string) error {
+	input := &NotificationInput{
+		Type:      "system",
+		Title:     "Job Updated",
+		Content:   fmt.Sprintf("Your job \"%s\" has been updated", jobTitle),
+		Priority:  "normal",
+		ActionURL: fmt.Sprintf("/employer/jobs/%s", jobID),
+		Icon:      "edit",
+	}
+	_, err := s.SendNotification(ctx, employerID, input)
+	return err
+}
+
+func (s *NotificationServiceImpl) NotifyJobClosed(ctx context.Context, employerID string, jobID string, jobTitle string) error {
+	input := &NotificationInput{
+		Type:      "system",
+		Title:     "Job Closed",
+		Content:   fmt.Sprintf("Your job \"%s\" has been closed", jobTitle),
+		Priority:  "normal",
+		ActionURL: fmt.Sprintf("/employer/jobs/%s", jobID),
+		Icon:      "lock",
+	}
+	_, err := s.SendNotification(ctx, employerID, input)
+	return err
+}
+
+func (s *NotificationServiceImpl) NotifyJobDeleted(ctx context.Context, employerID string, jobID string, jobTitle string) error {
+	input := &NotificationInput{
+		Type:      "system",
+		Title:     "Job Deleted",
+		Content:   fmt.Sprintf("Your job \"%s\" has been deleted", jobTitle),
+		Priority:  "normal",
+		ActionURL: "/employer/jobs",
+		Icon:      "trash",
+	}
+	_, err := s.SendNotification(ctx, employerID, input)
+	return err
+}
+
+func (s *NotificationServiceImpl) NotifyApplicationWithdrawn(ctx context.Context, employerID string, jobID string, employeeName string) error {
+	input := &NotificationInput{
+		Type:      "application",
+		Title:     "Application Withdrawn",
+		Content:   fmt.Sprintf("%s has withdrawn their application", employeeName),
+		Priority:  "high",
+		ActionURL: fmt.Sprintf("/employer/jobs/%s/applications", jobID),
+		Icon:      "user-x",
+	}
+	_, err := s.SendNotification(ctx, employerID, input)
 	return err
 }
 

@@ -111,12 +111,12 @@ func planLimit(plan string) int {
 	switch plan {
 	case "free":
 		return 3
-	case "basic":
-		return 10
-	case "pro":
-		return 50
+	case "pro_monthly", "pro_yearly":
+		return 20
+	case "business_monthly", "business_yearly":
+		return 100
 	case "enterprise":
-		return 999
+		return 1000
 	default:
 		return 3
 	}

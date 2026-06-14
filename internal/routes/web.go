@@ -92,6 +92,9 @@ func SetupWebRoutes(
 		return c.Redirect("/employee/notifications")
 	})
 
+	// Invoice view (authenticated)
+	app.Get("/invoices/:id/view", middleware.WebAuthMiddleware(), webHandler.InvoiceViewPage)
+
 	// 2FA pages (authenticated users of any role)
 	app.Get("/auth/2fa/setup", middleware.WebAuthMiddleware(), webHandler.TwoFASetupPage)
 	app.Get("/auth/2fa/verify", webHandler.TwoFAVerifyPage)

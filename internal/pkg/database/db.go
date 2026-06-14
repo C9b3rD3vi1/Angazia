@@ -92,6 +92,7 @@ func AutoMigrate() error {
 		// Level 6: Payment (no foreign key constraints)
 		&models.Payment{},
 		&models.PaymentIntent{},
+		&models.PaymentMethod{},
 		
 		// Level 7: Subscription (no foreign key constraints)
 		&models.Subscription{},

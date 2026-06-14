@@ -134,6 +134,7 @@ func main() {
 	matchingSvc := services.NewMatchingService(cfg, aiProvider, jobRepo, userRepo, githubRepo, matchRepo, notificationSvc)
 	if js, ok := jobSvc.(*services.JobServiceImpl); ok {
 		js.SetMatchingService(matchingSvc)
+		js.SetNotificationService(notificationSvc)
 	}
 	alertSvc := services.NewAlertService(cfg, alertRepo, jobRepo, emailSvc, notificationSvc)
 	searchSvc := services.NewSearchService(cfg, searchRepo, jobRepo, userRepo)
@@ -202,7 +203,7 @@ func main() {
 	planHandler := handlers.NewAdminPlanHandler(subscriptionSvc)
 	webHandler := handlers.NewWebHandler(companyService)
 	if notificationSvc != nil {
-		webHandler = handlers.NewWebHandlerWithNotifications(companyService, notificationSvc)
+		webHandler = handlers.NewWebHandlerWithAll(companyService, notificationSvc, subscriptionSvc)
 	}
 	jobHandler := handlers.NewJobHandler(jobSvc, companyService)
 	dashboardHandler := handlers.NewDashboardHandler(analyticsSvc, subscriptionSvc, candidateAnalyticsSvc, matchingSvc, jobSvc, applicationSvc)

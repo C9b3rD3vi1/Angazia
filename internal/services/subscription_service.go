@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 	
 	"github.com/C9b3rD3vi1/Angazia/internal/config"
@@ -57,6 +58,8 @@ type SubscriptionService interface {
 	
 	// Billing
 	GenerateInvoice(ctx context.Context, subscriptionID, paymentID string) (*models.Invoice, error)
+	GetInvoice(ctx context.Context, id string) (*models.Invoice, error)
+	GetInvoiceItems(ctx context.Context, invoiceID string) ([]*models.InvoiceItem, error)
 	GetInvoices(ctx context.Context, userID string, page, limit int) ([]*models.Invoice, int64, error)
 	
 	// Subscription lifecycle
@@ -74,6 +77,7 @@ type SubscriptionService interface {
 	
 	// Payment processing
 	SubscribeWithNewPayment(ctx context.Context, userID, planID, phoneNumber string) (*models.Subscription, *IntaSendChargeResponse, error)
+	UpgradeWithPayment(ctx context.Context, userID, subscriptionID, newPlanID, phoneNumber string) (*models.Subscription, *IntaSendChargeResponse, error)
 	VerifyPayment(ctx context.Context, transactionID, reference string) (*models.Payment, error)
 	RetryPayment(ctx context.Context, subscriptionID string) error
 	ProcessPaymentRetries(ctx context.Context) error
@@ -531,6 +535,14 @@ func (s *SubscriptionServiceImpl) GenerateInvoice(ctx context.Context, subscript
 	return invoice, nil
 }
 
+func (s *SubscriptionServiceImpl) GetInvoice(ctx context.Context, id string) (*models.Invoice, error) {
+	return s.paymentRepo.GetInvoice(ctx, id)
+}
+
+func (s *SubscriptionServiceImpl) GetInvoiceItems(ctx context.Context, invoiceID string) ([]*models.InvoiceItem, error) {
+	return s.paymentRepo.GetInvoiceItems(ctx, invoiceID)
+}
+
 func (s *SubscriptionServiceImpl) GetInvoices(ctx context.Context, userID string, page, limit int) ([]*models.Invoice, int64, error) {
 	return s.paymentRepo.ListUserInvoices(ctx, userID, page, limit)
 }
@@ -841,21 +853,11 @@ func (s *SubscriptionServiceImpl) SubscribeWithNewPayment(ctx context.Context, u
 		return nil, nil, fmt.Errorf("plan not found: %w", err)
 	}
 
-	user, err := s.userRepo.GetByID(ctx, userID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("user not found: %w", err)
-	}
-
 	reference := fmt.Sprintf("SUB-%s-%d", userID[:8], time.Now().Unix())
 	chargeReq := &IntaSendChargeRequest{
-		Amount:      plan.Price,
-		Currency:    plan.Currency,
-		Email:       user.Email,
-		PhoneNumber: phoneNumber,
-		Reference:   reference,
-		Narrative:   fmt.Sprintf("%s %s Subscription", plan.Name, plan.Interval),
-		WebhookURL:  s.cfg.AppURL + "/api/v1/payments/webhook",
-		RedirectURL: s.cfg.AppURL + "/subscriptions/success",
+		Amount:       plan.Price,
+		PhoneNumber:  phoneNumber,
+		APIReference: reference,
 	}
 
 	chargeResp, err := s.intaSend.CreateCharge(chargeReq)
@@ -903,6 +905,66 @@ func (s *SubscriptionServiceImpl) SubscribeWithNewPayment(ctx context.Context, u
 	return subscription, chargeResp, nil
 }
 
+func (s *SubscriptionServiceImpl) UpgradeWithPayment(ctx context.Context, userID, subscriptionID, newPlanID, phoneNumber string) (*models.Subscription, *IntaSendChargeResponse, error) {
+	proration, err := s.CalculateProration(ctx, subscriptionID, newPlanID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("proration calculation failed: %w", err)
+	}
+
+	if proration.DueNow <= 0 {
+		sub, err := s.UpgradeSubscription(ctx, userID, subscriptionID, newPlanID)
+		return sub, nil, err
+	}
+
+	reference := fmt.Sprintf("UPG-%s-%d", userID[:8], time.Now().Unix())
+	chargeReq := &IntaSendChargeRequest{
+		Amount:       proration.DueNow,
+		PhoneNumber:  phoneNumber,
+		APIReference: reference,
+	}
+
+	chargeResp, err := s.intaSend.CreateCharge(chargeReq)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create charge: %w", err)
+	}
+
+	expiresAt := time.Now().Add(30 * time.Minute)
+	intent := &models.PaymentIntent{
+		UserID:      userID,
+		Amount:      proration.DueNow,
+		Currency:    "KES",
+		PlanID:      newPlanID,
+		Status:      "pending",
+		InvoiceID:   chargeResp.InvoiceID,
+		RedirectURL: chargeResp.RedirectURL,
+		ExpiresAt:   expiresAt,
+	}
+	s.paymentRepo.CreatePaymentIntent(ctx, intent)
+
+	payment := &models.Payment{
+		UserID:        userID,
+		Amount:        proration.DueNow,
+		Currency:      "KES",
+		Status:        "pending",
+		PaymentMethod: "mpesa",
+		Reference:     reference,
+		Description:   fmt.Sprintf("Upgrade proration - %s", newPlanID),
+	}
+	s.paymentRepo.CreatePayment(ctx, payment)
+
+	sub, err := s.UpgradeSubscription(ctx, userID, subscriptionID, newPlanID)
+	if err != nil {
+		return nil, chargeResp, fmt.Errorf("upgrade failed: %w", err)
+	}
+
+	if chargeResp.Status == "completed" || chargeResp.Status == "success" {
+		now := time.Now()
+		s.paymentRepo.UpdatePaymentStatus(ctx, payment.ID, "completed", chargeResp.TransactionID, &now)
+	}
+
+	return sub, chargeResp, nil
+}
+
 func (s *SubscriptionServiceImpl) VerifyPayment(ctx context.Context, transactionID, reference string) (*models.Payment, error) {
 	if transactionID != "" {
 		payment, err := s.paymentRepo.GetPaymentByTransactionID(ctx, transactionID)
@@ -910,7 +972,12 @@ func (s *SubscriptionServiceImpl) VerifyPayment(ctx context.Context, transaction
 			return payment, nil
 		}
 
-		statusResp, err := s.intaSend.GetPaymentStatus(transactionID)
+		intent, err := s.paymentRepo.GetPaymentIntentByInvoiceID(ctx, transactionID)
+		if err != nil {
+			return nil, fmt.Errorf("payment not found: %w", err)
+		}
+
+		statusResp, err := s.intaSend.GetPaymentStatus(intent.InvoiceID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to verify payment: %w", err)
 		}
@@ -948,11 +1015,6 @@ func (s *SubscriptionServiceImpl) RetryPayment(ctx context.Context, subscription
 		return fmt.Errorf("subscription is not past_due")
 	}
 
-	user, err := s.userRepo.GetByID(ctx, sub.UserID)
-	if err != nil {
-		return err
-	}
-
 	pm, err := s.paymentRepo.GetDefaultPaymentMethod(ctx, sub.UserID)
 	if err != nil {
 		return fmt.Errorf("no default payment method: %w", err)
@@ -962,14 +1024,9 @@ func (s *SubscriptionServiceImpl) RetryPayment(ctx context.Context, subscription
 	phoneNumber := pm.PhoneNumber
 
 	chargeReq := &IntaSendChargeRequest{
-		Amount:      sub.Amount,
-		Currency:    sub.Currency,
-		Email:       user.Email,
-		PhoneNumber: phoneNumber,
-		Reference:   reference,
-		Narrative:   fmt.Sprintf("Retry payment - %s", sub.PlanName),
-		WebhookURL:  s.cfg.AppURL + "/api/v1/payments/webhook",
-		RedirectURL: s.cfg.AppURL + "/subscriptions/success",
+		Amount:       sub.Amount,
+		PhoneNumber:  phoneNumber,
+		APIReference: reference,
 	}
 
 	_, err = s.intaSend.CreateCharge(chargeReq)
@@ -1050,6 +1107,10 @@ func (s *SubscriptionServiceImpl) handlePaymentCompleted(ctx context.Context, da
 	invoice, err := s.GenerateInvoice(ctx, payment.ID, payment.ID)
 	if err != nil {
 		return fmt.Errorf("invoice generation failed: %w", err)
+	}
+
+	if _, err := s.GenerateInvoicePDF(ctx, invoice.ID); err != nil {
+		log.Printf("Warning: PDF generation for invoice %s failed: %v", invoice.ID, err)
 	}
 
 	if payment.SubscriptionID != nil {
@@ -1158,7 +1219,7 @@ func (s *SubscriptionServiceImpl) GenerateInvoicePDF(ctx context.Context, invoic
 		return "", err
 	}
 
-	items, err := s.paymentRepo.GetInvoiceItems(ctx, invoiceID)
+	invoiceItems, err := s.paymentRepo.GetInvoiceItems(ctx, invoiceID)
 	if err != nil {
 		return "", err
 	}
@@ -1167,7 +1228,7 @@ func (s *SubscriptionServiceImpl) GenerateInvoicePDF(ctx context.Context, invoic
 
 	s.paymentRepo.UpdateInvoicePDF(ctx, invoiceID, pdfURL)
 
-	_ = items
+	_ = invoiceItems
 	return pdfURL, nil
 }
 

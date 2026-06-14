@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Invoice - {{.Invoice.InvoiceNumber}}</title>
+  <style>
+    :root{--bg:#fff;--text:#1a1a1a;--muted:#6b7280;--accent:#00e5a0;--border:#e5e7eb}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Inter','Helvetica Neue',Arial,sans-serif;color:var(--text);background:var(--bg);padding:40px;font-size:13px;line-height:1.5}
+    .invoice-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;padding-bottom:24px;border-bottom:2px solid #000}
+    .invoice-title{font-size:32px;font-weight:800;letter-spacing:-1px;text-transform:uppercase}
+    .invoice-number{font-size:14px;color:var(--muted);margin-top:4px}
+    .invoice-status{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+    .invoice-status.paid{background:#d1fae5;color:#065f46}
+    .invoice-status.pending{background:#fef3c7;color:#92400e}
+    .invoice-status.failed{background:#fee2e2;color:#991b1b}
+    .address-block{margin-bottom:32px}
+    .address-block h3{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:6px}
+    .address-block p{font-size:13px}
+    .invoice-table{width:100%;border-collapse:collapse;margin:32px 0}
+    .invoice-table th{text-align:left;padding:10px 12px;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);border-bottom:1px solid var(--border);font-weight:600}
+    .invoice-table td{padding:10px 12px;border-bottom:1px solid var(--border)}
+    .invoice-table tfoot td{border-bottom:none;padding-top:16px}
+    .invoice-table .total-row td{font-weight:700;font-size:15px;border-top:2px solid #000;padding-top:12px}
+    .invoice-summary{text-align:right;margin-top:16px}
+    .invoice-summary .row{display:flex;justify-content:flex-end;gap:40px;padding:4px 0;font-size:14px}
+    .invoice-summary .row.total{font-size:18px;font-weight:700;margin-top:8px;padding-top:8px;border-top:2px solid #000}
+    .invoice-footer{margin-top:48px;padding-top:24px;border-top:1px solid var(--border);text-align:center;font-size:11px;color:var(--muted)}
+    .print-btn{position:fixed;top:20px;right:20px;padding:10px 20px;background:#000;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;z-index:100}
+    .print-btn:hover{opacity:0.8}
+    @media print{.print-btn{display:none}.invoice-header{border-bottom-color:#000}body{padding:20px}}
+  </style>
+</head>
+<body>
+  <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+
+  <div class="invoice-header">
+    <div>
+      <h1 class="invoice-title">INVOICE</h1>
+      <p class="invoice-number">{{.Invoice.InvoiceNumber}}</p>
+    </div>
+    <div style="text-align:right">
+      <span class="invoice-status {{.Invoice.Status}}">{{.Invoice.Status}}</span>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;gap:40px">
+    <div class="address-block">
+      <h3>From</h3>
+      <p><strong>Angazia</strong><br>
+      Nairobi, Kenya<br>
+      billing@angazia.com</p>
+    </div>
+    <div class="address-block" style="text-align:right">
+      <h3>To</h3>
+      <p><strong>{{.User.Name}}</strong><br>
+      {{.User.Email}}</p>
+    </div>
+  </div>
+
+  <table class="invoice-table">
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th style="text-align:center">Qty</th>
+        <th style="text-align:right">Unit Price</th>
+        <th style="text-align:right">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Items}}
+      <tr>
+        <td>{{.Description}}</td>
+        <td style="text-align:center">{{.Quantity}}</td>
+        <td style="text-align:right">KSh {{printf "%.2f" .UnitPrice}}</td>
+        <td style="text-align:right">KSh {{printf "%.2f" .Total}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+
+  <div class="invoice-summary">
+    <div class="row"><span>Subtotal</span><span>KSh {{printf "%.2f" .Invoice.Amount}}</span></div>
+    <div class="row"><span>Tax (16% VAT)</span><span>KSh {{printf "%.2f" .Invoice.Tax}}</span></div>
+    <div class="row total"><span>Total Due</span><span>KSh {{printf "%.2f" .Invoice.Total}}</span></div>
+  </div>
+
+  <div class="invoice-footer">
+    <p>Angazia &mdash; AI-Powered Job Matching Platform</p>
+    <p>Invoice generated on {{.Invoice.CreatedAt.Format "Jan 2, 2006"}}</p>
+  </div>
+</body>
+</html>

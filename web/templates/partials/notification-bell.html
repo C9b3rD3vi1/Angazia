@@ -49,6 +49,28 @@
   color: var(--text);
 }
 
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 340px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+}
+
+.notif-dropdown.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
 .notif-badge {
   position: absolute;
   top: 0;
@@ -191,55 +213,73 @@
     if (!dropdownList) return;
     dropdownList.innerHTML = '<div class="notif-loading-small">Loading...</div>';
     
-    // Get recent unread notifications
-    (window.AngaziaNotifications?.fetchNotifications({ limit: 5, unread_only: true }) || Promise.resolve([]))
-      .then(function(notifications) {
-        let items = notifications.notifications || notifications.data || notifications || [];
-        
-        if (!items || items.length === 0) {
-          dropdownList.innerHTML = '<div class="notif-loading-small">No new notifications</div>';
-          return;
-        }
-        
-        dropdownList.innerHTML = '';
-        items.forEach(function(n) {
-          let item = document.createElement('div');
-          item.className = 'notif-dropdown-item' + (n.is_read ? '' : ' unread');
-          
-          let iconMap = {
-            application: '💼',
-            interview: '📅',
-            message: '💬',
-            alert: '🔔',
-            system: '⚙️',
-            marketing: '📣',
-          };
-          let icon = iconMap[n.type] || '🔔';
-          
-          item.innerHTML = `
-            <div class="notif-dropdown-icon">${icon}</div>
-            <div class="notif-dropdown-content">
-              <div class="notif-dropdown-title-text">${escapeHtml(n.title)}</div>
-              <div class="notif-dropdown-time">${timeAgo(n.created_at)}</div>
-            </div>
-          `;
-          
-          if (n.action_url) {
-            item.addEventListener('click', function(e) {
-              if (!n.is_read && window.AngaziaNotifications) {
-                window.AngaziaNotifications.markAsRead(n.id);
-              }
-              window.location.href = n.action_url;
-            });
+    var timeout = setTimeout(function() {
+      dropdownList.innerHTML = '<div class="notif-loading-small">Failed to load</div>';
+    }, 10000);
+    
+    try {
+      var notifApi = window.AngaziaNotifications;
+      var promise = notifApi ? notifApi.fetchNotifications({ limit: 5, unread_only: true }) : Promise.resolve([]);
+      promise.then(function(notifications) {
+          clearTimeout(timeout);
+          var items = notifications;
+          if (!items || items.length === 0) {
+            dropdownList.innerHTML = '<div class="notif-loading-small">No new notifications</div>';
+            return;
           }
           
-          dropdownList.appendChild(item);
+          dropdownList.innerHTML = '';
+          items.forEach(function(n) {
+            var item = document.createElement('div');
+            item.className = 'notif-dropdown-item' + (n.is_read ? '' : ' unread');
+            
+            var iconMap = {
+              application: '\uD83D\uDCBC',
+              application_received: '\uD83D\uDCE5',
+              application_status: '\uD83D\uDD04',
+              application_shortlisted: '\u2B50',
+              application_rejected: '\u274C',
+              interview: '\uD83D\uDCC5',
+              interview_scheduled: '\uD83D\uDCC5',
+              message: '\uD83D\uDCAC',
+              alert: '\uD83D\uDD14',
+              system: '\u2699\uFE0F',
+              marketing: '\uD83D\uDCE3',
+              job_match: '\uD83C\uDFAF',
+              job_alert: '\uD83D\uDD14',
+              security: '\uD83D\uDD12',
+              verification: '\u2705',
+              subscription: '\uD83D\uDCB3',
+              payment: '\uD83D\uDCB0',
+            };
+            var icon = iconMap[n.type] || '\uD83D\uDD14';
+            
+            item.innerHTML = '<div class="notif-dropdown-icon">' + icon + '</div><div class="notif-dropdown-content"><div class="notif-dropdown-title-text">' + escapeHtml(n.title) + '</div><div class="notif-dropdown-time">' + timeAgo(n.created_at) + '</div></div>';
+            
+            if (n.action_url) {
+              (function(notif) {
+                item.addEventListener('click', function(e) {
+                  if (!notif.is_read && window.AngaziaNotifications) {
+                    window.AngaziaNotifications.markAsRead(notif.id);
+                  }
+                  window.location.href = notif.action_url;
+                });
+              })(n);
+            }
+            
+            dropdownList.appendChild(item);
+          });
+        })
+        .catch(function(err) {
+          clearTimeout(timeout);
+          console.error('Failed to load notifications:', err);
+          dropdownList.innerHTML = '<div class="notif-loading-small">Failed to load</div>';
         });
-      })
-      .catch(function(err) {
-        console.error('Failed to load notifications:', err);
-        dropdownList.innerHTML = '<div class="notif-loading-small">Failed to load</div>';
-      });
+    } catch(e) {
+      clearTimeout(timeout);
+      console.error('Notification load error:', e);
+      dropdownList.innerHTML = '<div class="notif-loading-small">Failed to load</div>';
+    }
   }
 
   if (bellBtn) {
@@ -256,7 +296,7 @@
   }
 
   document.addEventListener('click', function(e) {
-    if (dropdown && !dropdown.contains(e.target) && !bellBtn?.contains(e.target)) {
+    if (dropdown && !dropdown.contains(e.target) && bellBtn && !bellBtn.contains(e.target)) {
       dropdown.classList.remove('open');
       isOpen = false;
     }

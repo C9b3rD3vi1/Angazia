@@ -71,6 +71,7 @@ type Config struct {
 	IntaSendAPIKey         string
 	IntaSendAPISecret      string
 	IntaSendPublishableKey string
+	IntaSendBaseURL        string
 
 	// Admin
 	AdminEmail    string
@@ -171,6 +172,7 @@ func LoadConfig() (*Config, error) {
 		IntaSendAPIKey:         getEnv("INTASEND_API_KEY", ""),
 		IntaSendAPISecret:      getEnv("INTASEND_API_SECRET", ""),
 		IntaSendPublishableKey: getEnv("INTASEND_PUBLISHABLE_KEY", ""),
+		IntaSendBaseURL:        getEnv("INTASEND_BASE_URL", ""),
 
 		// Admin
 		AdminEmail:    getEnv("ADMIN_EMAIL", "admin@angazia.com"),

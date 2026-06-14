@@ -33,6 +33,28 @@
       </section>
     </div>
 
+    <section class="emp-section emp-section-full" id="payment-methods-section" style="margin-top:20px">
+      <div class="emp-section-head">
+        <h2 class="emp-section-title">Payment Methods</h2>
+        <button id="btn-add-payment-method" class="emp-btn emp-btn-primary emp-btn-sm" style="display:none">+ Add M-Pesa</button>
+      </div>
+      <div id="payment-methods-content" class="emp-payment-methods">
+        <p style="font-size:13px;color:var(--muted2);text-align:center;padding:20px 0">No payment methods saved.</p>
+      </div>
+      <div id="add-payment-form" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+        <div class="emp-form-row">
+          <label class="emp-label">M-Pesa Phone Number</label>
+          <input type="tel" id="payment-phone" class="emp-input" placeholder="0712345678" value="254">
+          <p style="font-size:11px;color:var(--muted2);margin-top:4px">Enter phone number in format 254XXXXXXXXX</p>
+        </div>
+        <div class="emp-form-actions" style="margin-top:12px">
+          <button id="btn-save-payment" class="emp-btn emp-btn-primary emp-btn-sm">Save</button>
+          <button id="btn-cancel-payment" class="emp-btn emp-btn-outline emp-btn-sm">Cancel</button>
+        </div>
+        <div id="payment-method-error" class="emp-alert emp-alert-error" style="display:none;margin-top:8px"></div>
+      </div>
+    </section>
+
     <section class="emp-section emp-section-full" id="invoices-section" style="margin-top:20px">
       <div class="emp-section-head">
         <h2 class="emp-section-title">Recent Invoices</h2>
@@ -346,6 +368,38 @@
 }
 .emp-table td:first-child { padding-left: 0; }
 .emp-table th:first-child { padding-left: 0; }
+
+/* Payment Methods */
+.emp-payment-methods { margin-top: 12px; }
+.emp-payment-method {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.emp-payment-method:last-child { border-bottom: none; }
+.emp-payment-method-info { display: flex; align-items: center; gap: 12px; }
+.emp-payment-method-icon { font-size: 24px; }
+.emp-payment-method-detail { font-size: 13px; color: var(--text); }
+.emp-payment-method-sub { font-size: 11px; color: var(--muted2); }
+.emp-payment-default { font-size: 10px; color: var(--accent); font-family: var(--fm); letter-spacing: 0.5px; }
+.emp-form-row { margin-bottom: 12px; }
+.emp-label { display: block; font-family: var(--fm); font-size: 10px; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; }
+.emp-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--fb);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.emp-input:focus { border-color: var(--accent); }
+.emp-form-actions { display: flex; gap: 8px; }
 
 
 

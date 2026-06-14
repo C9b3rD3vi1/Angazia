@@ -9,6 +9,7 @@ import (
 type Subscription struct {
 	ID                  string     `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	UserID              string     `json:"user_id" gorm:"type:uuid;not null;index"`
+	User                *User      `json:"user,omitempty"`
 	PlanID              string     `json:"plan_id" gorm:"size:100;not null;index"`
 	PlanName            string     `json:"plan_name" gorm:"size:255;not null"`
 	Amount              float64    `json:"amount" gorm:"not null"`
@@ -26,6 +27,7 @@ type Subscription struct {
 	CurrentPeriodEnd    time.Time  `json:"current_period_end" gorm:"not null"`
 	TrialEndsAt         *time.Time `json:"trial_ends_at,omitempty"`
 	LastPaymentID       *string    `json:"last_payment_id,omitempty" gorm:"type:uuid;index"`
+	LastPayment         *Payment   `json:"last_payment,omitempty" gorm:"foreignKey:LastPaymentID"`
 	CreatedAt           time.Time  `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt           time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
 }

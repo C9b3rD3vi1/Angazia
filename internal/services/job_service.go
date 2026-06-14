@@ -136,14 +136,19 @@ type JobListResponse struct {
 }
 
 type JobServiceImpl struct {
-	cfg         *config.Config
-	jobRepo     repository.JobRepository
-	userRepo    repository.UserRepository
-	matchingSvc MatchingService
+	cfg              *config.Config
+	jobRepo          repository.JobRepository
+	userRepo         repository.UserRepository
+	matchingSvc      MatchingService
+	notificationSvc  NotificationService
 }
 
 func (s *JobServiceImpl) SetMatchingService(m MatchingService) {
 	s.matchingSvc = m
+}
+
+func (s *JobServiceImpl) SetNotificationService(ns NotificationService) {
+	s.notificationSvc = ns
 }
 
 func NewJobService(cfg *config.Config, jobRepo repository.JobRepository, userRepo repository.UserRepository) JobService {
@@ -236,6 +241,11 @@ func (s *JobServiceImpl) CreateJob(ctx context.Context, employerID string, req *
 				// Logged internally by matching service
 			}
 		}(job.ID)
+	}
+	
+	// Notify employer
+	if s.notificationSvc != nil {
+		s.notificationSvc.NotifyJobCreated(ctx, employerID, job.ID, job.Title)
 	}
 	
 	return job, nil
@@ -357,6 +367,10 @@ func (s *JobServiceImpl) UpdateJob(ctx context.Context, jobID string, employerID
 		return nil, fmt.Errorf("failed to update job: %w", err)
 	}
 	
+	if s.notificationSvc != nil {
+		s.notificationSvc.NotifyJobUpdated(ctx, employerID, job.ID, job.Title)
+	}
+	
 	return job, nil
 }
 
@@ -375,7 +389,15 @@ func (s *JobServiceImpl) DeleteJob(ctx context.Context, jobID string, employerID
 		return errors.New("unauthorized: you don't own this job")
 	}
 	
-	return s.jobRepo.Delete(ctx, jobID)
+	if err := s.jobRepo.Delete(ctx, jobID); err != nil {
+		return err
+	}
+	
+	if s.notificationSvc != nil {
+		s.notificationSvc.NotifyJobDeleted(ctx, employerID, jobID, job.Title)
+	}
+	
+	return nil
 }
 
 func (s *JobServiceImpl) CloseJob(ctx context.Context, jobID string, employerID string) error {
@@ -393,7 +415,15 @@ func (s *JobServiceImpl) CloseJob(ctx context.Context, jobID string, employerID 
 		return errors.New("unauthorized: you don't own this job")
 	}
 	
-	return s.jobRepo.UpdateStatus(ctx, jobID, false)
+	if err := s.jobRepo.UpdateStatus(ctx, jobID, false); err != nil {
+		return err
+	}
+	
+	if s.notificationSvc != nil {
+		s.notificationSvc.NotifyJobClosed(ctx, employerID, jobID, job.Title)
+	}
+	
+	return nil
 }
 
 func (s *JobServiceImpl) ListJobs(ctx context.Context, filters *JobFilters, page, limit int) (*JobListResponse, error) {
