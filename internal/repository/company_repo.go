@@ -37,6 +37,7 @@ type CompanyRepository interface {
 	GetInvitationByToken(ctx context.Context, token string) (*models.TeamInvitation, error)
 	GetInvitationsByCompany(ctx context.Context, companyID string, page, limit int) ([]*models.TeamInvitation, int64, error)
 	UpdateInvitationStatus(ctx context.Context, token, status string) error
+	UpdateInvitationRole(ctx context.Context, invitationID, role string) error
 	AcceptInvitation(ctx context.Context, token, userID string) error
 	CancelInvitation(ctx context.Context, invitationID, companyID string) error
 	GetTeamMembers(ctx context.Context, companyID string) ([]*models.User, error)
@@ -330,6 +331,13 @@ func (r *CompanyRepositoryImpl) UpdateInvitationStatus(ctx context.Context, toke
 		Model(&models.TeamInvitation{}).
 		Where("token = ?", token).
 		Update("status", status).Error
+}
+
+func (r *CompanyRepositoryImpl) UpdateInvitationRole(ctx context.Context, invitationID, role string) error {
+	return r.db.WithContext(ctx).
+		Model(&models.TeamInvitation{}).
+		Where("id = ?", invitationID).
+		Update("role", role).Error
 }
 
 func (r *CompanyRepositoryImpl) AcceptInvitation(ctx context.Context, token, userID string) error {

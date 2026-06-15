@@ -6,8 +6,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/C9b3rD3vi1/Angazia/internal/services"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
+	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
 
 type GitHubHandler struct {
@@ -206,7 +206,10 @@ func (h *GitHubHandler) GetProfile(c *fiber.Ctx) error {
 
 	profile, err := h.githubService.GetGitHubProfile(c.Context(), userID)
 	if err != nil {
-		return utils.NotFound(c, "GitHub profile")
+		return utils.InternalServerError(c, "Failed to fetch GitHub profile")
+	}
+	if profile == nil {
+		return utils.SuccessWithMessage(c, "No GitHub profile connected", nil)
 	}
 
 	return utils.Success(c, profile)

@@ -2,11 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"gorm.io/gorm"
-//	"github.com/google/uuid"
-	
+	//	"github.com/google/uuid"
+
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
 )
 
@@ -17,19 +18,19 @@ type GitHubRepository interface {
 	GetProfileByUsername(ctx context.Context, username string) (*models.GithubProfile, error)
 	UpdateProfile(ctx context.Context, profile *models.GithubProfile) error
 	UpdateProfileStats(ctx context.Context, employeeID string, updates map[string]interface{}) error
-	
+
 	CreateToken(ctx context.Context, token *GitHubTokenDB) error
 	GetTokenByEmployeeID(ctx context.Context, employeeID string) (*GitHubTokenDB, error)
 	UpdateToken(ctx context.Context, employeeID string, updates map[string]interface{}) error
 	DeleteToken(ctx context.Context, employeeID string) error
-	
+
 	SaveRepositories(ctx context.Context, repos []*models.GithubRepository) error
 	GetRepositories(ctx context.Context, employeeID string, filters map[string]interface{}, page, limit int) ([]*models.GithubRepository, int64, error)
 	DeleteRepositories(ctx context.Context, employeeID string) error
-	
+
 	SaveContributions(ctx context.Context, contributions []*models.GithubContribution) error
 	GetContributions(ctx context.Context, employeeID string, since, until time.Time) ([]*models.GithubContribution, error)
-	
+
 	CreateSyncLog(ctx context.Context, log *models.GithubSyncLog) error
 	GetLastSyncLog(ctx context.Context, employeeID string) (*models.GithubSyncLog, error)
 }
@@ -40,9 +41,9 @@ type GitHubRepositoryImpl struct {
 
 // GitHubTokenDB is the database model for OAuth tokens
 type GitHubTokenDB struct {
-	ID           string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	EmployeeID   string    `gorm:"type:uuid;not null;uniqueIndex"`
-	AccessToken  string    `gorm:"not null"`
+	ID           string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	EmployeeID   string `gorm:"type:uuid;not null;uniqueIndex"`
+	AccessToken  string `gorm:"not null"`
 	RefreshToken string
 	TokenType    string
 	ExpiresAt    time.Time
@@ -69,6 +70,9 @@ func (r *GitHubRepositoryImpl) GetProfileByEmployeeID(ctx context.Context, emplo
 		Where("employee_id = ?", employeeID).
 		First(&profile).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &profile, nil
@@ -141,7 +145,7 @@ func (r *GitHubRepositoryImpl) SaveRepositories(ctx context.Context, repos []*mo
 			var existing models.GithubRepository
 			err := tx.Where("employee_id = ? AND repo_id = ?", repo.EmployeeID, repo.RepoID).
 				First(&existing).Error
-			
+
 			if err == nil {
 				// Update existing
 				repo.ID = existing.ID
@@ -162,28 +166,28 @@ func (r *GitHubRepositoryImpl) SaveRepositories(ctx context.Context, repos []*mo
 func (r *GitHubRepositoryImpl) GetRepositories(ctx context.Context, employeeID string, filters map[string]interface{}, page, limit int) ([]*models.GithubRepository, int64, error) {
 	var repos []*models.GithubRepository
 	var total int64
-	
+
 	query := r.db.WithContext(ctx).Model(&models.GithubRepository{}).
 		Where("employee_id = ?", employeeID)
-	
+
 	// Apply filters
 	if language, ok := filters["language"].(string); ok && language != "" {
 		query = query.Where("language = ?", language)
 	}
-	
+
 	if isFork, ok := filters["is_fork"].(bool); ok {
 		query = query.Where("is_fork = ?", isFork)
 	}
-	
+
 	if search, ok := filters["search"].(string); ok && search != "" {
 		query = query.Where("name ILIKE ?", "%"+search+"%")
 	}
-	
+
 	// Get total count
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-	
+
 	// Apply sorting
 	if sortBy, ok := filters["sort_by"].(string); ok {
 		sortOrder := "DESC"
@@ -194,13 +198,13 @@ func (r *GitHubRepositoryImpl) GetRepositories(ctx context.Context, employeeID s
 	} else {
 		query = query.Order("stars DESC")
 	}
-	
+
 	// Pagination
 	offset := (page - 1) * limit
 	if err := query.Offset(offset).Limit(limit).Find(&repos).Error; err != nil {
 		return nil, 0, err
 	}
-	
+
 	return repos, total, nil
 }
 
@@ -216,7 +220,7 @@ func (r *GitHubRepositoryImpl) SaveContributions(ctx context.Context, contributi
 			var existing models.GithubContribution
 			err := tx.Where("employee_id = ? AND date = ?", contrib.EmployeeID, contrib.Date).
 				First(&existing).Error
-			
+
 			if err == nil {
 				// Update existing
 				existing.Count = contrib.Count

@@ -328,6 +328,14 @@ func (h *WebHandler) InvoiceViewPage(c *fiber.Ctx) error {
 	})
 }
 
+// EmployerTeamPage renders the employer team management page
+func (h *WebHandler) EmployerTeamPage(c *fiber.Ctx) error {
+	return c.Render("employer/team", mergePageData(c, fiber.Map{
+		"Title":      "Team Management - Angazia",
+		"ActivePage": "team",
+	}), "layouts/employer")
+}
+
 // EmployerSettingsPage renders the employer settings page
 func (h *WebHandler) EmployerSettingsPage(c *fiber.Ctx) error {
 	return c.Render("employer/settings", mergePageData(c, fiber.Map{

@@ -28,7 +28,10 @@ func SetupCompanyRoutes(router fiber.Router, companyHandler *handlers.CompanyHan
 	// Team management
 	employer.Get("/team", companyHandler.GetTeamMembers)
 	employer.Post("/team/invite", companyHandler.InviteTeamMember)
+	employer.Put("/team/:memberId/role", companyHandler.UpdateTeamMemberRole)
 	employer.Delete("/team/:memberId", companyHandler.RemoveTeamMember)
+	employer.Get("/team/invitations", companyHandler.ListPendingInvitations)
+	employer.Delete("/team/invitations/:invitationId", companyHandler.CancelInvitation)
 	
 	// Analytics
 	employer.Get("/analytics", companyHandler.GetCompanyAnalytics)

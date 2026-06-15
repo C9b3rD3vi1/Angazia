@@ -20,61 +20,63 @@ type CompanyService interface {
 	GetCompanyProfile(ctx context.Context, companyID string) (*CompanyProfileResponse, error)
 	UpdateCompanyProfile(ctx context.Context, companyID string, req *UpdateCompanyProfileRequest) (*models.EmployerProfile, error)
 	UploadCompanyLogo(ctx context.Context, companyID string, file multipart.File, filename string) (string, error)
-	
+
 	// Verification
 	SubmitVerification(ctx context.Context, companyID string, req *VerificationRequest) (*models.CompanyVerification, error)
 	GetVerificationStatus(ctx context.Context, companyID string) (*models.CompanyVerification, error)
-	
+
 	// Trust badges
 	GetCompanyBadges(ctx context.Context, companyID string) ([]*models.TrustBadge, error)
-	
+
 	// Reviews
 	SubmitReview(ctx context.Context, companyID, userID string, req *SubmitReviewRequest) (*models.CompanyReview, error)
 	GetCompanyReviews(ctx context.Context, companyID string, page, limit int) (*ReviewListResponse, error)
 	GetReviewStats(ctx context.Context, companyID string) (*models.ReviewStats, error)
 	MarkReviewHelpful(ctx context.Context, reviewID, userID string) error
-	
+
 	// Team management
 	InviteTeamMember(ctx context.Context, companyID, inviterID string, req *InviteTeamMemberRequest) (*models.TeamInvitation, error)
 	AcceptInvitation(ctx context.Context, token, userID string) error
 	GetTeamMembers(ctx context.Context, companyID string) ([]*TeamMember, error)
 	RemoveTeamMember(ctx context.Context, companyID, memberID string) error
 	UpdateTeamMemberRole(ctx context.Context, companyID, memberID, role string) error
-	
+	ListPendingInvitations(ctx context.Context, companyID string) ([]*models.TeamInvitation, error)
+	CancelInvitation(ctx context.Context, invitationID, companyID string) error
+
 	// Public company page
 	GetPublicCompanyProfile(ctx context.Context, companyID string) (*PublicCompanyProfile, error)
-	
+
 	// Analytics
 	GetCompanyAnalytics(ctx context.Context, companyID string, days int) (*CompanyAnalyticsResponse, error)
 }
 
 type CompanyProfileResponse struct {
-	Profile      *models.EmployerProfile        `json:"profile"`
-	Verification *models.CompanyVerification    `json:"verification,omitempty"`
-	Badges       []*models.TrustBadge           `json:"badges"`
-	Stats        *CompanyStats                  `json:"stats"`
+	Profile      *models.EmployerProfile     `json:"profile"`
+	Verification *models.CompanyVerification `json:"verification,omitempty"`
+	Badges       []*models.TrustBadge        `json:"badges"`
+	Stats        *CompanyStats               `json:"stats"`
 }
 
 type CompanyStats struct {
-	TotalJobs      int     `json:"total_jobs"`
-	ActiveJobs     int     `json:"active_jobs"`
-	TotalHires     int     `json:"total_hires"`
-	TotalReviews   int     `json:"total_reviews"`
-	AverageRating  float64 `json:"average_rating"`
+	TotalJobs     int     `json:"total_jobs"`
+	ActiveJobs    int     `json:"active_jobs"`
+	TotalHires    int     `json:"total_hires"`
+	TotalReviews  int     `json:"total_reviews"`
+	AverageRating float64 `json:"average_rating"`
 }
 
 type UpdateCompanyProfileRequest struct {
-	CompanyName                  string `json:"company_name"`
-	CompanyWebsite               string `json:"company_website"`
-	CompanyLinkedIn              string `json:"company_linkedin"`
-	CompanyDescription           string `json:"company_description"`
-	Industry                     string `json:"industry"`
-	CompanySize                  string `json:"company_size"`
-	Location                     string `json:"location"`
-	PhoneNumber                  string `json:"phone_number"`
-	EmailAddress                 string `json:"email_address"`
-	BusinessRegistrationNumber   string `json:"business_registration_number"`
-	TaxID                        string `json:"tax_id"`
+	CompanyName                string `json:"company_name"`
+	CompanyWebsite             string `json:"company_website"`
+	CompanyLinkedIn            string `json:"company_linkedin"`
+	CompanyDescription         string `json:"company_description"`
+	Industry                   string `json:"industry"`
+	CompanySize                string `json:"company_size"`
+	Location                   string `json:"location"`
+	PhoneNumber                string `json:"phone_number"`
+	EmailAddress               string `json:"email_address"`
+	BusinessRegistrationNumber string `json:"business_registration_number"`
+	TaxID                      string `json:"tax_id"`
 }
 
 type VerificationRequest struct {
@@ -105,6 +107,7 @@ type TeamMember struct {
 	Role      string    `json:"role"`
 	JoinedAt  time.Time `json:"joined_at"`
 	IsOwner   bool      `json:"is_owner"`
+	AvatarURL string    `json:"avatar_url"`
 }
 
 type ReviewListResponse struct {
@@ -174,26 +177,26 @@ func (s *CompanyServiceImpl) GetCompanyProfile(ctx context.Context, companyID st
 	if err != nil {
 		return nil, fmt.Errorf("failed to get company profile: %w", err)
 	}
-	
+
 	verification, _ := s.companyRepo.GetVerification(ctx, companyID)
 	badges, _ := s.companyRepo.GetBadges(ctx, companyID)
-	
+
 	// Get job stats
 	jobs, total, err := s.jobRepo.ListByEmployer(ctx, companyID, 1, 100)
 	if err != nil {
 		jobs = []*models.Job{}
 		total = 0
 	}
-	
+
 	activeJobs := int64(0)
 	for _, job := range jobs {
 		if job.IsActive {
 			activeJobs++
 		}
 	}
-	
+
 	reviewStats, _ := s.companyRepo.GetReviewStats(ctx, companyID)
-	
+
 	stats := &CompanyStats{
 		TotalJobs:     int(total),
 		ActiveJobs:    int(activeJobs),
@@ -201,7 +204,7 @@ func (s *CompanyServiceImpl) GetCompanyProfile(ctx context.Context, companyID st
 		TotalReviews:  reviewStats.TotalReviews,
 		AverageRating: reviewStats.AverageRating,
 	}
-	
+
 	return &CompanyProfileResponse{
 		Profile:      profile,
 		Verification: verification,
@@ -212,7 +215,7 @@ func (s *CompanyServiceImpl) GetCompanyProfile(ctx context.Context, companyID st
 
 func (s *CompanyServiceImpl) UpdateCompanyProfile(ctx context.Context, companyID string, req *UpdateCompanyProfileRequest) (*models.EmployerProfile, error) {
 	updates := make(map[string]interface{})
-	
+
 	if req.CompanyName != "" {
 		updates["company_name"] = req.CompanyName
 	}
@@ -240,11 +243,11 @@ func (s *CompanyServiceImpl) UpdateCompanyProfile(ctx context.Context, companyID
 	if req.EmailAddress != "" {
 		updates["contact_email"] = req.EmailAddress
 	}
-	
+
 	if len(updates) == 0 {
 		return nil, fmt.Errorf("no fields to update")
 	}
-	
+
 	if err := s.employerRepo.UpdateEmployerProfile(ctx, companyID, updates); err != nil {
 		return nil, fmt.Errorf("failed to update company profile: %w", err)
 	}
@@ -329,7 +332,7 @@ func (s *CompanyServiceImpl) SubmitVerification(ctx context.Context, companyID s
 			documents[i] = d
 		}
 	}
-	
+
 	verification := &models.CompanyVerification{
 		CompanyID:                  companyID,
 		BusinessRegistrationNumber: businessReg,
@@ -337,14 +340,14 @@ func (s *CompanyServiceImpl) SubmitVerification(ctx context.Context, companyID s
 		Documents:                  documents,
 		Status:                     "pending",
 	}
-	
+
 	if err := s.companyRepo.CreateVerification(ctx, verification); err != nil {
 		return nil, fmt.Errorf("failed to submit verification: %w", err)
 	}
-	
+
 	// Send notification to admin using email service with template
 	go s.sendVerificationNotification(verification)
-	
+
 	return verification, nil
 }
 
@@ -364,7 +367,7 @@ func (s *CompanyServiceImpl) SubmitReview(ctx context.Context, companyID, userID
 	if hasReviewed {
 		return nil, fmt.Errorf("you have already reviewed this company")
 	}
-	
+
 	review := &models.CompanyReview{
 		CompanyID:        companyID,
 		ReviewerID:       userID,
@@ -376,11 +379,11 @@ func (s *CompanyServiceImpl) SubmitReview(ctx context.Context, companyID, userID
 		WouldRecommend:   req.WouldRecommend,
 		EmploymentStatus: req.EmploymentStatus,
 	}
-	
+
 	if err := s.companyRepo.CreateReview(ctx, review); err != nil {
 		return nil, fmt.Errorf("failed to submit review: %w", err)
 	}
-	
+
 	return review, nil
 }
 
@@ -394,17 +397,17 @@ func (s *CompanyServiceImpl) GetCompanyReviews(ctx context.Context, companyID st
 	if limit > 50 {
 		limit = 50
 	}
-	
+
 	reviews, total, err := s.companyRepo.GetReviewsByCompany(ctx, companyID, page, limit)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	totalPages := int(total) / limit
 	if int(total)%limit > 0 {
 		totalPages++
 	}
-	
+
 	return &ReviewListResponse{
 		Reviews:    reviews,
 		Total:      total,
@@ -424,21 +427,21 @@ func (s *CompanyServiceImpl) MarkReviewHelpful(ctx context.Context, reviewID, us
 
 func (s *CompanyServiceImpl) InviteTeamMember(ctx context.Context, companyID, inviterID string, req *InviteTeamMemberRequest) (*models.TeamInvitation, error) {
 	existingUser, _ := s.employerRepo.GetByEmail(ctx, req.Email)
-	
+
 	invitation := &models.TeamInvitation{
 		CompanyID: companyID,
 		Email:     req.Email,
 		Role:      req.Role,
 		InvitedBy: inviterID,
 	}
-	
+
 	if err := s.companyRepo.CreateInvitation(ctx, invitation); err != nil {
 		return nil, fmt.Errorf("failed to create invitation: %w", err)
 	}
-	
+
 	// Send invitation email using email service with template
 	go s.sendTeamInvitationEmail(invitation, existingUser != nil)
-	
+
 	return invitation, nil
 }
 
@@ -447,14 +450,30 @@ func (s *CompanyServiceImpl) AcceptInvitation(ctx context.Context, token, userID
 	if err != nil {
 		return fmt.Errorf("invalid or expired invitation")
 	}
-	
-	updates := map[string]interface{}{
-		"company_id": invitation.CompanyID,
-	}
-	if err := s.employerRepo.UpdateEmployerProfile(ctx, userID, updates); err != nil {
+
+	existing, err := s.employerRepo.GetEmployerProfile(ctx, userID)
+	if err != nil {
 		return fmt.Errorf("failed to accept invitation: %w", err)
 	}
-	
+
+	if existing != nil {
+		updates := map[string]interface{}{
+			"company_id": invitation.CompanyID,
+		}
+		if err := s.employerRepo.UpdateEmployerProfile(ctx, userID, updates); err != nil {
+			return fmt.Errorf("failed to accept invitation: %w", err)
+		}
+	} else {
+		companyID := invitation.CompanyID
+		profile := &models.EmployerProfile{
+			UserID:    userID,
+			CompanyID: &companyID,
+		}
+		if err := s.employerRepo.CreateEmployerProfile(ctx, profile); err != nil {
+			return fmt.Errorf("failed to accept invitation: %w", err)
+		}
+	}
+
 	return s.companyRepo.UpdateInvitationStatus(ctx, token, "accepted")
 }
 
@@ -463,37 +482,43 @@ func (s *CompanyServiceImpl) GetTeamMembers(ctx context.Context, companyID strin
 	if err != nil {
 		return nil, err
 	}
-	
+
 	members := []*TeamMember{
 		{
-			ID:       profile.UserID,
-			Email:    profile.User.Email,
-			FullName: profile.CompanyName,
-			Role:     "owner",
-			JoinedAt: profile.CreatedAt,
-			IsOwner:  true,
+			ID:        profile.UserID,
+			Email:     profile.User.Email,
+			FullName:  profile.CompanyName,
+			Role:      "owner",
+			JoinedAt:  profile.CreatedAt,
+			IsOwner:   true,
+			AvatarURL: profile.User.AvatarURL,
 		},
 	}
-	
+
 	invitations, _, err := s.companyRepo.GetInvitationsByCompany(ctx, companyID, 1, 100)
 	if err == nil {
 		for _, inv := range invitations {
 			if inv.Status == "accepted" {
 				member, _ := s.employerRepo.GetByEmail(ctx, inv.Email)
 				if member != nil {
+					fullName := member.Email
+					if member.EmployeeProfile != nil && member.EmployeeProfile.FullName != "" {
+						fullName = member.EmployeeProfile.FullName
+					}
 					members = append(members, &TeamMember{
-						ID:       member.ID,
-						Email:    member.Email,
-						FullName: member.Email,
-						Role:     inv.Role,
-						JoinedAt: *inv.AcceptedAt,
-						IsOwner:  false,
+						ID:        member.ID,
+						Email:     member.Email,
+						FullName:  fullName,
+						Role:      inv.Role,
+						JoinedAt:  *inv.AcceptedAt,
+						IsOwner:   false,
+						AvatarURL: member.AvatarURL,
 					})
 				}
 			}
 		}
 	}
-	
+
 	return members, nil
 }
 
@@ -505,7 +530,7 @@ func (s *CompanyServiceImpl) RemoveTeamMember(ctx context.Context, companyID, me
 	if profile.UserID == memberID {
 		return fmt.Errorf("cannot remove company owner")
 	}
-	
+
 	updates := map[string]interface{}{
 		"company_id": nil,
 	}
@@ -520,20 +545,57 @@ func (s *CompanyServiceImpl) UpdateTeamMemberRole(ctx context.Context, companyID
 	if profile.UserID == memberID {
 		return fmt.Errorf("cannot change owner role")
 	}
-	
+
+	member, err := s.employerRepo.GetByID(ctx, memberID)
+	if err != nil {
+		return fmt.Errorf("team member not found")
+	}
+
 	invitations, _, err := s.companyRepo.GetInvitationsByCompany(ctx, companyID, 1, 100)
 	if err != nil {
 		return err
 	}
-	
+
 	for _, inv := range invitations {
-		if inv.Status == "accepted" && inv.Email == profile.User.Email {
-			inv.Role = role
-			break
+		if inv.Email == member.Email {
+			return s.companyRepo.UpdateInvitationRole(ctx, inv.ID, role)
 		}
 	}
-	
-	return nil
+
+	return fmt.Errorf("team member not found in invitations")
+}
+
+func (s *CompanyServiceImpl) ListPendingInvitations(ctx context.Context, companyID string) ([]*models.TeamInvitation, error) {
+	invitations, _, err := s.companyRepo.GetInvitationsByCompany(ctx, companyID, 1, 100)
+	if err != nil {
+		return nil, err
+	}
+
+	var pending []*models.TeamInvitation
+	for _, inv := range invitations {
+		if inv.Status == "pending" {
+			pending = append(pending, inv)
+		}
+	}
+	return pending, nil
+}
+
+func (s *CompanyServiceImpl) CancelInvitation(ctx context.Context, invitationID, companyID string) error {
+	invitations, _, err := s.companyRepo.GetInvitationsByCompany(ctx, companyID, 1, 100)
+	if err != nil {
+		return err
+	}
+
+	for _, inv := range invitations {
+		if inv.ID == invitationID {
+			if inv.Status != "pending" {
+				return fmt.Errorf("cannot cancel invitation that is not pending")
+			}
+			return s.companyRepo.CancelInvitation(ctx, invitationID, companyID)
+		}
+	}
+
+	return fmt.Errorf("invitation not found")
 }
 
 func (s *CompanyServiceImpl) GetPublicCompanyProfile(ctx context.Context, companyID string) (*PublicCompanyProfile, error) {
@@ -541,24 +603,24 @@ func (s *CompanyServiceImpl) GetPublicCompanyProfile(ctx context.Context, compan
 	if err != nil {
 		return nil, err
 	}
-	
+
 	badges, _ := s.companyRepo.GetBadges(ctx, companyID)
-	
+
 	jobs, total, err := s.jobRepo.ListByEmployer(ctx, companyID, 1, 100)
 	if err != nil {
 		jobs = []*models.Job{}
 		total = 0
 	}
-	
+
 	activeJobs := int64(0)
 	for _, job := range jobs {
 		if job.IsActive {
 			activeJobs++
 		}
 	}
-	
+
 	reviewStats, _ := s.companyRepo.GetReviewStats(ctx, companyID)
-	
+
 	stats := &CompanyStats{
 		TotalJobs:     int(total),
 		ActiveJobs:    int(activeJobs),
@@ -566,9 +628,9 @@ func (s *CompanyServiceImpl) GetPublicCompanyProfile(ctx context.Context, compan
 		TotalReviews:  reviewStats.TotalReviews,
 		AverageRating: reviewStats.AverageRating,
 	}
-	
+
 	go s.companyRepo.IncrementProfileViews(ctx, companyID)
-	
+
 	return &PublicCompanyProfile{
 		ID:          profile.UserID,
 		CompanyName: profile.CompanyName,
@@ -589,42 +651,42 @@ func (s *CompanyServiceImpl) GetPublicCompanyProfile(ctx context.Context, compan
 func (s *CompanyServiceImpl) GetCompanyAnalytics(ctx context.Context, companyID string, days int) (*CompanyAnalyticsResponse, error) {
 	endDate := time.Now()
 	startDate := endDate.AddDate(0, 0, -days)
-	
+
 	analytics, err := s.companyRepo.GetAnalytics(ctx, companyID, startDate, endDate)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	response := &CompanyAnalyticsResponse{
 		ProfileViews:         []DailyStat{},
 		JobViews:             []DailyStat{},
 		ApplicationsReceived: []DailyStat{},
 	}
-	
+
 	analyticsMap := make(map[string]*models.CompanyAnalytics)
 	for _, a := range analytics {
 		analyticsMap[a.Date.Format("2006-01-02")] = a
 	}
-	
+
 	for d := startDate; d.Before(endDate) || d.Equal(endDate); d = d.AddDate(0, 0, 1) {
 		dateStr := d.Format("2006-01-02")
 		var profileViews, jobViews, applications int
-		
+
 		if a, ok := analyticsMap[dateStr]; ok {
 			profileViews = a.ProfileViews
 			jobViews = a.JobViews
 			applications = a.ApplicationsReceived
-			
+
 			response.TotalProfileViews += profileViews
 			response.TotalJobViews += jobViews
 			response.TotalApplications += applications
 		}
-		
+
 		response.ProfileViews = append(response.ProfileViews, DailyStat{Date: dateStr, Value: profileViews})
 		response.JobViews = append(response.JobViews, DailyStat{Date: dateStr, Value: jobViews})
 		response.ApplicationsReceived = append(response.ApplicationsReceived, DailyStat{Date: dateStr, Value: applications})
 	}
-	
+
 	return response, nil
 }
 
@@ -635,14 +697,14 @@ func (s *CompanyServiceImpl) sendVerificationNotification(verification *models.C
 		fmt.Printf("Verification submitted for company %s\n", verification.CompanyID)
 		return
 	}
-	
+
 	// Get admin email from config
 	adminEmail := s.cfg.AdminEmail
 	if adminEmail == "" {
 		fmt.Printf("No admin email configured. Verification pending for company %s\n", verification.CompanyID)
 		return
 	}
-	
+
 	// Use email service to send admin notification
 	// The email service will use HTML templates
 	s.emailService.SendAdminVerificationNotification(
@@ -659,7 +721,7 @@ func (s *CompanyServiceImpl) sendTeamInvitationEmail(invitation *models.TeamInvi
 		fmt.Printf("Invitation sent to %s for company %s\n", invitation.Email, invitation.CompanyID)
 		return
 	}
-	
+
 	if hasAccount {
 		s.emailService.SendTeamInvitationExistingUser(
 			invitation.Email,

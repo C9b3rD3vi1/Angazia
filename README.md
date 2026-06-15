@@ -48,244 +48,219 @@ Angazia is a comprehensive job marketplace designed specifically for the Kenyan 
 
 ### 🏗️ Core Platform
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| User Authentication | ✅ | JWT-based auth with refresh tokens, email verification |
-| Role Management | ✅ | Admin, Employer, Employee roles with permissions |
-| Profile Management | ✅ | Complete profiles with skills, experience, portfolio |
-| GitHub Integration | ✅ | OAuth, repo sync, contribution tracking, activity scoring |
+| Feature | Description |
+|---------|-------------|
+| User Authentication | JWT-based auth with refresh tokens, email verification |
+| Role Management | Admin, Employer, Employee roles with permissions |
+| Profile Management | Complete profiles with skills, experience, portfolio |
+| GitHub Integration | OAuth, repo sync, contribution tracking, activity scoring |
 
 ### 💼 Job Management
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Job Posting | ✅ | Create, edit, delete job listings |
-| Job Search | ✅ | Full-text search with advanced filters |
-| Save Jobs | ✅ | Candidates can save interesting jobs |
-| Job Analytics | ✅ | View counts, application rates, conversion metrics |
+| Feature | Description |
+|---------|-------------|
+| Job Posting | Create, edit, delete job listings |
+| Job Search | Full-text search with advanced filters |
+| Save Jobs | Candidates can save interesting jobs |
+| Job Analytics | View counts, application rates, conversion metrics |
 
 ### 📝 Application System
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Apply to Jobs | ✅ | Submit applications with cover letters |
-| Application Tracking | ✅ | Real-time status updates |
-| Shortlist/Reject | ✅ | Employer decision management |
-| Interview Scheduling | ✅ | Calendar integration, email notifications |
-| Bulk Actions | ✅ | Mass shortlist/reject applications |
+| Feature | Description |
+|---------|-------------|
+| Apply to Jobs | Submit applications with cover letters |
+| Application Tracking | Real-time status updates |
+| Shortlist/Reject | Employer decision management |
+| Interview Scheduling | Calendar integration, email notifications |
+| Bulk Actions | Mass shortlist/reject applications |
 
 ### 🤖 AI & Matching
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Smart Matching | ✅ | AI-powered job-candidate matching scores |
-| Cover Letter Generation | ✅ | Personalized AI-generated cover letters |
-| Skills Gap Analysis | ✅ | Identify missing skills with learning resources |
-| Interview Questions | ✅ | Role-specific question generation |
-| Pluggable AI | ✅ | Support for OpenAI, Anthropic, Gemini, Local LLMs |
+| Feature | Description |
+|---------|-------------|
+| Smart Matching | AI-powered job-candidate matching scores |
+| Cover Letter Generation | Personalized AI-generated cover letters |
+| Skills Gap Analysis | Identify missing skills with learning resources |
+| Interview Questions | Role-specific question generation |
+| Pluggable AI | Support for OpenAI, Anthropic, Gemini, Local LLMs |
 
 ### 📄 Resume Parsing
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| PDF/DOCX Parsing | ✅ | Extract text from uploaded resumes |
-| Skill Extraction | ✅ | Automatic identification of technical skills |
-| Experience Parsing | ✅ | Work history, years of experience |
-| Contact Extraction | ✅ | Email, phone, LinkedIn, GitHub URLs |
-| Profile Wizard | ✅ | Step-by-step profile completion guide |
+| Feature | Description |
+|---------|-------------|
+| PDF/DOCX Parsing | Extract text from uploaded resumes |
+| Skill Extraction | Automatic identification of technical skills |
+| Experience Parsing | Work history, years of experience |
+| Contact Extraction | Email, phone, LinkedIn, GitHub URLs |
+| Profile Wizard | Step-by-step profile completion guide |
 
 ### 🏢 Employer Features
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Company Profile | ✅ | Branding, description, social links |
-| Verification | ✅ | Document submission, trust badges |
-| Team Management | ✅ | Invite members, role-based access |
-| Company Reviews | ✅ | Candidate reviews, ratings, helpful votes |
-| Talent Pool | ✅ | Save candidates, tags, notes, status tracking |
+| Feature | Description |
+|---------|-------------|
+| Company Profile | Branding, description, social links |
+| Verification | Document submission, trust badges |
+| Team Management | Invite members, role-based access |
+| Company Reviews | Candidate reviews, ratings, helpful votes |
+| Talent Pool | Save candidates, tags, notes, status tracking |
 
 ### 📊 Analytics
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Application Trends | ✅ | Daily/weekly/monthly volume tracking |
-| Conversion Funnel | ✅ | View → Apply → Shortlist → Interview → Hire |
-| Job Performance | ✅ | Per-job metrics and comparisons |
-| Time to Hire | ✅ | Average/median days to hire |
-| Candidate Analytics | ✅ | Profile strength, success rates, market positioning |
-| Skill Gap Analysis | ✅ | In-demand skills, learning recommendations |
-| Export Reports | ✅ | CSV/JSON data export |
+| Feature | Description |
+|---------|-------------|
+| Application Trends | Daily/weekly/monthly volume tracking |
+| Conversion Funnel | View → Apply → Shortlist → Interview → Hire |
+| Job Performance | Per-job metrics and comparisons |
+| Time to Hire | Average/median days to hire |
+| Candidate Analytics | Profile strength, success rates, market positioning |
+| Skill Gap Analysis | In-demand skills, learning recommendations |
+| Export Reports | CSV/JSON data export |
 
 ### 🔔 Notifications
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Email Notifications | ✅ | All application-related emails with HTML templates |
-| Job Alerts | ✅ | Daily/weekly/instant job match digests |
-| In-App Notifications | ⏳ | Coming soon |
-| Real-time WebSocket | ⏳ | Coming soon |
+| Feature | Description |
+|---------|-------------|
+| Email Notifications | All application-related emails with HTML templates |
+| Job Alerts | Daily/weekly/instant job match digests |
+| In-App Notifications | Coming soon |
+| Real-time WebSocket | Coming soon |
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### Backend
-Go 1.21+ - Primary language
-
-Fiber v2.52 - Web framework
-
-GORM - ORM library
-
-PostgreSQL 15 - Primary database
-
-Redis 7.0 - Caching & token blacklisting
-
-JWT - Authentication
-
-WebSocket - Real-time features (coming soon)
-
-text
+- **Go 1.21+** — Primary language
+- **Fiber v2.52** — Web framework
+- **GORM** — ORM library
+- **PostgreSQL 15** — Primary database
+- **Redis 7.0** — Caching & token blacklisting
+- **JWT** — Authentication
+- **WebSocket** — Real-time features (coming soon)
 
 ### AI & Processing
-OpenAI GPT-4 - Primary AI provider
-
-Anthropic Claude - Alternative AI provider
-
-Google Gemini - Alternative AI provider
-
-Local LLM - Self-hosted option
-
-Colly - Web scraping (deprecated)
-
-text
+- **OpenAI GPT-4** — Primary AI provider
+- **Anthropic Claude** — Alternative AI provider
+- **Google Gemini** — Alternative AI provider
+- **Local LLM** — Self-hosted option
+- **Colly** — Web scraping (deprecated)
 
 ### Email Providers
-SendGrid - Primary email provider
-
-Resend - Alternative email provider
-
-SMTP - Fallback email provider
-
-text
+- **SendGrid** — Primary email provider
+- **Resend** — Alternative email provider
+- **SMTP** — Fallback email provider
 
 ### Deployment
-Docker - Containerization
-
-Docker Compose - Multi-container orchestration
-
-Nginx - Reverse proxy & SSL
-
-GitHub Actions - CI/CD pipeline
-
-text
+- **Docker** — Containerization
+- **Docker Compose** — Multi-container orchestration
+- **Nginx** — Reverse proxy & SSL
+- **GitHub Actions** — CI/CD pipeline
 
 ---
 
 ## 🏗️ Architecture
 
-### High-Level Architecture
-┌─────────────────────────────────────────────────────────────┐
-│ Client Layer │
-│ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │
-│ │ Web App │ │ Mobile │ │ API │ │ Admin │ │
-│ │ │ │ │ │ Clients │ │ Portal │ │
-│ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ │
-└───────┼─────────────┼─────────────┼─────────────┼─────────┘
-│ │ │ │
-▼ ▼ ▼ ▼
-┌─────────────────────────────────────────────────────────────┐
-│ API Gateway (Nginx) │
-│ Rate Limiting / SSL Termination / CORS │
-└─────────────────────────────────────────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────────────────┐
-│ Application Layer (Fiber) │
-│ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ │
-│ │ Handlers │ │ Services │ │ Middleware │ │
-│ │ (HTTP) │─▶│ (Business) │ │ (Auth/Rate) │ │
-│ └──────────────┘ └──────────────┘ └──────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────────────────┐
-│ Repository Layer (GORM) │
-│ Database Operations / Query Building │
-└─────────────────────────────────────────────────────────────┘
-│
-├──────────────┬──────────────┬──────────────┐
-▼ ▼ ▼ ▼
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│ PostgreSQL │ │ Redis │ │ S3 │ │ OpenAI │
-│ (Primary) │ │ (Cache) │ │ (Storage) │ │ (AI) │
-└──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘
+### System Architecture
 
-text
+```mermaid
+flowchart TB
+    subgraph client[" Client Layer "]
+        direction LR
+        web["🌐 Web App"]
+        mobile["📱 Mobile"]
+        api_clients["🔌 API Clients"]
+        admin["🛠️ Admin Portal"]
+    end
 
-### Directory Structure
-angazia/
-├── cmd/
-│ ├── api/ # API server entry point
-│ └── worker/ # Background worker (cron jobs)
-│
-├── internal/
-│ ├── config/ # Configuration management
-│ ├── models/ # Domain models
-│ ├── repository/ # Database operations
-│ │ ├── user_repo.go
-│ │ ├── job_repo.go
-│ │ ├── application_repo.go
-│ │ ├── github_repo.go
-│ │ ├── match_repo.go
-│ │ ├── alert_repo.go
-│ │ ├── company_repo.go
-│ │ ├── talent_pool_repo.go
-│ │ └── analytics_repo.go
-│ │
-│ ├── services/ # Business logic
-│ │ ├── auth_service.go
-│ │ ├── job_service.go
-│ │ ├── application_service.go
-│ │ ├── github_service.go
-│ │ ├── matching_service.go
-│ │ ├── alert_service.go
-│ │ ├── company_service.go
-│ │ ├── talent_pool_service.go
-│ │ ├── analytics_service.go
-│ │ └── email_service.go
-│ │
-│ ├── handlers/ # HTTP handlers
-│ │ ├── auth_handler.go
-│ │ ├── job_handler.go
-│ │ ├── application_handler.go
-│ │ ├── github_handler.go
-│ │ ├── matching_handler.go
-│ │ ├── alert_handler.go
-│ │ ├── company_handler.go
-│ │ ├── talent_pool_handler.go
-│ │ └── analytics_handler.go
-│ │
-│ ├── routes/ # Route definitions
-│ ├── middleware/ # HTTP middleware
-│ └── pkg/ # Shared packages
-│ ├── ai/ # AI providers
-│ ├── database/ # DB connection
-│ ├── github/ # GitHub API client
-│ ├── parser/ # Resume parser
-│ └── utils/ # Utilities
-│
-├── web/
-│ ├── templates/ # HTML templates
-│ │ └── emails/ # Email templates
-│ └── static/ # Static assets
-│
-├── migrations/ # SQL migrations
-├── scripts/ # Utility scripts
-├── docker/ # Docker configuration
-├── docs/ # Documentation
-└── tests/ # Test files
+    gateway["⚡ API Gateway — Nginx<br/>Rate Limiting · SSL Termination · CORS"]
 
-text
+    subgraph app[" Application Layer — Fiber "]
+        direction LR
+        handlers["📥 Handlers<br/>(HTTP)"]
+        services["⚙️ Services<br/>(Business Logic)"]
+        middleware["🔐 Middleware<br/>(Auth / Rate Limit)"]
+        handlers --> services
+        middleware --- handlers
+    end
+
+    repo["🗃️ Repository Layer — GORM<br/>Database Operations · Query Building"]
+
+    subgraph data[" Data & External Services "]
+        direction LR
+        postgres[("🐘 PostgreSQL<br/>Primary DB")]
+        redis[("⚡ Redis<br/>Cache")]
+        s3[("📦 S3<br/>Storage")]
+        ai_provider["🤖 AI Provider<br/>OpenAI / Anthropic / Gemini"]
+    end
+
+    client --> gateway
+    gateway --> app
+    app --> repo
+    repo --> postgres
+    repo --> redis
+    repo --> s3
+    services -.-> ai_provider
+
+    classDef clientStyle fill:#0c1414,stroke:#00e5a0,stroke-width:1.5px,color:#ddeee8
+    classDef gatewayStyle fill:#111e1e,stroke:#3d9be9,stroke-width:1.5px,color:#ddeee8
+    classDef appStyle fill:#0c1414,stroke:#7c3aed,stroke-width:1.5px,color:#ddeee8
+    classDef repoStyle fill:#111e1e,stroke:#f5a623,stroke-width:1.5px,color:#ddeee8
+    classDef dataStyle fill:#0c1414,stroke:#00e5a0,stroke-width:1.5px,color:#ddeee8
+
+    class web,mobile,api_clients,admin clientStyle
+    class gateway gatewayStyle
+    class handlers,services,middleware appStyle
+    class repo repoStyle
+    class postgres,redis,s3,ai_provider dataStyle
+```
+
+### AI Matching Flow
+
+```mermaid
+sequenceDiagram
+    actor Candidate
+    participant API as Angazia API
+    participant Match as Matching Service
+    participant GH as GitHub Service
+    participant AI as AI Provider
+    participant DB as PostgreSQL
+
+    Candidate->>API: Upload resume / connect GitHub
+    API->>GH: Sync repos & contributions
+    GH-->>DB: Store activity score
+    API->>Match: Request job matches
+    Match->>DB: Fetch candidate profile + job pool
+    Match->>AI: Score candidate against each job
+    AI-->>Match: Fit scores (1-100) + breakdown
+    Match-->>API: Ranked job list
+    API-->>Candidate: Matches with score explanations
+```
+
+### Role-Based Access Overview
+
+```mermaid
+flowchart LR
+    user["👤 User"] --> auth{"JWT Auth<br/>Middleware"}
+
+    auth -->|employee| emp["Employee Routes<br/>Profile · Applications · Saved Jobs · Alerts"]
+    auth -->|employer| empr["Employer Routes<br/>Jobs · Candidates · Talent Pool · Analytics"]
+    auth -->|admin| adm["Admin Routes<br/>Users · Jobs · Reports · Verification"]
+    auth -->|guest| pub["Public Routes<br/>Browse Jobs · Companies · Register"]
+
+    classDef userStyle fill:#0c1414,stroke:#ddeee8,stroke-width:1.5px,color:#ddeee8
+    classDef authStyle fill:#111e1e,stroke:#3d9be9,stroke-width:1.5px,color:#ddeee8
+    classDef empStyle fill:#0c1414,stroke:#00e5a0,stroke-width:1.5px,color:#ddeee8
+    classDef emprStyle fill:#0c1414,stroke:#7c3aed,stroke-width:1.5px,color:#ddeee8
+    classDef admStyle fill:#0c1414,stroke:#f5a623,stroke-width:1.5px,color:#ddeee8
+    classDef pubStyle fill:#0c1414,stroke:#5a7a72,stroke-width:1.5px,color:#ddeee8
+
+    class user userStyle
+    class auth authStyle
+    class emp empStyle
+    class empr emprStyle
+    class adm admStyle
+    class pub pubStyle
+```
 
 ---
 
@@ -309,8 +284,11 @@ Google Gemini API Key
 SendGrid API Key
 Resend API Key
 SMTP credentials
-Quick Start
-bash
+```
+
+### Quick Start
+
+```bash
 # 1. Clone the repository
 git clone https://github.com/C9b3rD3vi1/angazia.git
 cd angazia
@@ -339,8 +317,11 @@ go run cmd/api/main.go
 
 # 9. Start the background worker (in another terminal)
 go run cmd/worker/main.go
-Docker Deployment
-bash
+```
+
+### Docker Deployment
+
+```bash
 # Build and run with Docker Compose
 docker-compose up -d
 
@@ -349,9 +330,15 @@ docker-compose logs -f
 
 # Stop services
 docker-compose down
-⚙️ Configuration
-Environment Variables
-env
+```
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+```env
 # ==================== SERVER CONFIGURATION ====================
 PORT=3000
 ENVIRONMENT=development          # development, staging, production
@@ -440,9 +427,15 @@ MAX_JOB_POSTS_FREE=3
 MAX_JOB_POSTS_PRO=20
 MAX_JOB_POSTS_ENTERPRISE=100
 PAGE_SIZE=20
-📚 API Documentation
-Authentication Endpoints
-http
+```
+
+---
+
+## 📚 API Documentation
+
+### Authentication Endpoints
+
+```http
 POST   /api/v1/auth/register           # Register new user
 POST   /api/v1/auth/login              # Login user
 POST   /api/v1/auth/logout             # Logout user
@@ -452,14 +445,20 @@ POST   /api/v1/auth/reset-password     # Reset password
 GET    /api/v1/auth/verify-email/:token # Verify email address
 POST   /api/v1/auth/change-password    # Change password (auth required)
 POST   /api/v1/auth/resend-verification # Resend verification email
-User Profile Endpoints
-http
+```
+
+### User Profile Endpoints
+
+```http
 GET    /api/v1/profile                 # Get user profile
 PUT    /api/v1/profile                 # Update user profile
 GET    /api/v1/employee/dashboard      # Employee dashboard
 GET    /api/v1/employer/dashboard      # Employer dashboard
-Job Endpoints
-http
+```
+
+### Job Endpoints
+
+```http
 # Public (no auth required)
 GET    /api/v1/jobs                    # List jobs (paginated)
 GET    /api/v1/jobs/featured           # Get featured jobs
@@ -479,8 +478,11 @@ GET    /api/v1/employer/jobs           # List employer jobs
 PUT    /api/v1/employer/jobs/:id       # Update job
 DELETE /api/v1/employer/jobs/:id       # Delete job
 POST   /api/v1/employer/jobs/:id/close # Close job
-Application Endpoints
-http
+```
+
+### Application Endpoints
+
+```http
 # Candidate
 POST   /api/v1/employee/applications   # Submit application
 GET    /api/v1/employee/applications   # List my applications
@@ -494,8 +496,11 @@ POST   /api/v1/employer/applications/:id/shortlist # Shortlist
 POST   /api/v1/employer/applications/:id/reject    # Reject
 POST   /api/v1/employer/applications/:id/interview # Schedule interview
 POST   /api/v1/employer/applications/bulk-shortlist # Bulk shortlist
-GitHub Integration Endpoints
-http
+```
+
+### GitHub Integration Endpoints
+
+```http
 GET    /api/v1/github/auth             # Start GitHub OAuth
 GET    /api/v1/github/callback         # GitHub OAuth callback
 POST   /api/v1/github/webhook          # GitHub webhook receiver
@@ -507,8 +512,11 @@ POST   /api/v1/github/sync             # Sync GitHub data
 GET    /api/v1/github/profile          # Get GitHub profile
 GET    /api/v1/github/repos            # List GitHub repositories
 GET    /api/v1/github/contributions    # Get contribution calendar
-AI Matching Endpoints
-http
+```
+
+### AI Matching Endpoints
+
+```http
 # Candidate
 GET    /api/v1/employee/matches/jobs   # Get job recommendations
 POST   /api/v1/employee/matches/cover-letter # Generate cover letter
@@ -520,8 +528,11 @@ GET    /api/v1/employer/matches/interview-questions/:jobId # Generate questions
 
 # General
 GET    /api/v1/matches/analysis/:jobId/:employeeId # Detailed match analysis
-Job Alert Endpoints
-http
+```
+
+### Job Alert Endpoints
+
+```http
 POST   /api/v1/alerts/search           # Create saved search
 GET    /api/v1/alerts                  # List saved searches
 GET    /api/v1/alerts/:id              # Get saved search
@@ -531,8 +542,11 @@ POST   /api/v1/alerts/:id/test         # Send test alert
 GET    /api/v1/alerts/settings         # Get alert settings
 PUT    /api/v1/alerts/settings         # Update alert settings
 GET    /api/v1/alerts/history          # Get alert history
-Company Management Endpoints
-http
+```
+
+### Company Management Endpoints
+
+```http
 # Public
 GET    /api/v1/companies/:id           # Public company profile
 GET    /api/v1/companies/:id/badges    # Get company badges
@@ -554,8 +568,11 @@ DELETE /api/v1/employer/team/:memberId # Remove team member
 # Reviews (authenticated)
 POST   /api/v1/companies/:id/reviews   # Submit review
 POST   /api/v1/reviews/:id/helpful     # Mark review helpful
-Talent Pool Endpoints
-http
+```
+
+### Talent Pool Endpoints
+
+```http
 POST   /api/v1/employer/talent-pools   # Create talent pool
 GET    /api/v1/employer/talent-pools   # List talent pools
 GET    /api/v1/employer/talent-pools/:id # Get talent pool
@@ -570,8 +587,11 @@ PUT    /api/v1/employer/talent-pools/:poolId/candidates/:candidateId # Update ca
 DELETE /api/v1/employer/talent-pools/:poolId/candidates/:candidateId # Remove candidate
 POST   /api/v1/employer/talent-pools/:poolId/candidates/:candidateId/contact # Mark contacted
 POST   /api/v1/employer/talent-pools/:poolId/candidates/:candidateId/hire # Mark hired
-Analytics Endpoints
-http
+```
+
+### Analytics Endpoints
+
+```http
 # Employer analytics
 GET    /api/v1/employer/analytics/dashboard # Complete dashboard
 GET    /api/v1/employer/analytics/trends    # Application trends
@@ -590,56 +610,140 @@ GET    /api/v1/employee/analytics/success-rates # Success rates
 GET    /api/v1/employee/analytics/skill-gap # Skill gap analysis
 GET    /api/v1/employee/analytics/market-positioning # Market positioning
 GET    /api/v1/employee/analytics/recommendations # Recommendations
-Resume Parsing Endpoints
-http
+```
+
+### Resume Parsing Endpoints
+
+```http
 POST   /api/v1/employee/resume/upload   # Upload and parse resume
 GET    /api/v1/employee/profile/completion # Get profile completion
 GET    /api/v1/employee/skills/suggested # Get suggested skills
 GET    /api/v1/employee/profile/wizard  # Get profile wizard
-🗄️ Database Schema
-Core Tables
-Table	Description
-users	User accounts (employees, employers, admins)
-employee_profiles	Job seeker profiles
-employer_profiles	Company profiles
-jobs	Job postings
-applications	Job applications
-saved_jobs	Jobs saved by candidates
-GitHub Integration Tables
-Table	Description
-github_profiles	GitHub user profiles
-github_repositories	GitHub repositories
-github_contributions	Daily contribution counts
-github_tokens	Encrypted OAuth tokens
-AI & Matching Tables
-Table	Description
-matches	Job-candidate match records
-match_feedback	User feedback on matches
-match_settings	User matching preferences
-Alerts & Notifications
-Table	Description
-saved_searches	Saved job search criteria
-alert_history	Sent alert records
-alert_settings	User notification preferences
-unsubscribe_tokens	Email unsubscribe tokens
-Company & Reviews
-Table	Description
-company_verifications	Verification documents and status
-trust_badges	Company trust badges
-company_reviews	Company ratings and reviews
-team_invitations	Team member invitations
-Talent Pool
-Table	Description
-talent_pools	Candidate collections
-talent_pool_candidates	Candidates in pools
-Analytics
-Table	Description
-company_analytics	Daily company metrics
-job_views	Job view tracking
-search_history	User search queries
-🚀 Deployment
-Production Deployment
-bash
+```
+
+---
+
+## 🗄️ Database Schema
+
+### Entity Relationship Overview
+
+```mermaid
+erDiagram
+    USERS ||--o| EMPLOYEE_PROFILES : has
+    USERS ||--o| EMPLOYER_PROFILES : has
+    EMPLOYER_PROFILES ||--o{ JOBS : posts
+    EMPLOYEE_PROFILES ||--o{ APPLICATIONS : submits
+    JOBS ||--o{ APPLICATIONS : receives
+    EMPLOYEE_PROFILES ||--o{ SAVED_JOBS : saves
+    JOBS ||--o{ SAVED_JOBS : saved_in
+    EMPLOYEE_PROFILES ||--o| GITHUB_PROFILES : connects
+    GITHUB_PROFILES ||--o{ GITHUB_REPOSITORIES : owns
+    GITHUB_PROFILES ||--o{ GITHUB_CONTRIBUTIONS : tracks
+    EMPLOYEE_PROFILES ||--o{ MATCHES : scored_in
+    JOBS ||--o{ MATCHES : scored_against
+    EMPLOYEE_PROFILES ||--o{ SAVED_SEARCHES : creates
+    EMPLOYER_PROFILES ||--o{ TALENT_POOLS : manages
+    TALENT_POOLS ||--o{ TALENT_POOL_CANDIDATES : contains
+    EMPLOYEE_PROFILES ||--o{ TALENT_POOL_CANDIDATES : listed_in
+    EMPLOYER_PROFILES ||--o{ COMPANY_REVIEWS : receives
+    EMPLOYER_PROFILES ||--o{ COMPANY_VERIFICATIONS : submits
+    EMPLOYER_PROFILES ||--o{ COMPANY_ANALYTICS : generates
+
+    USERS {
+        uuid id
+        string email
+        string role
+        string password_hash
+    }
+    JOBS {
+        uuid id
+        string title
+        string status
+        int salary_min
+        int salary_max
+    }
+    APPLICATIONS {
+        uuid id
+        string status
+        text cover_letter
+    }
+    MATCHES {
+        uuid id
+        int fit_score
+        jsonb breakdown
+    }
+```
+
+### Table Reference
+
+**Core Tables**
+
+| Table | Description |
+|-------|-------------|
+| `users` | User accounts (employees, employers, admins) |
+| `employee_profiles` | Job seeker profiles |
+| `employer_profiles` | Company profiles |
+| `jobs` | Job postings |
+| `applications` | Job applications |
+| `saved_jobs` | Jobs saved by candidates |
+
+**GitHub Integration Tables**
+
+| Table | Description |
+|-------|-------------|
+| `github_profiles` | GitHub user profiles |
+| `github_repositories` | GitHub repositories |
+| `github_contributions` | Daily contribution counts |
+| `github_tokens` | Encrypted OAuth tokens |
+
+**AI & Matching Tables**
+
+| Table | Description |
+|-------|-------------|
+| `matches` | Job-candidate match records |
+| `match_feedback` | User feedback on matches |
+| `match_settings` | User matching preferences |
+
+**Alerts & Notifications**
+
+| Table | Description |
+|-------|-------------|
+| `saved_searches` | Saved job search criteria |
+| `alert_history` | Sent alert records |
+| `alert_settings` | User notification preferences |
+| `unsubscribe_tokens` | Email unsubscribe tokens |
+
+**Company & Reviews**
+
+| Table | Description |
+|-------|-------------|
+| `company_verifications` | Verification documents and status |
+| `trust_badges` | Company trust badges |
+| `company_reviews` | Company ratings and reviews |
+| `team_invitations` | Team member invitations |
+
+**Talent Pool**
+
+| Table | Description |
+|-------|-------------|
+| `talent_pools` | Candidate collections |
+| `talent_pool_candidates` | Candidates in pools |
+
+**Analytics**
+
+| Table | Description |
+|-------|-------------|
+| `company_analytics` | Daily company metrics |
+| `job_views` | Job view tracking |
+| `search_history` | User search queries |
+
+---
+
+## 🚀 Deployment
+
+### Production Deployment
+
+```bash
 # 1. Set production environment
 export ENVIRONMENT=production
 
@@ -657,10 +761,13 @@ go build -o angazia-worker cmd/worker/main.go
 # Or use systemd (recommended)
 sudo systemctl start angazia-api
 sudo systemctl start angazia-worker
-Systemd Service Files
-/etc/systemd/system/angazia-api.service
+```
 
-ini
+### Systemd Service Files
+
+**`/etc/systemd/system/angazia-api.service`**
+
+```ini
 [Unit]
 Description=Angazia API Server
 After=network.target postgresql.service redis.service
@@ -676,9 +783,11 @@ Environment="ENVIRONMENT=production"
 
 [Install]
 WantedBy=multi-user.target
-/etc/systemd/system/angazia-worker.service
+```
 
-ini
+**`/etc/systemd/system/angazia-worker.service`**
+
+```ini
 [Unit]
 Description=Angazia Background Worker
 After=network.target postgresql.service redis.service
@@ -694,8 +803,11 @@ Environment="ENVIRONMENT=production"
 
 [Install]
 WantedBy=multi-user.target
-Nginx Configuration
-nginx
+```
+
+### Nginx Configuration
+
+```nginx
 server {
     listen 80;
     server_name angazia.com;
@@ -733,8 +845,11 @@ server {
         add_header Cache-Control "public, immutable";
     }
 }
-Docker Compose Production
-yaml
+```
+
+### Docker Compose Production
+
+```yaml
 version: '3.8'
 
 services:
@@ -805,8 +920,13 @@ volumes:
 networks:
   angazia:
     driver: bridge
-🧪 Testing
-bash
+```
+
+---
+
+## 🧪 Testing
+
+```bash
 # Run all tests
 go test -v ./...
 
@@ -825,75 +945,56 @@ go tool cover -html=coverage.out
 
 # Run benchmarks
 go test -bench=. ./...
-🤝 Contributing
-Fork the repository
+```
 
-Create your feature branch (git checkout -b feature/amazing-feature)
+---
 
-Commit your changes (git commit -m 'Add amazing feature')
+## 🤝 Contributing
 
-Push to the branch (git push origin feature/amazing-feature)
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-Open a Pull Request
+### Code Style
 
-Code Style
-Follow Go standard formatting (gofmt)
+- Follow Go standard formatting (`gofmt`)
+- Use descriptive variable names
+- Add comments for complex logic
+- Write tests for new features
 
-Use descriptive variable names
+---
 
-Add comments for complex logic
+## 📄 License
 
-Write tests for new features
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
+## 🙏 Acknowledgments
 
-🙏 Acknowledgments
-Fiber - Fast Go web framework
+- [Fiber](https://gofiber.io/) - Fast Go web framework
+- [GORM](https://gorm.io/) - Amazing ORM library
+- [PostgreSQL](https://www.postgresql.org/) - Powerful relational database
+- [Redis](https://redis.io/) - In-memory data store
+- [OpenAI](https://openai.com/) - AI capabilities
+- [GitHub](https://github.com/) - OAuth and API integration
+- All Contributors - For making this project possible
 
-GORM - Amazing ORM library
+## 📞 Support
 
-PostgreSQL - Powerful relational database
+- **Documentation**: [Wiki](https://github.com/C9b3rD3vi1/angazia/wiki)
+- **Issues**: [GitHub Issues](https://github.com/C9b3rD3vi1/angazia/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/C9b3rD3vi1/angazia/discussions)
+- **Email**: support@angazia.com
 
-Redis - In-memory data store
+## 🚦 Status
 
-OpenAI - AI capabilities
+![CI](https://img.shields.io/github/actions/workflow/status/C9b3rD3vi1/angazia/ci.yml?branch=main)
+![Coverage](https://img.shields.io/codecov/c/github/C9b3rD3vi1/angazia)
+![Go Report Card](https://goreportcard.com/badge/github.com/C9b3rD3vi1/angazia)
 
-GitHub - OAuth and API integration
-
-All Contributors - For making this project possible
-
-📞 Support
-Documentation: Wiki
-
-Issues: GitHub Issues
-
-Discussions: GitHub Discussions
-
-Email: support@angazia.com
-
-🚦 Status
-https://img.shields.io/github/actions/workflow/status/C9b3rD3vi1/angazia/ci.yml?branch=main
-https://img.shields.io/codecov/c/github/C9b3rD3vi1/angazia
-https://goreportcard.com/badge/github.com/C9b3rD3vi1/angazia
+---
 
 Built with ❤️ for the Kenyan tech community
 
-Empowering talent, connecting opportunities.
-
-text
-
-This README provides:
-
-1. **Complete Project Overview** - What the platform does and why
-2. **Detailed Feature List** - All implemented features with status
-3. **Tech Stack Documentation** - All technologies used
-4. **Architecture Diagrams** - System architecture and directory structure
-5. **Installation Guide** - Step-by-step setup instructions
-6. **Full API Documentation** - All endpoints with descriptions
-7. **Database Schema** - All tables and their purposes
-8. **Deployment Guide** - Production deployment instructions
-9. **Testing Guide** - How to run tests
-10. **Contributing Guidelines** - How to contribute
-
-🚀
+*Empowering talent, connecting opportunities.* 🚀

@@ -1,10 +1,10 @@
 package routes
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"github.com/C9b3rD3vi1/Angazia/internal/handlers"
 	"github.com/C9b3rD3vi1/Angazia/internal/middleware"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
+	"github.com/gofiber/fiber/v2"
 )
 
 func SetupWebRoutes(
@@ -77,6 +77,7 @@ func SetupWebRoutes(
 	employer.Get("/job-post", jobHandler.EmployerJobPostPage)
 	employer.Get("/job-edit/:id", jobHandler.EmployerJobEditPage)
 	employer.Get("/job-applications/:id", jobHandler.EmployerJobApplicationsPage)
+	employer.Get("/team", webHandler.EmployerTeamPage)
 	employer.Get("/billing", webHandler.EmployerBillingPage)
 	employer.Get("/billing/invoices", webHandler.EmployerBillingInvoicesPage)
 	employer.Get("/billing/upgrade/:plan", webHandler.EmployerBillingUpgradePage)

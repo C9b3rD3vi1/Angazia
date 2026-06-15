@@ -47,13 +47,13 @@ func DefaultMatchWeights() *MatchWeights {
 }
 
 type ScoringServiceImpl struct {
-	cfg       *ai.Config
-	matcher   *ai.Matcher
-	aiFactory *ai.ProviderFactory
+	cfg        *ai.Config
+	matcher    *ai.Matcher
+	aiFactory  *ai.ProviderFactory
 	aiProvider ai.AIProvider
-	jobRepo   repository.JobRepository
-	userRepo  repository.UserRepository
-	mu        sync.RWMutex
+	jobRepo    repository.JobRepository
+	userRepo   repository.UserRepository
+	mu         sync.RWMutex
 }
 
 func NewScoringService(
@@ -69,12 +69,12 @@ func NewScoringService(
 	}
 
 	return &ScoringServiceImpl{
-		cfg:       cfg,
-		matcher:   matcher,
-		aiFactory: factory,
+		cfg:        cfg,
+		matcher:    matcher,
+		aiFactory:  factory,
 		aiProvider: provider,
-		jobRepo:   jobRepo,
-		userRepo:  userRepo,
+		jobRepo:    jobRepo,
+		userRepo:   userRepo,
 	}, nil
 }
 
@@ -383,7 +383,7 @@ func (s *ScoringServiceImpl) enhanceWithAI(ctx context.Context, job *models.Job,
 		YearsOfExperience: employee.YearsOfExperience,
 		Location:          employee.Location,
 		IsRemoteOnly:      employee.IsRemoteOnly,
-		GithubUsername:    employee.GithubUsername,
+		GithubUsername:    employee.GetGithubUsername(),
 		GithubActivity:    githubActivity,
 	}
 

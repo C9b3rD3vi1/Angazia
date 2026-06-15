@@ -13,36 +13,36 @@ import (
 type CandidateAnalyticsService interface {
 	// Dashboard
 	GetDashboard(ctx context.Context, employeeID string) (*models.CandidateDashboard, error)
-	
+
 	// Profile strength
 	GetProfileStrength(ctx context.Context, employeeID string) (*models.ProfileStrength, error)
-	
+
 	// Application analytics
 	GetApplicationStats(ctx context.Context, employeeID string) (*models.ApplicationStats, error)
 	GetMonthlyStats(ctx context.Context, employeeID string, months int) ([]models.MonthlyStats, error)
-	
+
 	// Success metrics
 	GetSuccessRates(ctx context.Context, employeeID string) (*models.SuccessRate, error)
-	
+
 	// Skill analysis
 	GetSkillGapAnalysis(ctx context.Context, employeeID string) (*models.SkillGapAnalysisData, error)
-	
+
 	// Market positioning
 	GetMarketPositioning(ctx context.Context, employeeID string) (*models.MarketPositioning, error)
-	
+
 	// Recommendations
 	GetRecommendations(ctx context.Context, employeeID string) ([]models.Recommendation, error)
-	
+
 	// Activity feed
 	GetRecentActivity(ctx context.Context, employeeID string, limit int) ([]models.RecentActivity, error)
 }
 
 type CandidateAnalyticsServiceImpl struct {
-	cfg                *config.Config
-	candidateRepo      repository.CandidateAnalyticsRepository
-	jobRepo            repository.JobRepository
-	applicationRepo    repository.ApplicationRepository
-	matchingSvc        MatchingService
+	cfg             *config.Config
+	candidateRepo   repository.CandidateAnalyticsRepository
+	jobRepo         repository.JobRepository
+	applicationRepo repository.ApplicationRepository
+	matchingSvc     MatchingService
 }
 
 func NewCandidateAnalyticsService(
@@ -63,75 +63,75 @@ func NewCandidateAnalyticsService(
 
 func (s *CandidateAnalyticsServiceImpl) GetDashboard(ctx context.Context, employeeID string) (*models.CandidateDashboard, error) {
 	dashboard := &models.CandidateDashboard{}
-	
+
 	var err error
-	
+
 	// Get profile strength
 	dashboard.ProfileStrength, err = s.GetProfileStrength(ctx, employeeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get profile strength: %w", err)
 	}
-	
+
 	// Get application stats
 	dashboard.ApplicationStats, err = s.GetApplicationStats(ctx, employeeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get application stats: %w", err)
 	}
-	
+
 	// Get success rates
 	dashboard.SuccessRate, err = s.GetSuccessRates(ctx, employeeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get success rates: %w", err)
 	}
-	
+
 	// Get skill gap analysis
 	dashboard.SkillGapAnalysis, err = s.GetSkillGapAnalysis(ctx, employeeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get skill gap analysis: %w", err)
 	}
-	
+
 	// Get market positioning
 	dashboard.MarketPositioning, err = s.GetMarketPositioning(ctx, employeeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get market positioning: %w", err)
 	}
-	
+
 	// Get recommendations
 	dashboard.Recommendations, err = s.GetRecommendations(ctx, employeeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get recommendations: %w", err)
 	}
-	
+
 	// Get recent activity
 	dashboard.RecentActivity, err = s.GetRecentActivity(ctx, employeeID, 10)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get recent activity: %w", err)
 	}
-	
+
 	return dashboard, nil
 }
 
 func (s *CandidateAnalyticsServiceImpl) GetProfileStrength(ctx context.Context, employeeID string) (*models.ProfileStrength, error) {
 	stats := &models.ProfileStrength{
-		CategoryScores:   make(map[string]models.CategoryScore),
-		ImprovementTips:  []models.ImprovementTip{},
-		NextSteps:        []string{},
-		CompletedSteps:   []string{},
+		CategoryScores:  make(map[string]models.CategoryScore),
+		ImprovementTips: []models.ImprovementTip{},
+		NextSteps:       []string{},
+		CompletedSteps:  []string{},
 	}
-	
+
 	totalScore := 0
 	maxScore := 0
-	
+
 	// Get employee profile
 	profile, err := s.candidateRepo.GetEmployeeProfile(ctx, employeeID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Category 1: Basic Information (25 points)
 	basicScore := 0
 	basicMax := 25
-	
+
 	if profile.FullName != "" && len(profile.FullName) > 2 {
 		basicScore += 10
 		stats.CompletedSteps = append(stats.CompletedSteps, "basic_info")
@@ -144,7 +144,7 @@ func (s *CandidateAnalyticsServiceImpl) GetProfileStrength(ctx context.Context, 
 		})
 		stats.NextSteps = append(stats.NextSteps, "Add your full name")
 	}
-	
+
 	if profile.Headline != "" {
 		basicScore += 15
 	} else {
@@ -156,7 +156,7 @@ func (s *CandidateAnalyticsServiceImpl) GetProfileStrength(ctx context.Context, 
 		})
 		stats.NextSteps = append(stats.NextSteps, "Create a professional headline")
 	}
-	
+
 	stats.CategoryScores["basic_info"] = models.CategoryScore{
 		Name:        "Basic Information",
 		Score:       basicScore,
@@ -167,12 +167,12 @@ func (s *CandidateAnalyticsServiceImpl) GetProfileStrength(ctx context.Context, 
 	}
 	totalScore += basicScore
 	maxScore += basicMax
-	
+
 	// Category 2: Skills (30 points)
 	skillsScore := 0
 	skillsMax := 30
 	skillCount := len(profile.Skills)
-	
+
 	if skillCount >= 8 {
 		skillsScore = 30
 		stats.CompletedSteps = append(stats.CompletedSteps, "skills")
@@ -183,7 +183,7 @@ func (s *CandidateAnalyticsServiceImpl) GetProfileStrength(ctx context.Context, 
 	} else if skillCount >= 1 {
 		skillsScore = 10
 	}
-	
+
 	if skillCount < 5 {
 		stats.ImprovementTips = append(stats.ImprovementTips, models.ImprovementTip{
 			Title:       "Add More Skills",
@@ -193,7 +193,7 @@ func (s *CandidateAnalyticsServiceImpl) GetProfileStrength(ctx context.Context, 
 		})
 		stats.NextSteps = append(stats.NextSteps, "Add more skills to your profile")
 	}
-	
+
 	stats.CategoryScores["skills"] = models.CategoryScore{
 		Name:        "Skills",
 		Score:       skillsScore,
@@ -204,11 +204,11 @@ func (s *CandidateAnalyticsServiceImpl) GetProfileStrength(ctx context.Context, 
 	}
 	totalScore += skillsScore
 	maxScore += skillsMax
-	
+
 	// Category 3: Experience (25 points)
 	expScore := 0
 	expMax := 25
-	
+
 	if profile.YearsOfExperience > 0 {
 		if profile.YearsOfExperience >= 7 {
 			expScore = 25
@@ -229,7 +229,7 @@ func (s *CandidateAnalyticsServiceImpl) GetProfileStrength(ctx context.Context, 
 		})
 		stats.NextSteps = append(stats.NextSteps, "Add your work experience")
 	}
-	
+
 	if profile.ExperienceLevel == "" {
 		expScore -= 5
 		stats.ImprovementTips = append(stats.ImprovementTips, models.ImprovementTip{
@@ -239,11 +239,11 @@ func (s *CandidateAnalyticsServiceImpl) GetProfileStrength(ctx context.Context, 
 			ActionURL:   "/employee/profile/edit",
 		})
 	}
-	
+
 	if expScore < 0 {
 		expScore = 0
 	}
-	
+
 	stats.CategoryScores["experience"] = models.CategoryScore{
 		Name:        "Experience",
 		Score:       expScore,
@@ -254,12 +254,12 @@ func (s *CandidateAnalyticsServiceImpl) GetProfileStrength(ctx context.Context, 
 	}
 	totalScore += expScore
 	maxScore += expMax
-	
+
 	// Category 4: GitHub Connection (20 points)
 	githubScore := 0
 	githubMax := 20
-	
-	if profile.GithubConnected && profile.GithubUsername != "" {
+
+	if profile.GithubConnected && profile.GetGithubUsername() != "" {
 		githubScore = 20
 		stats.CompletedSteps = append(stats.CompletedSteps, "github")
 	} else {
@@ -271,7 +271,7 @@ func (s *CandidateAnalyticsServiceImpl) GetProfileStrength(ctx context.Context, 
 		})
 		stats.NextSteps = append(stats.NextSteps, "Connect your GitHub account")
 	}
-	
+
 	stats.CategoryScores["github"] = models.CategoryScore{
 		Name:        "GitHub Integration",
 		Score:       githubScore,
@@ -282,10 +282,10 @@ func (s *CandidateAnalyticsServiceImpl) GetProfileStrength(ctx context.Context, 
 	}
 	totalScore += githubScore
 	maxScore += githubMax
-	
+
 	stats.OverallScore = (totalScore * 100) / maxScore
 	stats.TotalSteps = len(stats.CategoryScores)
-	
+
 	return stats, nil
 }
 
@@ -294,13 +294,13 @@ func (s *CandidateAnalyticsServiceImpl) GetApplicationStats(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Get monthly stats
 	monthlyStats, err := s.candidateRepo.GetMonthlyApplicationStats(ctx, employeeID, 6)
 	if err == nil {
 		stats.ByMonth = monthlyStats
 	}
-	
+
 	return stats, nil
 }
 
@@ -321,26 +321,26 @@ func (s *CandidateAnalyticsServiceImpl) GetSkillGapAnalysis(ctx context.Context,
 		SkillDemandTrends:  make(map[string]int),
 		TopJobMatches:      []models.JobMatchSuggestion{},
 	}
-	
+
 	// Get employee skills
 	profile, err := s.candidateRepo.GetEmployeeProfile(ctx, employeeID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Get top in-demand skills from job postings
 	var topSkills []struct {
 		Skill    string
 		JobCount int
 	}
-	
+
 	s.candidateRepo.GetTopInDemandSkills(ctx, 20, &topSkills)
-	
+
 	employeeSkillsMap := make(map[string]bool)
 	for _, s := range profile.Skills {
 		employeeSkillsMap[s] = true
 	}
-	
+
 	// Categorize skills
 	for _, ts := range topSkills {
 		if employeeSkillsMap[ts.Skill] {
@@ -375,39 +375,39 @@ func (s *CandidateAnalyticsServiceImpl) GetSkillGapAnalysis(ctx context.Context,
 			})
 		}
 	}
-	
+
 	// Get recommended skills (top 5 missing skills)
 	for i, ms := range analysis.MissingSkills {
 		if i >= 5 {
 			break
 		}
 		analysis.RecommendedSkills = append(analysis.RecommendedSkills, models.RecommendedSkill{
-			Name:            ms.Name,
-			Reason:          "In high demand with " + strconv.Itoa(ms.JobCount) + " job opportunities",
-			Priority:        "high",
-			TimeToLearn:     "2-4 weeks",
+			Name:             ms.Name,
+			Reason:           "In high demand with " + strconv.Itoa(ms.JobCount) + " job opportunities",
+			Priority:         "high",
+			TimeToLearn:      "2-4 weeks",
 			JobOpportunities: ms.JobCount,
 		})
 	}
-	
+
 	// Get skill demand trends
 	analysis.SkillDemandTrends, _ = s.candidateRepo.GetSkillDemandTrends(ctx, profile.Skills)
-	
+
 	// Get top job matches from matching service
 	matches, err := s.matchingSvc.GetJobMatches(ctx, employeeID, 5)
 	if err == nil {
 		for _, match := range matches {
 			analysis.TopJobMatches = append(analysis.TopJobMatches, models.JobMatchSuggestion{
-				JobID:       match.JobID,
-				Title:       match.JobTitle,
-				Company:     match.CompanyName,
-				MatchScore:  match.OverallScore,
-				SkillsMatch: match.MatchingSkills,
+				JobID:         match.JobID,
+				Title:         match.JobTitle,
+				Company:       match.CompanyName,
+				MatchScore:    match.OverallScore,
+				SkillsMatch:   match.MatchingSkills,
 				MissingSkills: match.MissingSkills,
 			})
 		}
 	}
-	
+
 	return analysis, nil
 }
 
@@ -416,13 +416,13 @@ func (s *CandidateAnalyticsServiceImpl) GetMarketPositioning(ctx context.Context
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Get employee profile for skills
 	profile, err := s.candidateRepo.GetEmployeeProfile(ctx, employeeID)
 	if err != nil {
 		return positioning, nil
 	}
-	
+
 	// Get skill percentiles
 	if len(profile.Skills) > 0 {
 		percentiles, err := s.candidateRepo.GetSkillPercentiles(ctx, profile.Skills)
@@ -430,28 +430,28 @@ func (s *CandidateAnalyticsServiceImpl) GetMarketPositioning(ctx context.Context
 			positioning.SkillPercentile = percentiles
 		}
 	}
-	
+
 	// Calculate areas for improvement
 	positioning.AreasForImprovement = []string{}
-	
+
 	if len(profile.Skills) < 5 {
 		positioning.AreasForImprovement = append(positioning.AreasForImprovement, "Expand your skill set")
 	}
-	
+
 	if profile.YearsOfExperience < 2 {
 		positioning.AreasForImprovement = append(positioning.AreasForImprovement, "Gain more experience")
 	}
-	
+
 	if !profile.GithubConnected {
 		positioning.AreasForImprovement = append(positioning.AreasForImprovement, "Connect GitHub to showcase your work")
 	}
-	
+
 	return positioning, nil
 }
 
 func (s *CandidateAnalyticsServiceImpl) GetRecommendations(ctx context.Context, employeeID string) ([]models.Recommendation, error) {
 	recommendations := []models.Recommendation{}
-	
+
 	// Get profile strength to identify gaps
 	strength, err := s.GetProfileStrength(ctx, employeeID)
 	if err == nil {
@@ -469,7 +469,7 @@ func (s *CandidateAnalyticsServiceImpl) GetRecommendations(ctx context.Context, 
 			})
 		}
 	}
-	
+
 	// Get skill recommendations
 	skillGap, err := s.GetSkillGapAnalysis(ctx, employeeID)
 	if err == nil && len(skillGap.RecommendedSkills) > 0 {
@@ -486,7 +486,7 @@ func (s *CandidateAnalyticsServiceImpl) GetRecommendations(ctx context.Context, 
 			})
 		}
 	}
-	
+
 	// Get job recommendations
 	matches, err := s.matchingSvc.GetJobMatches(ctx, employeeID, 3)
 	if err == nil && len(matches) > 0 {
@@ -503,12 +503,12 @@ func (s *CandidateAnalyticsServiceImpl) GetRecommendations(ctx context.Context, 
 			}
 		}
 	}
-	
+
 	// Limit to top 5 recommendations
 	if len(recommendations) > 5 {
 		recommendations = recommendations[:5]
 	}
-	
+
 	return recommendations, nil
 }
 

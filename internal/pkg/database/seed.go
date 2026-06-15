@@ -7,15 +7,19 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	//"gorm.io/gorm"
-	
+
 	"github.com/C9b3rD3vi1/Angazia/internal/config"
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
 )
 
+func ptr(s string) *string {
+	return &s
+}
+
 // SeedData seeds the database with initial test data
 func SeedData(cfg *config.Config) error {
 	log.Println("🌱 Seeding database with initial data...")
-	
+
 	// Check if already seeded
 	var count int64
 	DB.Model(&models.User{}).Count(&count)
@@ -23,49 +27,49 @@ func SeedData(cfg *config.Config) error {
 		log.Println("Database already has data, skipping seed")
 		return nil
 	}
-	
+
 	// Create test users
 	users := []models.User{
 		{
-			ID:       uuid.New().String(),
-			Email:    "john.doe@example.com",
-			Role:     models.RoleEmployee,
+			ID:         uuid.New().String(),
+			Email:      "john.doe@example.com",
+			Role:       models.RoleEmployee,
 			IsVerified: true,
-			IsActive: true,
+			IsActive:   true,
 		},
 		{
-			ID:       uuid.New().String(),
-			Email:    "jane.smith@example.com",
-			Role:     models.RoleEmployee,
+			ID:         uuid.New().String(),
+			Email:      "jane.smith@example.com",
+			Role:       models.RoleEmployee,
 			IsVerified: true,
-			IsActive: true,
+			IsActive:   true,
 		},
 		{
-			ID:       uuid.New().String(),
-			Email:    "safaricom@example.com",
-			Role:     models.RoleEmployer,
+			ID:         uuid.New().String(),
+			Email:      "safaricom@example.com",
+			Role:       models.RoleEmployer,
 			IsVerified: true,
-			IsActive: true,
+			IsActive:   true,
 		},
 		{
-			ID:       uuid.New().String(),
-			Email:    "andela@example.com",
-			Role:     models.RoleEmployer,
+			ID:         uuid.New().String(),
+			Email:      "andela@example.com",
+			Role:       models.RoleEmployer,
 			IsVerified: true,
-			IsActive: true,
+			IsActive:   true,
 		},
 	}
-	
+
 	// Hash passwords (default: "password123")
 	for i := range users {
 		hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
 		users[i].PasswordHash = string(hashedPassword)
 	}
-	
+
 	if err := DB.Create(&users).Error; err != nil {
 		return err
 	}
-	
+
 	// Create employee profiles
 	employeeProfiles := []models.EmployeeProfile{
 		{
@@ -81,7 +85,7 @@ func SeedData(cfg *config.Config) error {
 			IsVisible:         true,
 			IsAvailable:       true,
 			GithubConnected:   true,
-			GithubUsername:    "johndoe",
+			GithubUsername:    ptr("johndoe"),
 		},
 		{
 			UserID:            users[1].ID,
@@ -96,14 +100,14 @@ func SeedData(cfg *config.Config) error {
 			IsVisible:         true,
 			IsAvailable:       true,
 			GithubConnected:   true,
-			GithubUsername:    "janesmith",
+			GithubUsername:    ptr("janesmith"),
 		},
 	}
-	
+
 	if err := DB.Create(&employeeProfiles).Error; err != nil {
 		return err
 	}
-	
+
 	// Create employer profiles
 	employerProfiles := []models.EmployerProfile{
 		{
@@ -125,11 +129,11 @@ func SeedData(cfg *config.Config) error {
 			VerificationStatus: "verified",
 		},
 	}
-	
+
 	if err := DB.Create(&employerProfiles).Error; err != nil {
 		return err
 	}
-	
+
 	// Create jobs
 	jobs := []models.Job{
 		{
@@ -201,41 +205,41 @@ func SeedData(cfg *config.Config) error {
 			ExpiresAt:        timePtr(time.Now().AddDate(0, 1, 0)),
 		},
 	}
-	
+
 	if err := DB.Create(&jobs).Error; err != nil {
 		return err
 	}
-	
+
 	// Create match settings for employees
 	matchSettings := []models.MatchSettings{
 		{
-			EmployeeID:    users[0].ID,
-			SkillsWeight:  40,
+			EmployeeID:       users[0].ID,
+			SkillsWeight:     40,
 			ExperienceWeight: 30,
-			LocationWeight: 15,
-			SalaryWeight:   10,
-			CultureWeight:  5,
-			MinSalary:      120000,
-			MaxSalary:      300000,
-			IsOpenToRemote: true,
+			LocationWeight:   15,
+			SalaryWeight:     10,
+			CultureWeight:    5,
+			MinSalary:        120000,
+			MaxSalary:        300000,
+			IsOpenToRemote:   true,
 		},
 		{
-			EmployeeID:    users[1].ID,
-			SkillsWeight:  35,
+			EmployeeID:       users[1].ID,
+			SkillsWeight:     35,
 			ExperienceWeight: 25,
-			LocationWeight: 10,
-			SalaryWeight:   20,
-			CultureWeight:  10,
-			MinSalary:      80000,
-			MaxSalary:      200000,
-			IsOpenToRemote: true,
+			LocationWeight:   10,
+			SalaryWeight:     20,
+			CultureWeight:    10,
+			MinSalary:        80000,
+			MaxSalary:        200000,
+			IsOpenToRemote:   true,
 		},
 	}
-	
+
 	if err := DB.Create(&matchSettings).Error; err != nil {
 		return err
 	}
-	
+
 	// Create matches
 	matches := []models.Match{
 		{
@@ -267,45 +271,45 @@ func SeedData(cfg *config.Config) error {
 			ExpiresAt:       time.Now().AddDate(0, 1, 0),
 		},
 	}
-	
+
 	if err := DB.Create(&matches).Error; err != nil {
 		return err
 	}
-	
+
 	// Create GitHub profiles
 	githubProfiles := []models.GithubProfile{
 		{
-			EmployeeID:        users[0].ID,
-			GithubUsername:    "johndoe",
-			PublicRepos:       45,
-			Followers:         128,
-			Following:         45,
-			TotalCommits:      1240,
+			EmployeeID:         users[0].ID,
+			GithubUsername:     "johndoe",
+			PublicRepos:        45,
+			Followers:          128,
+			Following:          45,
+			TotalCommits:       1240,
 			ContributionStreak: 12,
-			OverallScore:      78,
-			ActivityScore:     82,
-			QualityScore:      75,
-			LastSyncedAt:      time.Now(),
+			OverallScore:       78,
+			ActivityScore:      82,
+			QualityScore:       75,
+			LastSyncedAt:       time.Now(),
 		},
 		{
-			EmployeeID:        users[1].ID,
-			GithubUsername:    "janesmith",
-			PublicRepos:       28,
-			Followers:         89,
-			Following:         32,
-			TotalCommits:      890,
+			EmployeeID:         users[1].ID,
+			GithubUsername:     "janesmith",
+			PublicRepos:        28,
+			Followers:          89,
+			Following:          32,
+			TotalCommits:       890,
 			ContributionStreak: 8,
-			OverallScore:      71,
-			ActivityScore:     75,
-			QualityScore:      68,
-			LastSyncedAt:      time.Now(),
+			OverallScore:       71,
+			ActivityScore:      75,
+			QualityScore:       68,
+			LastSyncedAt:       time.Now(),
 		},
 	}
-	
+
 	if err := DB.Create(&githubProfiles).Error; err != nil {
 		log.Printf("Warning: Could not seed GitHub profiles: %v", err)
 	}
-	
+
 	// Create admin user from config if not exists
 	if cfg != nil && cfg.AdminEmail != "" && cfg.AdminPassword != "" {
 		var adminCount int64
@@ -340,7 +344,7 @@ func timePtr(t time.Time) *time.Time {
 // ResetDatabase truncates all tables (for testing only)
 func ResetDatabase(cfg *config.Config) error {
 	log.Println("⚠️  Resetting database...")
-	
+
 	tables := []string{
 		"match_feedback", "match_settings", "matches",
 		"applications", "job_views", "saved_jobs", "jobs",
@@ -348,12 +352,12 @@ func ResetDatabase(cfg *config.Config) error {
 		"employee_profiles", "employer_profiles",
 		"users",
 	}
-	
+
 	for _, table := range tables {
 		if err := DB.Exec("TRUNCATE TABLE " + table + " CASCADE").Error; err != nil {
 			log.Printf("Warning: Could not truncate %s: %v", table, err)
 		}
 	}
-	
+
 	return SeedData(cfg)
 }

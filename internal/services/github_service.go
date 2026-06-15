@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
-	
+
 	"github.com/C9b3rD3vi1/Angazia/internal/config"
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/github"
@@ -23,21 +23,21 @@ type GitHubService interface {
 	// OAuth flows
 	GetAuthURL(state, redirectTo string) string
 	ExchangeCode(ctx context.Context, code string) (*oauth2.Token, error)
-	
+
 	// User management
 	HandleGitHubLogin(ctx context.Context, token *oauth2.Token, existingUserID string) (*GitHubAuthResult, error)
 	ConnectGitHubAccount(ctx context.Context, userID string, token *oauth2.Token) error
 	DisconnectGitHubAccount(ctx context.Context, userID string) error
-	
+
 	// Data sync
 	SyncGitHubData(ctx context.Context, userID string) error
 	GetGitHubProfile(ctx context.Context, userID string) (*models.GithubProfile, error)
 	GetGitHubRepos(ctx context.Context, userID string, filters map[string]interface{}, page, limit int) ([]*models.GithubRepository, int64, error)
 	GetGitHubContributions(ctx context.Context, userID string, days int) (*ContributionsResult, error)
-	
+
 	// Token management
 	GetValidAccessToken(ctx context.Context, userID string) (string, error)
-	
+
 	// Webhook handling
 	ProcessWebhook(ctx context.Context, eventType, deliveryID string, payload map[string]interface{}) error
 }
@@ -53,12 +53,12 @@ type GitHubAuthResult struct {
 }
 
 type ContributionsResult struct {
-	Contributions  []*models.GithubContribution
-	TotalCommits   int
-	ActiveDays     int
-	CurrentStreak  int
-	LongestStreak  int
-	ActivityLevel  string
+	Contributions []*models.GithubContribution
+	TotalCommits  int
+	ActiveDays    int
+	CurrentStreak int
+	LongestStreak int
+	ActivityLevel string
 }
 
 type GitHubServiceImpl struct {
@@ -90,7 +90,7 @@ func NewGitHubService(
 			TokenURL: "https://github.com/login/oauth/access_token",
 		},
 	}
-	
+
 	return &GitHubServiceImpl{
 		cfg:         cfg,
 		oauthConfig: oauthConfig,
@@ -118,13 +118,13 @@ func (s *GitHubServiceImpl) HandleGitHubLogin(ctx context.Context, token *oauth2
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch GitHub user: %w", err)
 	}
-	
+
 	// Get primary email
 	email, err := githubClient.GetPrimaryEmail()
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch GitHub email: %w", err)
 	}
-	
+
 	result := &GitHubAuthResult{
 		GitHubUser:   githubUser,
 		Email:        email,
@@ -132,7 +132,7 @@ func (s *GitHubServiceImpl) HandleGitHubLogin(ctx context.Context, token *oauth2
 		RefreshToken: token.RefreshToken,
 		ExpiresAt:    token.Expiry,
 	}
-	
+
 	// If user is already logged in, just connect the account
 	if existingUserID != "" {
 		if err := s.connectGitHubToUser(ctx, existingUserID, githubUser, email, token); err != nil {
@@ -142,7 +142,7 @@ func (s *GitHubServiceImpl) HandleGitHubLogin(ctx context.Context, token *oauth2
 		result.IsNewUser = false
 		return result, nil
 	}
-	
+
 	// Check if user already exists with this email
 	existingUser, err := s.userRepo.GetByEmail(ctx, email)
 	if err == nil && existingUser != nil {
@@ -154,13 +154,13 @@ func (s *GitHubServiceImpl) HandleGitHubLogin(ctx context.Context, token *oauth2
 		result.IsNewUser = false
 		return result, nil
 	}
-	
+
 	// Create new user
 	userID, err := s.createUserFromGitHub(ctx, githubUser, email, token)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	result.UserID = userID
 	result.IsNewUser = true
 	return result, nil
@@ -172,12 +172,12 @@ func (s *GitHubServiceImpl) ConnectGitHubAccount(ctx context.Context, userID str
 	if err != nil {
 		return fmt.Errorf("failed to fetch GitHub user: %w", err)
 	}
-	
+
 	email, err := githubClient.GetPrimaryEmail()
 	if err != nil {
 		return fmt.Errorf("failed to fetch GitHub email: %w", err)
 	}
-	
+
 	return s.connectGitHubToUser(ctx, userID, githubUser, email, token)
 }
 
@@ -190,26 +190,26 @@ func (s *GitHubServiceImpl) DisconnectGitHubAccount(ctx context.Context, userID 
 	}); err != nil {
 		return fmt.Errorf("failed to update employee profile: %w", err)
 	}
-	
+
 	// Delete tokens
 	if err := s.githubRepo.DeleteToken(ctx, userID); err != nil {
 		return fmt.Errorf("failed to delete GitHub token: %w", err)
 	}
-	
+
 	return nil
 }
 
 func (s *GitHubServiceImpl) SyncGitHubData(ctx context.Context, userID string) error {
 	startTime := time.Now()
-	
+
 	// Get valid access token
 	accessToken, err := s.GetValidAccessToken(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("failed to get access token: %w", err)
 	}
-	
+
 	githubClient := github.NewClient(accessToken)
-	
+
 	// Create sync log
 	syncLog := &models.GithubSyncLog{
 		ID:         uuid.New().String(),
@@ -218,7 +218,7 @@ func (s *GitHubServiceImpl) SyncGitHubData(ctx context.Context, userID string) e
 		Status:     "processing",
 		SyncedAt:   time.Now(),
 	}
-	
+
 	// Fetch repositories
 	repos, err := githubClient.GetRepositories()
 	if err != nil {
@@ -227,7 +227,7 @@ func (s *GitHubServiceImpl) SyncGitHubData(ctx context.Context, userID string) e
 		s.githubRepo.CreateSyncLog(ctx, syncLog)
 		return fmt.Errorf("failed to fetch repositories: %w", err)
 	}
-	
+
 	// Convert to models
 	modelRepos := make([]*models.GithubRepository, len(repos))
 	for i, repo := range repos {
@@ -256,7 +256,7 @@ func (s *GitHubServiceImpl) SyncGitHubData(ctx context.Context, userID string) e
 			modelRepos[i].License = repo.License.Name
 		}
 	}
-	
+
 	// Save repositories
 	if err := s.githubRepo.SaveRepositories(ctx, modelRepos); err != nil {
 		syncLog.Status = "partial"
@@ -264,7 +264,7 @@ func (s *GitHubServiceImpl) SyncGitHubData(ctx context.Context, userID string) e
 		s.githubRepo.CreateSyncLog(ctx, syncLog)
 		return fmt.Errorf("failed to save repositories: %w", err)
 	}
-	
+
 	// Fetch contributions (last 365 days)
 	contributions, err := githubClient.GetContributions(365)
 	if err != nil {
@@ -282,7 +282,7 @@ func (s *GitHubServiceImpl) SyncGitHubData(ctx context.Context, userID string) e
 				Count:      contrib.Count,
 			}
 		}
-		
+
 		if err := s.githubRepo.SaveContributions(ctx, modelContribs); err != nil {
 			syncLog.Status = "partial"
 			syncLog.ErrorMessage = err.Error()
@@ -291,21 +291,21 @@ func (s *GitHubServiceImpl) SyncGitHubData(ctx context.Context, userID string) e
 			s.updateGitHubScores(ctx, userID, modelRepos, modelContribs)
 		}
 	}
-	
+
 	// Update profile stats
 	updates := map[string]interface{}{
 		"public_repos":   len(repos),
 		"last_synced_at": time.Now(),
 	}
 	s.githubRepo.UpdateProfileStats(ctx, userID, updates)
-	
+
 	// Update sync log
 	syncLog.Status = "success"
 	syncLog.ReposFetched = len(repos)
 	syncLog.CommitsFetched = len(contributions)
 	syncLog.DurationMs = int(time.Since(startTime).Milliseconds())
 	s.githubRepo.CreateSyncLog(ctx, syncLog)
-	
+
 	return nil
 }
 
@@ -324,20 +324,20 @@ func (s *GitHubServiceImpl) GetGitHubContributions(ctx context.Context, userID s
 	if days < 7 {
 		days = 7
 	}
-	
+
 	since := time.Now().AddDate(0, 0, -days)
 	until := time.Now()
-	
+
 	contributions, err := s.githubRepo.GetContributions(ctx, userID, since, until)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Calculate statistics
 	result := &ContributionsResult{
 		Contributions: contributions,
 	}
-	
+
 	contributionMap := make(map[string]int)
 	for _, c := range contributions {
 		dateStr := c.Date.Format("2006-01-02")
@@ -347,7 +347,7 @@ func (s *GitHubServiceImpl) GetGitHubContributions(ctx context.Context, userID s
 			result.ActiveDays++
 		}
 	}
-	
+
 	// Calculate streaks
 	currentDate := time.Now()
 	var currentStreak int
@@ -364,7 +364,7 @@ func (s *GitHubServiceImpl) GetGitHubContributions(ctx context.Context, userID s
 		currentDate = currentDate.AddDate(0, 0, -1)
 	}
 	result.CurrentStreak = currentStreak
-	
+
 	// Calculate activity level
 	percentage := (float64(result.ActiveDays) / float64(days)) * 100
 	switch {
@@ -379,7 +379,7 @@ func (s *GitHubServiceImpl) GetGitHubContributions(ctx context.Context, userID s
 	default:
 		result.ActivityLevel = "Getting Started 🌱"
 	}
-	
+
 	return result, nil
 }
 
@@ -388,13 +388,13 @@ func (s *GitHubServiceImpl) GetValidAccessToken(ctx context.Context, userID stri
 	if err != nil {
 		return "", err
 	}
-	
+
 	// Decrypt access token using existing utils
 	accessToken, err := utils.DecryptString(token.AccessToken)
 	if err != nil {
 		return "", err
 	}
-	
+
 	// Check if token is expired
 	if token.ExpiresAt.Before(time.Now().Add(5 * time.Minute)) {
 		// Refresh token
@@ -402,26 +402,26 @@ func (s *GitHubServiceImpl) GetValidAccessToken(ctx context.Context, userID stri
 		if err != nil {
 			return "", err
 		}
-		
+
 		newToken, err := s.refreshAccessToken(ctx, refreshToken)
 		if err != nil {
 			return "", err
 		}
-		
+
 		// Update stored token
 		encryptedAccess, _ := utils.EncryptString(newToken.AccessToken)
 		encryptedRefresh, _ := utils.EncryptString(newToken.RefreshToken)
-		
+
 		updates := map[string]interface{}{
 			"access_token":  encryptedAccess,
 			"refresh_token": encryptedRefresh,
 			"expires_at":    newToken.Expiry,
 		}
 		s.githubRepo.UpdateToken(ctx, userID, updates)
-		
+
 		return newToken.AccessToken, nil
 	}
-	
+
 	return accessToken, nil
 }
 
@@ -444,14 +444,14 @@ func (s *GitHubServiceImpl) connectGitHubToUser(ctx context.Context, userID stri
 	if err == nil && existingProfile.EmployeeID != userID {
 		return fmt.Errorf("GitHub account already connected to another user")
 	}
-	
+
 	// Update employee profile
 	updates := map[string]interface{}{
 		"github_connected": true,
 		"github_username":  githubUser.Login,
 		"last_github_sync": time.Now(),
 	}
-	
+
 	profile, _ := s.userRepo.GetEmployeeProfile(ctx, userID)
 	if profile != nil {
 		if profile.FullName == "" && githubUser.Name != "" {
@@ -464,15 +464,15 @@ func (s *GitHubServiceImpl) connectGitHubToUser(ctx context.Context, userID stri
 			updates["location"] = githubUser.Location
 		}
 	}
-	
+
 	if err := s.userRepo.UpdateEmployeeProfile(ctx, userID, updates); err != nil {
 		return err
 	}
-	
+
 	// Store OAuth token with encryption using existing utils
 	encryptedAccess, _ := utils.EncryptString(token.AccessToken)
 	encryptedRefresh, _ := utils.EncryptString(token.RefreshToken)
-	
+
 	tokenDB := &repository.GitHubTokenDB{
 		EmployeeID:   userID,
 		AccessToken:  encryptedAccess,
@@ -481,7 +481,7 @@ func (s *GitHubServiceImpl) connectGitHubToUser(ctx context.Context, userID stri
 		ExpiresAt:    token.Expiry,
 		Scope:        strings.Join(s.oauthConfig.Scopes, ","),
 	}
-	
+
 	if err := s.githubRepo.CreateToken(ctx, tokenDB); err != nil {
 		// Check if token exists, update if so
 		if err := s.githubRepo.UpdateToken(ctx, userID, map[string]interface{}{
@@ -492,7 +492,7 @@ func (s *GitHubServiceImpl) connectGitHubToUser(ctx context.Context, userID stri
 			return err
 		}
 	}
-	
+
 	// Create or update GitHub profile
 	githubProfile := s.buildGithubProfile(userID, githubUser, email)
 	if err := s.githubRepo.UpdateProfile(ctx, githubProfile); err != nil {
@@ -500,10 +500,10 @@ func (s *GitHubServiceImpl) connectGitHubToUser(ctx context.Context, userID stri
 			return err
 		}
 	}
-	
+
 	// Start background sync
 	go s.SyncGitHubData(context.Background(), userID)
-	
+
 	return nil
 }
 
@@ -514,7 +514,7 @@ func (s *GitHubServiceImpl) createUserFromGitHub(ctx context.Context, githubUser
 	if err != nil {
 		return "", err
 	}
-	
+
 	// Create user
 	user := &models.User{
 		ID:           uuid.New().String(),
@@ -526,11 +526,11 @@ func (s *GitHubServiceImpl) createUserFromGitHub(ctx context.Context, githubUser
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
-	
+
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		return "", err
 	}
-	
+
 	// Create employee profile
 	employeeProfile := &models.EmployeeProfile{
 		UserID:          user.ID,
@@ -539,27 +539,27 @@ func (s *GitHubServiceImpl) createUserFromGitHub(ctx context.Context, githubUser
 		Bio:             truncateString(githubUser.Bio, 500),
 		Location:        githubUser.Location,
 		GithubConnected: true,
-		GithubUsername:  githubUser.Login,
+		GithubUsername:  &githubUser.Login,
 		IsVisible:       true,
 		IsAvailable:     true,
 		CreatedAt:       time.Now(),
 		UpdatedAt:       time.Now(),
 	}
-	
+
 	if employeeProfile.FullName == "" {
 		employeeProfile.FullName = githubUser.Login
 	}
-	
+
 	if err := s.userRepo.CreateEmployeeProfile(ctx, employeeProfile); err != nil {
 		s.userRepo.Delete(ctx, user.ID)
 		return "", err
 	}
-	
+
 	// Store token and GitHub profile
 	if err := s.connectGitHubToUser(ctx, user.ID, githubUser, email, token); err != nil {
 		return "", err
 	}
-	
+
 	return user.ID, nil
 }
 
@@ -583,19 +583,19 @@ func (s *GitHubServiceImpl) buildGithubProfile(employeeID string, githubUser *gi
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	}
-	
+
 	// Parse GitHub join date
 	if githubUser.CreatedAt != nil {
 		profile.GithubJoined = *githubUser.CreatedAt
 		profile.AccountAgeDays = int(time.Since(*githubUser.CreatedAt).Hours() / 24)
 	}
-	
+
 	// Calculate initial scores
 	profile.ActivityScore = s.calculateInitialActivityScore(profile)
 	profile.QualityScore = s.calculateInitialQualityScore(profile)
 	profile.OverallScore = (profile.ActivityScore + profile.QualityScore) / 2
 	profile.IsVerified = githubUser.Hireable
-	
+
 	return profile
 }
 
@@ -609,7 +609,7 @@ func (s *GitHubServiceImpl) updateGitHubScores(ctx context.Context, userID strin
 			activeDays++
 		}
 	}
-	
+
 	activityScore := 0
 	if totalCommits > 1000 {
 		activityScore += 40
@@ -620,7 +620,7 @@ func (s *GitHubServiceImpl) updateGitHubScores(ctx context.Context, userID strin
 	} else if totalCommits > 50 {
 		activityScore += 10
 	}
-	
+
 	if activeDays > 200 {
 		activityScore += 30
 	} else if activeDays > 100 {
@@ -628,13 +628,13 @@ func (s *GitHubServiceImpl) updateGitHubScores(ctx context.Context, userID strin
 	} else if activeDays > 50 {
 		activityScore += 10
 	}
-	
+
 	// Calculate quality score based on repositories
 	var totalStars int
 	for _, repo := range repos {
 		totalStars += repo.Stars
 	}
-	
+
 	qualityScore := 0
 	if totalStars > 100 {
 		qualityScore += 40
@@ -645,7 +645,7 @@ func (s *GitHubServiceImpl) updateGitHubScores(ctx context.Context, userID strin
 	} else if totalStars > 5 {
 		qualityScore += 10
 	}
-	
+
 	// Build top repositories (sorted by stars, top 6)
 	sort.Slice(repos, func(i, j int) bool {
 		return repos[i].Stars > repos[j].Stars
@@ -664,7 +664,7 @@ func (s *GitHubServiceImpl) updateGitHubScores(ctx context.Context, userID strin
 			"forks":       repo.Forks,
 		})
 	}
-	
+
 	// Build repo language aggregate
 	langCounts := make(map[string]int)
 	for _, repo := range repos {
@@ -676,7 +676,7 @@ func (s *GitHubServiceImpl) updateGitHubScores(ctx context.Context, userID strin
 	for lang, count := range langCounts {
 		repoLanguages[lang] = count
 	}
-	
+
 	// Update profile
 	updates := map[string]interface{}{
 		"total_commits":    totalCommits,
@@ -686,7 +686,7 @@ func (s *GitHubServiceImpl) updateGitHubScores(ctx context.Context, userID strin
 		"top_repositories": topRepos,
 		"repo_languages":   repoLanguages,
 	}
-	
+
 	s.githubRepo.UpdateProfileStats(ctx, userID, updates)
 }
 
@@ -700,21 +700,21 @@ func (s *GitHubServiceImpl) handlePushWebhook(ctx context.Context, payload map[s
 	if !ok {
 		return nil
 	}
-	
+
 	login, ok := sender["login"].(string)
 	if !ok {
 		return nil
 	}
-	
+
 	// Find user by GitHub username
 	profile, err := s.githubRepo.GetProfileByUsername(ctx, login)
 	if err != nil {
 		return nil
 	}
-	
+
 	// Trigger sync
 	go s.SyncGitHubData(context.Background(), profile.EmployeeID)
-	
+
 	return nil
 }
 
@@ -723,16 +723,15 @@ func (s *GitHubServiceImpl) handleStarWebhook(ctx context.Context, payload map[s
 	return nil
 }
 
-
 func (s *GitHubServiceImpl) calculateInitialActivityScore(profile *models.GithubProfile) int {
 	score := 0
-	
+
 	if profile.PublicRepos >= 20 {
 		score += 20
 	} else {
 		score += profile.PublicRepos
 	}
-	
+
 	if profile.Followers >= 100 {
 		score += 20
 	} else if profile.Followers >= 50 {
@@ -742,7 +741,7 @@ func (s *GitHubServiceImpl) calculateInitialActivityScore(profile *models.Github
 	} else if profile.Followers >= 5 {
 		score += 5
 	}
-	
+
 	if profile.AccountAgeDays >= 730 {
 		score += 15
 	} else if profile.AccountAgeDays >= 365 {
@@ -750,7 +749,7 @@ func (s *GitHubServiceImpl) calculateInitialActivityScore(profile *models.Github
 	} else if profile.AccountAgeDays >= 180 {
 		score += 5
 	}
-	
+
 	if profile.GithubBio != "" {
 		if len(profile.GithubBio) > 20 {
 			score += 10
@@ -758,19 +757,19 @@ func (s *GitHubServiceImpl) calculateInitialActivityScore(profile *models.Github
 			score += 5
 		}
 	}
-	
+
 	if profile.GithubLocation != "" {
 		score += 5
 	}
-	
+
 	if profile.GithubCompany != "" {
 		score += 5
 	}
-	
+
 	if profile.IsVerified {
 		score += 10
 	}
-	
+
 	if score > 100 {
 		return 100
 	}
@@ -779,9 +778,9 @@ func (s *GitHubServiceImpl) calculateInitialActivityScore(profile *models.Github
 
 func (s *GitHubServiceImpl) calculateInitialQualityScore(profile *models.GithubProfile) int {
 	score := 0
-	
+
 	score += 10 // Base for having repos
-	
+
 	if profile.GithubBio != "" {
 		if len(profile.GithubBio) > 50 {
 			score += 10
@@ -789,15 +788,15 @@ func (s *GitHubServiceImpl) calculateInitialQualityScore(profile *models.GithubP
 			score += 5
 		}
 	}
-	
+
 	if profile.GithubBlog != "" {
 		score += 10
 	}
-	
+
 	if profile.GithubAvatar != "" {
 		score += 10
 	}
-	
+
 	if profile.AccountAgeDays >= 730 {
 		score += 20
 	} else if profile.AccountAgeDays >= 365 {
@@ -807,11 +806,11 @@ func (s *GitHubServiceImpl) calculateInitialQualityScore(profile *models.GithubP
 	} else if profile.AccountAgeDays >= 90 {
 		score += 5
 	}
-	
+
 	if profile.IsVerified {
 		score += 15
 	}
-	
+
 	if score > 100 {
 		return 100
 	}

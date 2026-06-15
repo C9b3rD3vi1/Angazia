@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
-	
+
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
 )
 
@@ -22,14 +22,14 @@ type UserRepository interface {
 	UpdatePassword(ctx context.Context, userID string, hashedPassword string) error
 	VerifyEmail(ctx context.Context, userID string) error
 	UpdateAvatar(ctx context.Context, userID string, avatarURL string) error
-	
+
 	// Employee profile operations
 	CreateEmployeeProfile(ctx context.Context, profile *models.EmployeeProfile) error
 	GetEmployeeProfile(ctx context.Context, userID string) (*models.EmployeeProfile, error)
 	GetEmployeeProfileByGithubUsername(ctx context.Context, username string) (*models.EmployeeProfile, error)
 	UpdateEmployeeProfile(ctx context.Context, userID string, updates map[string]interface{}) error
 	DeleteEmployeeProfile(ctx context.Context, userID string) error
-	
+
 	// Employer profile operations
 	CreateEmployerProfile(ctx context.Context, profile *models.EmployerProfile) error
 	GetEmployerProfile(ctx context.Context, userID string) (*models.EmployerProfile, error)
@@ -85,6 +85,7 @@ func (r *UserRepositoryImpl) GetByEmail(ctx context.Context, email string) (*mod
 	var user models.User
 	err := r.db.WithContext(ctx).
 		Where("email = ?", email).
+		Preload("EmployeeProfile").
 		First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -279,21 +280,19 @@ func (r *UserRepositoryImpl) IncrementHiresCount(ctx context.Context, userID str
 		UpdateColumn("total_hires", gorm.Expr("total_hires + 1")).Error
 }
 
-
-
 func (r *UserRepositoryImpl) ListActiveEmployees(ctx context.Context, page, limit int) ([]*models.EmployeeProfile, int64, error) {
 	var employees []*models.EmployeeProfile
 	var total int64
-	
+
 	query := r.db.WithContext(ctx).
 		Model(&models.EmployeeProfile{}).
 		Joins("JOIN users ON users.id = employee_profiles.user_id").
 		Where("users.is_active = ? AND users.is_verified = ?", true, true)
-	
+
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-	
+
 	offset := (page - 1) * limit
 	err := query.
 		Preload("User").
@@ -301,29 +300,29 @@ func (r *UserRepositoryImpl) ListActiveEmployees(ctx context.Context, page, limi
 		Offset(offset).
 		Limit(limit).
 		Find(&employees).Error
-	
+
 	return employees, total, err
 }
 
 func (r *UserRepositoryImpl) ListEmployeesBySkills(ctx context.Context, skills []string, page, limit int) ([]*models.EmployeeProfile, int64, error) {
 	var employees []*models.EmployeeProfile
 	var total int64
-	
+
 	query := r.db.WithContext(ctx).
 		Model(&models.EmployeeProfile{}).
 		Joins("JOIN users ON users.id = employee_profiles.user_id").
 		Where("users.is_active = ? AND users.is_verified = ?", true, true)
-	
+
 	if len(skills) > 0 {
 		for _, skill := range skills {
 			query = query.Where("? = ANY(skills)", skill)
 		}
 	}
-	
+
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-	
+
 	offset := (page - 1) * limit
 	err := query.
 		Preload("User").
@@ -331,7 +330,7 @@ func (r *UserRepositoryImpl) ListEmployeesBySkills(ctx context.Context, skills [
 		Offset(offset).
 		Limit(limit).
 		Find(&employees).Error
-	
+
 	return employees, total, err
 }
 
@@ -344,7 +343,7 @@ func (r *UserRepositoryImpl) GetEmployeeWithGitHub(ctx context.Context, userID s
 	if err != nil {
 		return nil, nil, err
 	}
-	
+
 	var github models.GithubProfile
 	err = r.db.WithContext(ctx).
 		Where("employee_id = ?", userID).
@@ -352,7 +351,7 @@ func (r *UserRepositoryImpl) GetEmployeeWithGitHub(ctx context.Context, userID s
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return &employee, nil, nil
 	}
-	
+
 	return &employee, &github, nil
 }
 

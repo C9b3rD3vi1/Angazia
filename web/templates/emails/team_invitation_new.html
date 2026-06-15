@@ -1,28 +1,31 @@
 {{define "team_invitation_new"}}
-<h2>Welcome to Angazia!</h2>
+<h2>Welcome to {{.AppName}}!</h2>
 
-<p>You've been invited to join <strong>{{.CompanyName}}</strong> as a <strong>{{.Role}}</strong>.</p>
+<p>Hello,</p>
 
-<p>First, create your account to accept this invitation:</p>
+<p><strong>{{.CompanyName}}</strong> has invited you to join their team on <strong>{{.AppName}}</strong> as a <strong>{{.Role}}</strong>.</p>
 
-<div style="text-align: center; margin: 30px 0;">
-    <a href="{{.AppURL}}/register?email={{.Email}}&invite={{.Token}}" class="button">Create Account & Accept Invitation</a>
-</div>
+<p>To accept this invitation, create your account using the button below.</p>
 
 <div class="info-box">
-    <strong>What happens next?</strong>
+    <strong>📋 What You'll Get:</strong>
     <ul style="margin: 10px 0 0 20px;">
-        <li>Create your account with your email address</li>
-        <li>Complete your profile</li>
-        <li>You'll be automatically added to the team</li>
+        <li>Access to {{.CompanyName}}'s hiring dashboard</li>
+        <li>Ability to manage job postings and candidates</li>
+        <li>Collaborate with your team in real-time</li>
     </ul>
 </div>
 
+<div class="text-center">
+    <a href="{{.AppURL}}/register?email={{.Email}}&invite={{.Token}}" class="button">Create Account & Accept</a>
+</div>
+
 <div class="warning-box">
-    <strong>⚠️ Note:</strong> This invitation expires in 7 days.
+    <strong>⏰ Expires:</strong>
+    <p>This invitation will expire in 7 days.</p>
 </div>
 
 <hr>
 
-<p class="text-muted">If you did not expect this invitation, you can safely ignore this email.</p>
+<p class="text-muted">If you did not expect this invitation, you can ignore this email.</p>
 {{end}}

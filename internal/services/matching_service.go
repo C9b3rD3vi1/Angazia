@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	
+
 	"github.com/C9b3rD3vi1/Angazia/internal/config"
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/ai"
@@ -19,23 +19,23 @@ type MatchingService interface {
 	GetJobMatches(ctx context.Context, employeeID string, limit int) ([]*MatchResult, error)
 	GetCandidateMatches(ctx context.Context, jobID string, employerID string, limit int) ([]*MatchResult, error)
 	GetDetailedMatchAnalysis(ctx context.Context, jobID, employeeID string) (*ai.MatchAnalysis, error)
-	
+
 	// Skills Analysis
 	AnalyzeSkillsGap(ctx context.Context, jobID, employeeID string) (*ai.SkillsGapAnalysis, error)
-	
+
 	// Cover Letter Generation
 	GenerateCoverLetter(ctx context.Context, jobID, employeeID string) (string, error)
-	
+
 	// Interview Preparation
 	GenerateInterviewQuestions(ctx context.Context, jobID string) ([]string, error)
-	
+
 	// Match Feedback
 	SubmitMatchFeedback(ctx context.Context, matchID string, userID string, feedback string, rating int) error
-	
+
 	// Batch Processing
 	BatchMatchJobs(ctx context.Context, jobID string) error
 	BatchMatchCandidates(ctx context.Context, employeeID string) error
-	
+
 	// Counts
 	CountJobMatches(ctx context.Context, employeeID string) (int, error)
 }
@@ -102,33 +102,33 @@ func (s *MatchingServiceImpl) GetJobMatches(ctx context.Context, employeeID stri
 	if err != nil {
 		return nil, fmt.Errorf("failed to get employee profile: %w", err)
 	}
-	
+
 	candidateProfile := s.buildCandidateProfile(employee, githubProfile)
-	
+
 	jobs, _, err := s.jobRepo.ListActive(ctx, 1, limit*2)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get jobs: %w", err)
 	}
-	
+
 	var results []*MatchResult
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	semaphore := make(chan struct{}, 5)
-	
+
 	for _, job := range jobs {
 		wg.Add(1)
 		go func(j *models.Job) {
 			defer wg.Done()
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
-			
+
 			jobDesc := s.buildJobDescription(j)
-			
+
 			analysis, err := s.aiProvider.GenerateMatchAnalysis(ctx, jobDesc, candidateProfile)
 			if err != nil {
 				return
 			}
-			
+
 			companyLogo := ""
 			if j.Employer != nil {
 				companyLogo = j.Employer.CompanyLogo
@@ -151,17 +151,17 @@ func (s *MatchingServiceImpl) GetJobMatches(ctx context.Context, employeeID stri
 				MatchID:         uuid.New().String(),
 				AnalyzedAt:      time.Now(),
 			}
-			
+
 			mu.Lock()
 			results = append(results, match)
 			mu.Unlock()
-			
+
 			s.saveMatch(ctx, j.ID, employeeID, analysis)
 		}(job)
 	}
-	
+
 	wg.Wait()
-	
+
 	for i := 0; i < len(results)-1; i++ {
 		for j := i + 1; j < len(results); j++ {
 			if results[j].OverallScore > results[i].OverallScore {
@@ -169,11 +169,11 @@ func (s *MatchingServiceImpl) GetJobMatches(ctx context.Context, employeeID stri
 			}
 		}
 	}
-	
+
 	if len(results) > limit {
 		results = results[:limit]
 	}
-	
+
 	return results, nil
 }
 
@@ -182,78 +182,78 @@ func (s *MatchingServiceImpl) GetCandidateMatches(ctx context.Context, jobID str
 	if err != nil {
 		return nil, fmt.Errorf("failed to get job: %w", err)
 	}
-	
+
 	if job.EmployerID != employerID {
 		return nil, fmt.Errorf("unauthorized: you don't own this job")
 	}
-	
+
 	jobDesc := s.buildJobDescription(job)
-	
+
 	employees, _, err := s.userRepo.ListActiveEmployees(ctx, 1, limit*2)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get employees: %w", err)
 	}
-	
+
 	var results []*MatchResult
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	semaphore := make(chan struct{}, 5)
-	
-		for _, employee := range employees {
-			wg.Add(1)
-			go func(emp *models.EmployeeProfile) {
-				defer wg.Done()
-				semaphore <- struct{}{}
-				defer func() { <-semaphore }()
 
-				githubProfile, _ := s.githubRepo.GetProfileByEmployeeID(ctx, emp.UserID)
-				candidateProfile := s.buildCandidateProfile(emp, githubProfile)
+	for _, employee := range employees {
+		wg.Add(1)
+		go func(emp *models.EmployeeProfile) {
+			defer wg.Done()
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
 
-				analysis, err := s.aiProvider.GenerateMatchAnalysis(ctx, jobDesc, candidateProfile)
-				if err != nil {
-					return
+			githubProfile, _ := s.githubRepo.GetProfileByEmployeeID(ctx, emp.UserID)
+			candidateProfile := s.buildCandidateProfile(emp, githubProfile)
+
+			analysis, err := s.aiProvider.GenerateMatchAnalysis(ctx, jobDesc, candidateProfile)
+			if err != nil {
+				return
+			}
+
+			initials := ""
+			parts := splitName(emp.FullName)
+			for _, p := range parts {
+				if len(p) > 0 {
+					initials += string(p[0])
 				}
+			}
 
-				initials := ""
-				parts := splitName(emp.FullName)
-				for _, p := range parts {
-					if len(p) > 0 {
-						initials += string(p[0])
-					}
-				}
+			match := &MatchResult{
+				JobID:             jobID,
+				EmployeeID:        emp.UserID,
+				OverallScore:      analysis.OverallScore,
+				SkillsScore:       analysis.SkillsScore,
+				ExperienceScore:   analysis.ExperienceScore,
+				CultureScore:      analysis.CultureScore,
+				LocationScore:     analysis.LocationScore,
+				Summary:           analysis.Summary,
+				Recommendation:    analysis.Recommendation,
+				MatchingSkills:    analysis.MatchingSkills,
+				MissingSkills:     analysis.MissingSkills,
+				MatchID:           uuid.New().String(),
+				AnalyzedAt:        time.Now(),
+				CandidateName:     emp.FullName,
+				CandidateHeadline: emp.Headline,
+				CandidateLocation: emp.Location,
+				CandidateInitials: initials,
+				ExperienceYears:   emp.YearsOfExperience,
+				Skills:            emp.Skills,
+			}
 
-				match := &MatchResult{
-					JobID:             jobID,
-					EmployeeID:        emp.UserID,
-					OverallScore:      analysis.OverallScore,
-					SkillsScore:       analysis.SkillsScore,
-					ExperienceScore:   analysis.ExperienceScore,
-					CultureScore:      analysis.CultureScore,
-					LocationScore:     analysis.LocationScore,
-					Summary:           analysis.Summary,
-					Recommendation:    analysis.Recommendation,
-					MatchingSkills:    analysis.MatchingSkills,
-					MissingSkills:     analysis.MissingSkills,
-					MatchID:           uuid.New().String(),
-					AnalyzedAt:        time.Now(),
-					CandidateName:     emp.FullName,
-					CandidateHeadline: emp.Headline,
-					CandidateLocation: emp.Location,
-					CandidateInitials: initials,
-					ExperienceYears:   emp.YearsOfExperience,
-					Skills:            emp.Skills,
-				}
-			
 			mu.Lock()
 			results = append(results, match)
 			mu.Unlock()
-			
+
 			s.saveMatch(ctx, jobID, emp.UserID, analysis)
 		}(employee)
 	}
-	
+
 	wg.Wait()
-	
+
 	for i := 0; i < len(results)-1; i++ {
 		for j := i + 1; j < len(results); j++ {
 			if results[j].OverallScore > results[i].OverallScore {
@@ -261,11 +261,11 @@ func (s *MatchingServiceImpl) GetCandidateMatches(ctx context.Context, jobID str
 			}
 		}
 	}
-	
+
 	if len(results) > limit {
 		results = results[:limit]
 	}
-	
+
 	return results, nil
 }
 
@@ -274,15 +274,15 @@ func (s *MatchingServiceImpl) GetDetailedMatchAnalysis(ctx context.Context, jobI
 	if err != nil {
 		return nil, err
 	}
-	
+
 	employee, githubProfile, err := s.userRepo.GetEmployeeWithGitHub(ctx, employeeID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	jobDesc := s.buildJobDescription(job)
 	candidateProfile := s.buildCandidateProfile(employee, githubProfile)
-	
+
 	return s.aiProvider.GenerateMatchAnalysis(ctx, jobDesc, candidateProfile)
 }
 
@@ -291,15 +291,15 @@ func (s *MatchingServiceImpl) AnalyzeSkillsGap(ctx context.Context, jobID, emplo
 	if err != nil {
 		return nil, err
 	}
-	
+
 	employee, githubProfile, err := s.userRepo.GetEmployeeWithGitHub(ctx, employeeID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	jobDesc := s.buildJobDescription(job)
 	candidateProfile := s.buildCandidateProfile(employee, githubProfile)
-	
+
 	return s.aiProvider.AnalyzeSkillsGap(ctx, jobDesc, candidateProfile)
 }
 
@@ -308,15 +308,15 @@ func (s *MatchingServiceImpl) GenerateCoverLetter(ctx context.Context, jobID, em
 	if err != nil {
 		return "", err
 	}
-	
+
 	employee, githubProfile, err := s.userRepo.GetEmployeeWithGitHub(ctx, employeeID)
 	if err != nil {
 		return "", err
 	}
-	
+
 	jobDesc := s.buildJobDescription(job)
 	candidateProfile := s.buildCandidateProfile(employee, githubProfile)
-	
+
 	return s.aiProvider.GenerateCoverLetter(ctx, jobDesc, candidateProfile)
 }
 
@@ -325,9 +325,9 @@ func (s *MatchingServiceImpl) GenerateInterviewQuestions(ctx context.Context, jo
 	if err != nil {
 		return nil, err
 	}
-	
+
 	jobDesc := s.buildJobDescription(job)
-	
+
 	return s.aiProvider.GenerateInterviewQuestions(ctx, jobDesc)
 }
 
@@ -336,7 +336,7 @@ func (s *MatchingServiceImpl) SubmitMatchFeedback(ctx context.Context, matchID s
 	if err != nil {
 		return fmt.Errorf("match not found: %w", err)
 	}
-	
+
 	matchFeedback := &models.MatchFeedback{
 		ID:          uuid.New().String(),
 		MatchID:     matchID,
@@ -346,17 +346,17 @@ func (s *MatchingServiceImpl) SubmitMatchFeedback(ctx context.Context, matchID s
 		Feedback:    feedback,
 		CreatedAt:   time.Now(),
 	}
-	
+
 	if err := s.matchRepo.CreateFeedback(ctx, matchFeedback); err != nil {
 		return fmt.Errorf("failed to save feedback: %w", err)
 	}
-	
+
 	if rating < 3 {
 		s.matchRepo.UpdateMatchScore(ctx, matchID, match.OverallScore-10)
 	} else if rating > 4 {
 		s.matchRepo.UpdateMatchScore(ctx, matchID, match.OverallScore+5)
 	}
-	
+
 	return nil
 }
 
@@ -365,26 +365,26 @@ func (s *MatchingServiceImpl) BatchMatchJobs(ctx context.Context, jobID string) 
 	if err != nil {
 		return err
 	}
-	
+
 	employees, total, err := s.userRepo.ListActiveEmployees(ctx, 1, 100)
 	if err != nil {
 		return err
 	}
-	
+
 	jobDesc := s.buildJobDescription(job)
-	
+
 	for _, employee := range employees {
 		githubProfile, _ := s.githubRepo.GetProfileByEmployeeID(ctx, employee.UserID)
 		candidateProfile := s.buildCandidateProfile(employee, githubProfile)
-		
+
 		analysis, err := s.aiProvider.GenerateMatchAnalysis(ctx, jobDesc, candidateProfile)
 		if err != nil {
 			continue
 		}
-		
+
 		s.saveMatch(ctx, jobID, employee.UserID, analysis)
 	}
-	
+
 	fmt.Printf("Batch matching completed for job %s: processed %d candidates\n", jobID, total)
 	return nil
 }
@@ -402,25 +402,25 @@ func (s *MatchingServiceImpl) BatchMatchCandidates(ctx context.Context, employee
 	if err != nil {
 		return err
 	}
-	
+
 	jobs, total, err := s.jobRepo.ListActive(ctx, 1, 100)
 	if err != nil {
 		return err
 	}
-	
+
 	candidateProfile := s.buildCandidateProfile(employee, githubProfile)
-	
+
 	for _, job := range jobs {
 		jobDesc := s.buildJobDescription(job)
-		
+
 		analysis, err := s.aiProvider.GenerateMatchAnalysis(ctx, jobDesc, candidateProfile)
 		if err != nil {
 			continue
 		}
-		
+
 		s.saveMatch(ctx, job.ID, employeeID, analysis)
 	}
-	
+
 	fmt.Printf("Batch matching completed for employee %s: processed %d jobs\n", employeeID, total)
 	return nil
 }
@@ -457,9 +457,9 @@ func (s *MatchingServiceImpl) buildCandidateProfile(employee *models.EmployeePro
 		YearsOfExperience: employee.YearsOfExperience,
 		Location:          employee.Location,
 		IsRemoteOnly:      employee.IsRemoteOnly,
-		GithubUsername:    employee.GithubUsername,
+		GithubUsername:    employee.GetGithubUsername(),
 	}
-	
+
 	if githubProfile != nil {
 		profile.GithubActivity = &ai.GithubActivity{
 			PublicRepos:        githubProfile.PublicRepos,
@@ -472,7 +472,7 @@ func (s *MatchingServiceImpl) buildCandidateProfile(employee *models.EmployeePro
 			QualityScore:       githubProfile.QualityScore,
 		}
 	}
-	
+
 	return profile
 }
 

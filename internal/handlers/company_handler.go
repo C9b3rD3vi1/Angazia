@@ -268,6 +268,67 @@ func (h *CompanyHandler) RemoveTeamMember(c *fiber.Ctx) error {
 	return utils.SuccessWithMessage(c, "Team member removed successfully", nil)
 }
 
+func (h *CompanyHandler) UpdateTeamMemberRole(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+
+	memberID := c.Params("memberId")
+	if memberID == "" {
+		return utils.BadRequest(c, "Member ID is required")
+	}
+
+	var req struct {
+		Role string `json:"role" validate:"required,oneof=admin recruiter viewer"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return utils.BadRequest(c, err.Error())
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		return utils.BadRequest(c, err.Error())
+	}
+
+	if err := h.companyService.UpdateTeamMemberRole(c.Context(), userID.(string), memberID, req.Role); err != nil {
+		return utils.InternalServerError(c, err.Error())
+	}
+
+	return utils.SuccessWithMessage(c, "Team member role updated successfully", nil)
+}
+
+func (h *CompanyHandler) ListPendingInvitations(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+
+	invitations, err := h.companyService.ListPendingInvitations(c.Context(), userID.(string))
+	if err != nil {
+		return utils.InternalServerError(c, err.Error())
+	}
+
+	return utils.Success(c, invitations)
+}
+
+func (h *CompanyHandler) CancelInvitation(c *fiber.Ctx) error {
+	userID := c.Locals("user_id")
+	if userID == nil {
+		return utils.Unauthorized(c, "User not authenticated")
+	}
+
+	invitationID := c.Params("invitationId")
+	if invitationID == "" {
+		return utils.BadRequest(c, "Invitation ID is required")
+	}
+
+	if err := h.companyService.CancelInvitation(c.Context(), invitationID, userID.(string)); err != nil {
+		return utils.InternalServerError(c, err.Error())
+	}
+
+	return utils.SuccessWithMessage(c, "Invitation cancelled successfully", nil)
+}
+
 func (h *CompanyHandler) GetPublicCompanyProfile(c *fiber.Ctx) error {
 	companyID := c.Params("id")
 	if companyID == "" {
