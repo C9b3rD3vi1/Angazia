@@ -1,85 +1,63 @@
-{{/* Admin Moderation & Reports */}}
+{{define "title"}}Moderation{{end}}
+{{define "activePage"}}moderation{{end}}
 
 <div class="am-page">
-  {{/* ── Page Header ── */}}
   <div class="am-header">
     <div class="am-header-text">
       <h1 class="am-title">Moderation Queue</h1>
       <p class="am-subtitle">Review and manage reported content</p>
     </div>
     <div class="am-header-actions">
-      <button class="am-btn-ghost" data-action="refresh">&#x1F504; Refresh</button>
+      <label class="am-auto-refresh-label">
+        <input type="checkbox" id="am-auto-refresh" checked> Auto-refresh
+      </label>
+      <button class="am-btn-ghost" id="am-refresh-btn">&#x1F504; Refresh</button>
+      <span class="am-count-badge" id="am-count" style="display:none">0</span>
     </div>
   </div>
 
-  {{/* ── Tabs ── */}}
   <div class="am-tabs">
-    <button class="am-tab {{if not .CurrentTab}}active{{end}}" data-status="">All</button>
-    <button class="am-tab {{if eq .CurrentTab "pending"}}active{{end}}" data-status="pending">Pending</button>
-    <button class="am-tab {{if eq .CurrentTab "approved"}}active{{end}}" data-status="approved">Approved</button>
-    <button class="am-tab {{if eq .CurrentTab "rejected"}}active{{end}}" data-status="rejected">Rejected</button>
+    <button class="am-tab active" data-status="">All</button>
+    <button class="am-tab" data-status="pending">Pending</button>
+    <button class="am-tab" data-status="approved">Approved</button>
+    <button class="am-tab" data-status="rejected">Rejected</button>
   </div>
 
-  {{/* ── Filters ── */}}
   <div class="am-filters">
-    <select class="am-select" id="am-entity-filter">
+    <select class="am-select" id="am-entity-type">
       <option value="">All Entity Types</option>
-      <option value="job" {{if eq .EntityTypeFilter "job"}}selected{{end}}>Job</option>
-      <option value="review" {{if eq .EntityTypeFilter "review"}}selected{{end}}>Review</option>
-      <option value="company" {{if eq .EntityTypeFilter "company"}}selected{{end}}>Company</option>
+      <option value="job">Job</option>
+      <option value="review">Review</option>
+      <option value="company">Company</option>
     </select>
   </div>
 
-  {{/* ── Moderation List ── */}}
-  {{if .ModerationItems}}
-  <div class="am-list" id="am-list">
-    {{range .ModerationItems}}
-    <div class="am-item" data-id="{{.ID}}">
-      <div class="am-item-top">
-        <div class="am-item-badges">
-          <span class="am-badge am-badge-{{.EntityType}}">{{.EntityType}}</span>
-          <span class="am-status am-status-{{.Status}}">{{.Status}}</span>
-        </div>
-        {{if .Reason}}
-        <p class="am-item-reason">{{.Reason}}</p>
-        {{end}}
-      </div>
-      <div class="am-item-meta">
-        <span class="am-meta-user">&#x1F464; <strong>{{.SubmittedBy.Name}}</strong></span>
-        <span class="am-meta-date">&#x1F4C5; {{.CreatedAt}}</span>
-        {{if .ReviewedBy.Name}}
-        <span class="am-meta-reviewer">Reviewed by: {{.ReviewedBy.Name}}</span>
-        {{end}}
-        <span class="am-meta-id">#{{.EntityID}}</span>
-      </div>
-      {{if eq .Status "pending"}}
-      <div class="am-item-actions">
-        <button class="am-btn am-btn-approve" data-action="approve" data-id="{{.ID}}">&#x2705; Approve</button>
-        <button class="am-btn am-btn-reject" data-action="reject" data-id="{{.ID}}">&#x274C; Reject</button>
-      </div>
-      {{end}}
-    </div>
-    {{end}}
+  <div class="am-loading" id="am-loading">
+    <div class="am-spinner"></div>
+    <span>Loading moderation items...</span>
   </div>
-  {{else}}
-  <div class="am-empty">
+
+  <div class="am-error" id="am-error" style="display:none">
+    <span class="am-error-icon">&#x26A0;</span>
+    <span id="am-error-text">Failed to load items.</span>
+    <button class="am-btn am-btn-retry" onclick="amRefresh()">Retry</button>
+  </div>
+
+  <div class="am-empty" id="am-empty" style="display:none">
     <span class="am-empty-icon">&#x1F4AD;</span>
     <p class="am-empty-text">No moderation items found.</p>
+    <p class="am-empty-hint"></p>
   </div>
-  {{end}}
 
-  {{/* ── Pagination ── */}}
-  {{if gt .TotalPages 1}}
-  <div class="am-pagination" data-page="{{.Page}}" data-total="{{.TotalPages}}">
-    <button class="am-page-btn" data-page="prev" {{if le .Page 1}}disabled{{end}}>&larr; Previous</button>
-    <span class="am-page-info">Page {{.Page}} of {{.TotalPages}}</span>
-    <button class="am-page-btn" data-page="next" {{if ge .Page .TotalPages}}disabled{{end}}>Next &rarr;</button>
+  <div class="am-list" id="am-list"></div>
+
+  <div class="am-pagination" id="am-pagination" style="display:none">
+    <span class="am-pagi-info" id="am-pagi-info"></span>
+    <div class="am-pagi-btns" id="am-pagi-btns"></div>
   </div>
-  {{end}}
 </div>
 
-{{/* ── Reject Modal ── */}}
-<div class="am-modal-overlay" id="am-reject-modal" style="display:none">
+<div class="am-modal-overlay" id="am-modal" style="display:none">
   <div class="am-modal">
     <div class="am-modal-head">
       <h3 class="am-modal-title">Reject Item</h3>
@@ -91,7 +69,7 @@
     </div>
     <div class="am-modal-actions">
       <button class="am-btn am-btn-cancel" id="am-modal-cancel">Cancel</button>
-      <button class="am-btn am-btn-reject" id="am-confirm-reject">Reject</button>
+      <button class="am-btn am-btn-reject" id="am-modal-confirm">Reject</button>
     </div>
   </div>
 </div>

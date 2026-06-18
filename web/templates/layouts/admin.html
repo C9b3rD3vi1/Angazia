@@ -69,31 +69,32 @@
             <div class="dash-nav-group">
                 <span class="dash-nav-label">Users & Content</span>
                 <a href="/admin/users" class="dash-link {{if eq .ActivePage "users"}}active{{end}}"><span class="dash-link-icon">&#x1F465;</span><span class="dash-link-text">Users</span>{{if .PendingUsers}}<span class="dash-badge warn">{{.PendingUsers}}</span>{{end}}</a>
-                <a href="/admin/companies" class="dash-link {{if eq .ActivePage "companies"}}active{{end}}"><span class="dash-link-icon">&#x1F3E2;</span><span class="dash-link-text">Companies</span>{{if .PendingVerifications}}<span class="dash-badge warn">{{.PendingVerifications}}</span>{{end}}</a>
+                <a href="/admin/companies" class="dash-link {{if eq .ActivePage "companies"}}active{{end}}"><span class="dash-link-icon">&#x1F3E2;</span><span class="dash-link-text">Companies</span>{{if .CompanyCount}}<span class="dash-badge">{{.CompanyCount}}</span>{{end}}{{if .PendingVerifications}}<span class="dash-badge warn" style="margin-left:4px">{{.PendingVerifications}}</span>{{end}}</a>
                 <a href="/admin/jobs" class="dash-link {{if eq .ActivePage "jobs"}}active{{end}}"><span class="dash-link-icon">&#x1F4BC;</span><span class="dash-link-text">Jobs</span>{{if .PendingJobs}}<span class="dash-badge warn">{{.PendingJobs}}</span>{{end}}</a>
             </div>
             <div class="dash-nav-group">
                 <span class="dash-nav-label">Moderation</span>
-                <a href="/admin/reports" class="dash-link {{if eq .ActivePage "reports"}}active{{end}}"><span class="dash-link-icon">&#x1F6A9;</span><span class="dash-link-text">Reports</span>{{if .PendingReports}}<span class="dash-badge danger">{{.PendingReports}}</span>{{end}}</a>
-                <a href="/admin/audit" class="dash-link {{if eq .ActivePage "audit"}}active{{end}}"><span class="dash-link-icon">&#x1F50D;</span><span class="dash-link-text">Audit Logs</span></a>
+                <a href="/admin/moderation" class="dash-link {{if eq .ActivePage "moderation"}}active{{end}}"><span class="dash-link-icon">&#x1F4CB;</span><span class="dash-link-text">Moderation</span>{{if .PendingReports}}<span class="dash-badge danger">{{.PendingReports}}</span>{{end}}</a>
+                <a href="/admin/reports" class="dash-link {{if eq .ActivePage "reports"}}active{{end}}"><span class="dash-link-icon">&#x1F6A9;</span><span class="dash-link-text">Reports</span></a>
+                <a href="/admin/audit" class="dash-link {{if eq .ActivePage "audit-logs"}}active{{end}}"><span class="dash-link-icon">&#x1F50D;</span><span class="dash-link-text">Audit Logs</span></a>
             </div>
             <div class="dash-nav-group">
                 <span class="dash-nav-label">System</span>
                 <a href="/admin/dashboard" class="dash-link {{if eq .ActivePage "dashboard"}}active{{end}}"><span class="dash-link-icon">&#x1F4CA;</span><span class="dash-link-text">Overview</span></a>
                 <a href="/admin/analytics" class="dash-link {{if eq .ActivePage "analytics"}}active{{end}}"><span class="dash-link-icon">&#x1F4C8;</span><span class="dash-link-text">Analytics</span></a>
                 <a href="/admin/subscriptions" class="dash-link {{if eq .ActivePage "subscriptions"}}active{{end}}"><span class="dash-link-icon">&#x1F4B3;</span><span class="dash-link-text">Subscriptions</span></a>
+                <a href="/admin/contacts" class="dash-link {{if eq .ActivePage "contacts"}}active{{end}}"><span class="dash-link-icon">&#x1F4E8;</span><span class="dash-link-text">Contacts</span></a>
+        <a href="/admin/testimonials" class="dash-link {{if eq .ActivePage "testimonials"}}active{{end}}"><span class="dash-link-icon">&#x1F5E3;&#xFE0F;</span><span class="dash-link-text">Testimonials</span></a>
                 <a href="/admin/settings" class="dash-link {{if eq .ActivePage "settings"}}active{{end}}"><span class="dash-link-icon">&#x2699;&#xFE0F;</span><span class="dash-link-text">Settings</span></a>
+                <a href="/admin/notifications" class="dash-link {{if eq .ActivePage "notifications"}}active{{end}}"><span class="dash-link-icon">&#x1F514;</span><span class="dash-link-text">Notifications</span></a>
             </div>
         </nav>
         <div class="dash-skills-widget">
             <h4 class="dash-skills-title">System Status</h4>
             <div class="admin-status-grid">
-                <div class="status-item"><span class="dot success"></span> API</div>
-                <div class="status-item"><span class="dot success"></span> DB</div>
-                <div class="status-item"><span class="dot danger"></span> Redis</div>
-                <div class="status-item"><span class="dot danger"></span> ES</div>
+                <div class="status-item"><span class="dot warning"></span> System</div>
             </div>
-            <p class="dash-skills-desc">Monitoring active services</p>
+            <p class="dash-skills-desc">Health monitoring not available</p>
         </div>
         <div class="admin-footer-links">
             <a href="/admin/profile" class="dash-link"><span class="dash-link-icon">&#x1F464;</span><span class="dash-link-text">Profile</span></a>

@@ -1,0 +1,130 @@
+{{/* Employer Testimonials */}}
+<div class="emp-dash">
+  <div class="emp-page-head">
+    <div>
+      <h1 class="emp-page-title">&#x1F5E3;&#xFE0F; Company Testimonials</h1>
+      <p class="emp-page-sub">Share your experience as an employer on Angazia</p>
+    </div>
+    <div class="emp-actions">
+      <button class="emp-btn emp-btn-primary" id="et-add-btn">+ New Testimonial</button>
+    </div>
+  </div>
+
+  <div id="et-loading" class="emp-loading" style="display:flex">
+    <div class="emp-spinner"></div>
+    <p>Loading testimonials...</p>
+  </div>
+  <div id="et-error" class="emp-error" style="display:none">
+    <div class="emp-error-icon">&#x26A0;&#xFE0F;</div>
+    <h3>Failed to load testimonials</h3>
+    <p id="et-error-msg"></p>
+    <button class="emp-btn emp-btn-primary" onclick="location.reload()">Try Again</button>
+  </div>
+  <div id="et-content" style="display:none">
+
+    <div id="et-empty" class="emp-empty" style="display:none">
+      <div class="emp-empty-icon">&#x1F5E3;&#xFE0F;</div>
+      <h3>No testimonials yet</h3>
+      <p>Share how Angazia has helped your company find top tech talent in Kenya.</p>
+      <button class="emp-btn emp-btn-primary" id="et-empty-add">Write Your First Testimonial</button>
+    </div>
+
+    <div id="et-list" class="et-list"></div>
+
+    <div id="et-pagination" class="emp-pagination" style="display:none">
+      <div class="emp-pagi-info" id="et-pagi-info"></div>
+      <div class="emp-pagi-btns" id="et-pagi-btns"></div>
+    </div>
+
+  </div>
+</div>
+
+{{/* - Create/Edit Modal - */}}
+<div class="emp-modal-overlay" id="et-modal" style="display:none">
+  <div class="emp-modal emp-modal-md">
+    <div class="emp-modal-head">
+      <h3 class="emp-modal-title" id="et-modal-title">New Testimonial</h3>
+      <button class="emp-modal-close" id="et-modal-close">&times;</button>
+    </div>
+    <div class="emp-modal-body">
+      <div class="emp-form-group">
+        <label class="emp-form-label">Your Title <span class="emp-form-hint">(optional)</span></label>
+        <input type="text" class="emp-form-input" id="et-form-title" placeholder="e.g. HR Manager, CTO" maxlength="255">
+      </div>
+      <div class="emp-form-group">
+        <label class="emp-form-label">Company Name <span class="emp-form-hint">(optional)</span></label>
+        <input type="text" class="emp-form-input" id="et-form-company" placeholder="e.g. Safaricom" maxlength="255">
+      </div>
+      <div class="emp-form-group">
+        <label class="emp-form-label">Rating</label>
+        <div class="et-star-rating" id="et-star-rating">
+          <span class="et-star" data-value="1">&#x2606;</span>
+          <span class="et-star" data-value="2">&#x2606;</span>
+          <span class="et-star" data-value="3">&#x2606;</span>
+          <span class="et-star" data-value="4">&#x2606;</span>
+          <span class="et-star" data-value="5">&#x2606;</span>
+        </div>
+      </div>
+      <div class="emp-form-group">
+        <label class="emp-form-label">Your Experience <span class="emp-form-required">*</span></label>
+        <textarea class="emp-form-textarea" id="et-form-content" rows="5" placeholder="Describe your experience using Angazia to hire talent... What worked well? How did it help your company?" minlength="20" maxlength="1000"></textarea>
+        <div class="emp-form-counter"><span id="et-form-count">0</span>/1000</div>
+      </div>
+    </div>
+    <div class="emp-modal-foot">
+      <button class="emp-btn emp-btn-ghost" id="et-modal-cancel">Cancel</button>
+      <button class="emp-btn emp-btn-primary" id="et-modal-submit">Submit for Review</button>
+    </div>
+  </div>
+</div>
+
+{{/* - Delete Confirm Modal - */}}
+<div class="emp-modal-overlay" id="et-del-modal" style="display:none">
+  <div class="emp-modal emp-modal-sm">
+    <div class="emp-modal-head">
+      <h3 class="emp-modal-title emp-modal-title-danger">Delete Testimonial</h3>
+      <button class="emp-modal-close" id="et-del-close">&times;</button>
+    </div>
+    <div class="emp-modal-body">
+      <p>Are you sure you want to delete this testimonial? This action cannot be undone.</p>
+    </div>
+    <div class="emp-modal-foot">
+      <button class="emp-btn emp-btn-ghost" id="et-del-cancel">Cancel</button>
+      <button class="emp-btn emp-btn-danger" id="et-del-confirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.et-list { display:flex; flex-direction:column; gap:16px; }
+.et-card { background:var(--card-bg,#fff); border-radius:12px; padding:24px; border:1px solid var(--border,#e5e7eb); position:relative; }
+.et-card-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+.et-card-user { display:flex; align-items:center; gap:12px; }
+.et-card-avatar { width:44px; height:44px; border-radius:50%; background:var(--purple,#7c3aed); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px; }
+.et-card-info { }
+.et-card-name { font-weight:600; font-size:16px; color:var(--text,#111827); }
+.et-card-meta { font-size:13px; color:var(--text-muted,#6b7280); }
+.et-card-actions { display:flex; gap:8px; }
+.et-card-actions button { background:none; border:1px solid var(--border,#e5e7eb); border-radius:8px; padding:6px 12px; cursor:pointer; font-size:13px; color:var(--text-muted,#6b7280); transition:all 0.2s; }
+.et-card-actions button:hover { background:var(--bg-hover,#f3f4f6); }
+.et-card-actions .et-btn-edit:hover { color:var(--purple,#7c3aed); border-color:var(--purple,#7c3aed); }
+.et-card-actions .et-btn-del:hover { color:#ef4444; border-color:#ef4444; }
+.et-card-content { font-size:15px; line-height:1.7; color:var(--text,#111827); margin:12px 0; white-space:pre-wrap; }
+.et-card-footer { display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--text-muted,#6b7280); }
+.et-status-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:500; }
+.et-status-approved { background:#d1fae5; color:#065f46; }
+.et-status-pending { background:#fef3c7; color:#92400e; }
+.et-star-rating { display:flex; gap:4px; }
+.et-star { font-size:28px; cursor:pointer; color:#d1d5db; transition:color 0.15s; }
+.et-star.active, .et-star:hover, .et-star:hover ~ .et-star { color:#f59e0b; }
+.et-star-rating .et-star.active { color:#f59e0b; }
+.emp-modal-md { max-width:540px; }
+.emp-modal-sm { max-width:400px; }
+.emp-modal-title-danger { color:#ef4444; }
+.emp-form-counter { text-align:right; font-size:12px; color:var(--text-muted,#6b7280); margin-top:4px; }
+.et-view-stars { display:inline-flex; gap:2px; font-size:16px; }
+.et-view-stars .et-star-filled { color:#f59e0b; }
+.et-view-stars .et-star-empty { color:#d1d5db; }
+</style>
+
+<script src="/static/js/pages/employer/testimonials.js"></script>

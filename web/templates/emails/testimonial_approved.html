@@ -1,0 +1,22 @@
+{{define "testimonial_approved"}}
+<h2>Your Testimonial Has Been Approved! 🎉</h2>
+
+<p>Great news! Your testimonial has been reviewed and approved by our team. It is now visible on the {{.AppName}} platform.</p>
+
+<div class="success-box">
+    <strong>✅ What this means:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Your feedback is now helping other users make informed decisions</li>
+        <li>Your testimonial will be featured alongside others on our platform</li>
+        <li>You can view it in your testimonials dashboard</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/employee/testimonials" class="button">View Your Testimonials</a>
+</div>
+
+<hr>
+
+<p class="text-muted">Thank you for sharing your experience with {{.AppName}}!</p>
+{{end}}

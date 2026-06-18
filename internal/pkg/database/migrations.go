@@ -10,37 +10,37 @@ import (
 
 // Migration represents a database migration
 type Migration struct {
-	ID      string
-	Name    string
-	Up      func(*gorm.DB) error
-	Down    func(*gorm.DB) error
+	ID   string
+	Name string
+	Up   func(*gorm.DB) error
+	Down func(*gorm.DB) error
 }
 
 // RunMigrations runs all pending migrations
 func RunMigrations() error {
 	log.Println("🔄 Running manual migrations...")
-	
+
 	// Create migrations table if it doesn't exist
 	if err := createMigrationsTable(); err != nil {
 		return err
 	}
-	
+
 	migrations := getAllMigrations()
-	
+
 	for _, migration := range migrations {
 		// Check if migration already ran
 		var count int64
 		DB.Table("schema_migrations").Where("id = ?", migration.ID).Count(&count)
-		
+
 		if count == 0 {
 			log.Printf("📝 Running migration: %s", migration.Name)
-			
+
 			// Run migration in transaction
 			err := DB.Transaction(func(tx *gorm.DB) error {
 				if err := migration.Up(tx); err != nil {
 					return err
 				}
-				
+
 				// Record migration
 				if err := tx.Table("schema_migrations").Create(map[string]interface{}{
 					"id":          migration.ID,
@@ -49,18 +49,18 @@ func RunMigrations() error {
 				}).Error; err != nil {
 					return err
 				}
-				
+
 				return nil
 			})
-			
+
 			if err != nil {
 				return fmt.Errorf("migration %s failed: %w", migration.ID, err)
 			}
-			
+
 			log.Printf("✅ Migration completed: %s", migration.Name)
 		}
 	}
-	
+
 	log.Println("✅ All migrations completed successfully")
 	return nil
 }
@@ -119,7 +119,7 @@ func getAllMigrations() []Migration {
 				if err := tx.Exec(fn).Error; err != nil {
 					return err
 				}
-				
+
 				tables := []string{"users", "employee_profiles", "employer_profiles", "jobs", "applications"}
 				for _, table := range tables {
 					trigger := fmt.Sprintf(`
@@ -129,12 +129,12 @@ func getAllMigrations() []Migration {
 						FOR EACH ROW
 						EXECUTE FUNCTION update_updated_at_column();
 					`, table, table, table, table)
-					
+
 					if err := tx.Exec(trigger).Error; err != nil {
 						log.Printf("Warning: Could not create trigger for %s: %v", table, err)
 					}
 				}
-				
+
 				return nil
 			},
 			Down: func(tx *gorm.DB) error {
@@ -170,7 +170,7 @@ func getAllMigrations() []Migration {
 				if err := tx.Exec(fn).Error; err != nil {
 					return err
 				}
-				
+
 				trigger := `
 					DROP TRIGGER IF EXISTS update_job_applications_count ON applications;
 					CREATE TRIGGER update_job_applications_count
@@ -366,7 +366,7 @@ func getAllMigrations() []Migration {
 					"CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_matches_employee_score_expires ON matches(employee_id, overall_score, expires_at)",
 					"CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_employee_profile_available ON employee_profiles(is_available, is_visible)",
 				}
-				
+
 				for _, idx := range indexes {
 					if err := tx.Exec(idx).Error; err != nil {
 						log.Printf("Warning: Could not create index: %v", err)
@@ -389,6 +389,30 @@ func getAllMigrations() []Migration {
 				return nil
 			},
 		},
+		{
+			ID:   "20250101000010",
+			Name: "Create github_tokens table",
+			Up: func(tx *gorm.DB) error {
+				query := `
+					CREATE TABLE IF NOT EXISTS github_tokens (
+						id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+						employee_id UUID NOT NULL UNIQUE,
+						access_token TEXT NOT NULL,
+						refresh_token TEXT,
+						token_type VARCHAR(50),
+						expires_at TIMESTAMP WITH TIME ZONE,
+						scope TEXT,
+						created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+						updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+					);
+					CREATE INDEX IF NOT EXISTS idx_github_tokens_employee ON github_tokens(employee_id);
+				`
+				return tx.Exec(query).Error
+			},
+			Down: func(tx *gorm.DB) error {
+				return tx.Exec(`DROP TABLE IF EXISTS github_tokens CASCADE`).Error
+			},
+		},
 	}
 }
 
@@ -397,42 +421,42 @@ func RollbackLastMigration() error {
 	var lastMigration struct {
 		ID string
 	}
-	
+
 	err := DB.Table("schema_migrations").Order("executed_at DESC").Limit(1).Scan(&lastMigration).Error
 	if err != nil {
 		return err
 	}
-	
+
 	if lastMigration.ID == "" {
 		return fmt.Errorf("no migrations to rollback")
 	}
-	
+
 	migrations := getAllMigrations()
 	for _, migration := range migrations {
 		if migration.ID == lastMigration.ID {
 			log.Printf("🔙 Rolling back migration: %s", migration.Name)
-			
+
 			err := DB.Transaction(func(tx *gorm.DB) error {
 				if err := migration.Down(tx); err != nil {
 					return err
 				}
-				
+
 				if err := tx.Table("schema_migrations").Where("id = ?", migration.ID).Delete(nil).Error; err != nil {
 					return err
 				}
-				
+
 				return nil
 			})
-			
+
 			if err != nil {
 				return err
 			}
-			
+
 			log.Printf("✅ Rollback completed: %s", migration.Name)
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("migration %s not found", lastMigration.ID)
 }
 
@@ -443,23 +467,23 @@ func MigrationStatus() error {
 		Name       string
 		ExecutedAt string
 	}
-	
+
 	var records []MigrationRecord
 	if err := DB.Table("schema_migrations").Order("executed_at").Find(&records).Error; err != nil {
 		return err
 	}
-	
+
 	log.Println("\n📊 Migration Status:")
 	log.Println(strings.Repeat("-", 80))
 	log.Printf("%-20s %-40s %-20s", "ID", "Name", "Executed At")
 	log.Println(strings.Repeat("-", 80))
-	
+
 	for _, record := range records {
 		log.Printf("%-20s %-40s %-20s", record.ID, record.Name, record.ExecutedAt)
 	}
-	
+
 	log.Println(strings.Repeat("-", 80))
 	log.Printf("Total migrations executed: %d\n", len(records))
-	
+
 	return nil
 }

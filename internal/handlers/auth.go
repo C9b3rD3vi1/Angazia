@@ -6,18 +6,19 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"golang.org/x/crypto/bcrypt"
 	// "github.com/google/uuid"
-	
+
 	"github.com/C9b3rD3vi1/Angazia/internal/config"
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
-	"github.com/C9b3rD3vi1/Angazia/internal/services"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
+	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
 
 type AuthHandler struct {
-	authService services.AuthService
-	validator   *validator.Validate
-	cfg         *config.Config
+	authService  services.AuthService
+	validator    *validator.Validate
+	cfg          *config.Config
 	twoFAService services.TwoFAService
 }
 
@@ -26,15 +27,15 @@ func (h *AuthHandler) SetTwoFAService(s services.TwoFAService) {
 }
 
 type RegisterRequest struct {
-	Email     string          `json:"email" validate:"required,email"`
-	Password  string          `json:"password" validate:"required,min=8,max=72"`
-	FullName  string          `json:"full_name" validate:"omitempty,max=100"`
-	Role      models.UserRole `json:"role" validate:"required,oneof=employee employer"`
+	Email    string          `json:"email" validate:"required,email"`
+	Password string          `json:"password" validate:"required,min=8,max=72"`
+	FullName string          `json:"full_name" validate:"omitempty,max=100"`
+	Role     models.UserRole `json:"role" validate:"required,oneof=employee employer"`
 }
 
 type LoginRequest struct {
-	Email     string `json:"email" validate:"required,email"`
-	Password  string `json:"password" validate:"required"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
 }
 
 type RefreshTokenRequest struct {
@@ -71,7 +72,7 @@ type UpdateProfileRequest struct {
 	LinkedInURL       string                      `json:"linkedin_url"`
 	IsVisible         bool                        `json:"is_visible"`
 	IsAvailable       bool                        `json:"is_available"`
-	
+
 	// Employer specific
 	CompanyName        string `json:"company_name"`
 	CompanyWebsite     string `json:"company_website"`
@@ -102,20 +103,20 @@ func NewAuthHandler(authService services.AuthService, cfg *config.Config) *AuthH
 // @Router /auth/register [post]
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	var req RegisterRequest
-	
+
 	if err := c.BodyParser(&req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	if err := h.validator.Struct(req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	ipAddress := c.IP()
 	if forwarded := c.Get("X-Forwarded-For"); forwarded != "" {
 		ipAddress = strings.Split(forwarded, ",")[0]
 	}
-	
+
 	authReq := &services.RegisterRequest{
 		Email:     req.Email,
 		Password:  req.Password,
@@ -123,20 +124,20 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		Role:      req.Role,
 		IPAddress: ipAddress,
 	}
-	
+
 	response, err := h.authService.Register(c.Context(), authReq)
 	if err != nil {
 		message := err.Error()
-		
+
 		if strings.Contains(err.Error(), "already exists") {
 			return utils.Conflict(c, message)
 		} else if strings.Contains(err.Error(), "invalid") {
 			return utils.BadRequest(c, message)
 		}
-		
+
 		return utils.InternalServerError(c, message)
 	}
-	
+
 	return utils.SuccessCreated(c, "User registered successfully. Please check your email for verification.", response)
 }
 
@@ -153,29 +154,29 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 // @Router /auth/login [post]
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	var req LoginRequest
-	
+
 	if err := c.BodyParser(&req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	if err := h.validator.Struct(req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	ipAddress := c.IP()
 	if forwarded := c.Get("X-Forwarded-For"); forwarded != "" {
 		ipAddress = strings.Split(forwarded, ",")[0]
 	}
 	userAgent := c.Get("User-Agent")
-	
+
 	response, err := h.authService.Login(c.Context(), req.Email, req.Password, ipAddress, userAgent)
 	if err != nil {
 		message := err.Error()
-		
+
 		if strings.Contains(err.Error(), "verification") {
 			return utils.Forbidden(c, message)
 		}
-		
+
 		return utils.Unauthorized(c, message)
 	}
 
@@ -185,7 +186,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 			response.RequiresTwoFA = true
 		}
 	}
-	
+
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
 		Value:    response.AccessToken,
@@ -204,7 +205,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		Path:     "/api/v1/auth/refresh",
 		MaxAge:   7 * 24 * 3600,
 	})
-	
+
 	return utils.SuccessWithMessage(c, "Login successful", response)
 }
 
@@ -222,12 +223,19 @@ func (h *AuthHandler) AdminLogin(c *fiber.Ctx) error {
 		return utils.BadRequest(c, err.Error())
 	}
 
-	if req.Email != h.cfg.AdminEmail || req.Password != h.cfg.AdminPassword {
+	if req.Email != h.cfg.AdminEmail {
 		return utils.Unauthorized(c, "Invalid admin credentials")
 	}
 
 	ctx := c.Context()
 	user, err := h.authService.GetOrCreateAdmin(ctx, req.Email)
+	if err != nil {
+		return utils.InternalServerError(c, "Failed to authenticate admin")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+		return utils.Unauthorized(c, "Invalid admin credentials")
+	}
 	if err != nil {
 		return utils.InternalServerError(c, "Failed to authenticate admin")
 	}
@@ -284,20 +292,20 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	authHeader := c.Get("Authorization")
 	token := ""
 	if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
 		token = strings.TrimPrefix(authHeader, "Bearer ")
 	}
-	
+
 	if err := h.authService.Logout(c.Context(), userID.(string), token); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
-	
-	c.Cookie(&fiber.Cookie{Name: "access_token", Value: "", Path: "/", MaxAge: -1})
-	c.Cookie(&fiber.Cookie{Name: "refresh_token", Value: "", Path: "/api/v1/auth/refresh", MaxAge: -1})
-	
+
+	c.Cookie(&fiber.Cookie{Name: "access_token", Value: "", Path: "/", MaxAge: -1, HTTPOnly: true, Secure: !utils.IsDevelopment(), SameSite: "Strict"})
+	c.Cookie(&fiber.Cookie{Name: "refresh_token", Value: "", Path: "/api/v1/auth/refresh", MaxAge: -1, HTTPOnly: true, Secure: !utils.IsDevelopment(), SameSite: "Strict"})
+
 	return utils.SuccessWithMessage(c, "Logout successful", nil)
 }
 
@@ -314,29 +322,29 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 // @Router /auth/refresh [post]
 func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 	var req RefreshTokenRequest
-	
+
 	refreshToken := c.Cookies("refresh_token")
-	
+
 	if refreshToken == "" {
 		if err := c.BodyParser(&req); err == nil && req.RefreshToken != "" {
 			refreshToken = req.RefreshToken
 		}
 	}
-	
+
 	if refreshToken == "" {
 		return utils.BadRequest(c, "Refresh token is required")
 	}
-	
+
 	ipAddress := c.IP()
 	if forwarded := c.Get("X-Forwarded-For"); forwarded != "" {
 		ipAddress = strings.Split(forwarded, ",")[0]
 	}
-	
+
 	response, err := h.authService.RefreshToken(c.Context(), refreshToken, ipAddress)
 	if err != nil {
 		return utils.Unauthorized(c, err.Error())
 	}
-	
+
 	if c.Get("X-Client-Type") == "web" {
 		c.Cookie(&fiber.Cookie{
 			Name:     "refresh_token",
@@ -348,7 +356,7 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 			MaxAge:   7 * 24 * 3600,
 		})
 	}
-	
+
 	return utils.SuccessWithMessage(c, "Token refreshed successfully", response)
 }
 
@@ -364,26 +372,26 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 // @Router /auth/forgot-password [post]
 func (h *AuthHandler) ForgotPassword(c *fiber.Ctx) error {
 	var req ForgotPasswordRequest
-	
+
 	if err := c.BodyParser(&req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	if err := h.validator.Struct(req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	ipAddress := c.IP()
 	if forwarded := c.Get("X-Forwarded-For"); forwarded != "" {
 		ipAddress = strings.Split(forwarded, ",")[0]
 	}
-	
+
 	message := "If an account exists with this email, you will receive a password reset link"
-	
+
 	if err := h.authService.ForgotPassword(c.Context(), req.Email, ipAddress); err != nil {
 		return utils.SuccessWithMessage(c, message, nil)
 	}
-	
+
 	return utils.SuccessWithMessage(c, message, nil)
 }
 
@@ -399,19 +407,19 @@ func (h *AuthHandler) ForgotPassword(c *fiber.Ctx) error {
 // @Router /auth/reset-password [post]
 func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
 	var req ResetPasswordRequest
-	
+
 	if err := c.BodyParser(&req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	if err := h.validator.Struct(req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	if err := h.authService.ResetPassword(c.Context(), req.Token, req.NewPassword); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	return utils.SuccessWithMessage(c, "Password reset successfully. You can now login with your new password.", nil)
 }
 
@@ -432,20 +440,20 @@ func (h *AuthHandler) ChangePassword(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	var req ChangePasswordRequest
 	if err := c.BodyParser(&req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	if err := h.validator.Struct(req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	if err := h.authService.ChangePassword(c.Context(), userID.(string), req.OldPassword, req.NewPassword); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	return utils.SuccessWithMessage(c, "Password changed successfully", nil)
 }
 
@@ -462,11 +470,11 @@ func (h *AuthHandler) VerifyEmail(c *fiber.Ctx) error {
 	if token == "" {
 		return utils.BadRequest(c, "Verification token is required")
 	}
-	
+
 	if err := h.authService.VerifyEmail(c.Context(), token); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	return utils.SuccessWithMessage(c, "Email verified successfully. You can now login to your account.", nil)
 }
 
@@ -517,12 +525,12 @@ func (h *AuthHandler) GetProfile(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	profile, err := h.authService.GetProfile(c.Context(), userID.(string))
 	if err != nil {
 		return utils.NotFound(c, "Profile")
 	}
-	
+
 	return utils.Success(c, profile)
 }
 
@@ -570,40 +578,40 @@ func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	var req UpdateProfileRequest
 	if err := c.BodyParser(&req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	serviceReq := &services.UpdateProfileRequest{
-		FullName:          req.FullName,
-		Headline:          req.Headline,
-		Bio:               req.Bio,
-		Location:          req.Location,
-		IsRemoteOnly:      req.IsRemoteOnly,
-		ExperienceLevel:   req.ExperienceLevel,
-		YearsOfExperience: req.YearsOfExperience,
-		Skills:            req.Skills,
-		Experience:        req.Experience,
-		Certifications:    req.Certifications,
-		ResumeURL:         req.ResumeURL,
-		PortfolioURL:      req.PortfolioURL,
-		LinkedInURL:       req.LinkedInURL,
-		IsVisible:         req.IsVisible,
-		IsAvailable:       req.IsAvailable,
-		CompanyName:       req.CompanyName,
-		CompanyWebsite:    req.CompanyWebsite,
-		CompanyLinkedIn:   req.CompanyLinkedIn,
+		FullName:           req.FullName,
+		Headline:           req.Headline,
+		Bio:                req.Bio,
+		Location:           req.Location,
+		IsRemoteOnly:       req.IsRemoteOnly,
+		ExperienceLevel:    req.ExperienceLevel,
+		YearsOfExperience:  req.YearsOfExperience,
+		Skills:             req.Skills,
+		Experience:         req.Experience,
+		Certifications:     req.Certifications,
+		ResumeURL:          req.ResumeURL,
+		PortfolioURL:       req.PortfolioURL,
+		LinkedInURL:        req.LinkedInURL,
+		IsVisible:          req.IsVisible,
+		IsAvailable:        req.IsAvailable,
+		CompanyName:        req.CompanyName,
+		CompanyWebsite:     req.CompanyWebsite,
+		CompanyLinkedIn:    req.CompanyLinkedIn,
 		CompanyDescription: req.CompanyDescription,
-		Industry:          req.Industry,
-		CompanySize:       req.CompanySize,
+		Industry:           req.Industry,
+		CompanySize:        req.CompanySize,
 	}
-	
+
 	if err := h.authService.UpdateProfile(c.Context(), userID.(string), serviceReq); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	return utils.SuccessWithMessage(c, "Profile updated successfully", nil)
 }
 
@@ -616,8 +624,8 @@ func (h *AuthHandler) WebLogout(c *fiber.Ctx) error {
 			}
 		}
 	}
-	c.Cookie(&fiber.Cookie{Name: "access_token", Value: "", Path: "/", MaxAge: -1})
-	c.Cookie(&fiber.Cookie{Name: "refresh_token", Value: "", Path: "/api/v1/auth/refresh", MaxAge: -1})
+	c.Cookie(&fiber.Cookie{Name: "access_token", Value: "", Path: "/", MaxAge: -1, HTTPOnly: true, Secure: !utils.IsDevelopment(), SameSite: "Strict"})
+	c.Cookie(&fiber.Cookie{Name: "refresh_token", Value: "", Path: "/api/v1/auth/refresh", MaxAge: -1, HTTPOnly: true, Secure: !utils.IsDevelopment(), SameSite: "Strict"})
 	return utils.FlashRedirect(c, "/login", "info", "You have been logged out successfully.")
 }
 
@@ -737,8 +745,8 @@ func (h *AuthHandler) DeleteAccount(c *fiber.Ctx) error {
 	}
 
 	// Clear cookies
-	c.Cookie(&fiber.Cookie{Name: "access_token", Value: "", Path: "/", MaxAge: -1})
-	c.Cookie(&fiber.Cookie{Name: "refresh_token", Value: "", Path: "/api/v1/auth/refresh", MaxAge: -1})
+	c.Cookie(&fiber.Cookie{Name: "access_token", Value: "", Path: "/", MaxAge: -1, HTTPOnly: true, Secure: !utils.IsDevelopment(), SameSite: "Strict"})
+	c.Cookie(&fiber.Cookie{Name: "refresh_token", Value: "", Path: "/api/v1/auth/refresh", MaxAge: -1, HTTPOnly: true, Secure: !utils.IsDevelopment(), SameSite: "Strict"})
 
 	return utils.SuccessWithMessage(c, "Account deleted successfully", nil)
 }

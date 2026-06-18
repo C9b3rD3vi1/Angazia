@@ -1,0 +1,29 @@
+{{define "testimonial_rejected"}}
+<h2>Testimonial Update</h2>
+
+<p>After careful review, we were unable to approve your testimonial submission.</p>
+
+{{if .Reason}}
+<div class="warning-box">
+    <strong>Reason:</strong>
+    <p style="margin: 8px 0 0;">{{.Reason}}</p>
+</div>
+{{end}}
+
+<div class="feature-box">
+    <strong>💡 You can:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Submit a revised testimonial that follows our guidelines</li>
+        <li>Contact our support team if you have questions</li>
+        <li>View our testimonial guidelines for more information</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/employee/testimonials" class="button">Submit New Testimonial</a>
+</div>
+
+<hr>
+
+<p class="text-muted">Thank you for your understanding. We appreciate your contribution to the {{.AppName}} community.</p>
+{{end}}

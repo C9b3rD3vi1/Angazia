@@ -1,0 +1,108 @@
+{{define "title"}}Testimonials{{end}}
+{{define "activePage"}}testimonials{{end}}
+
+<div class="au-page">
+  <div class="au-header">
+    <div class="au-header-text">
+      <h1 class="au-title">Testimonials Management</h1>
+      <p class="au-subtitle">Review and manage user testimonials</p>
+    </div>
+    <div class="au-header-actions">
+      <button class="au-btn au-btn-ghost" data-action="reload">&#x1F504; Refresh</button>
+    </div>
+  </div>
+
+  <div class="au-stats" id="atm-stats">
+    <div class="au-stat-card"><span class="au-stat-label">Total</span><span class="au-stat-value" id="atm-stat-total">-</span></div>
+    <div class="au-stat-card"><span class="au-stat-label">Pending</span><span class="au-stat-value" id="atm-stat-pending">-</span></div>
+    <div class="au-stat-card"><span class="au-stat-label">Approved</span><span class="au-stat-value" id="atm-stat-approved">-</span></div>
+    <div class="au-stat-card"><span class="au-stat-label">Featured</span><span class="au-stat-value" id="atm-stat-featured">-</span></div>
+  </div>
+
+  <div class="au-card">
+    <div class="au-card-head">
+      <div class="au-filter-bar">
+        <input type="text" class="au-input" id="atm-search" placeholder="Search testimonials..." style="max-width:280px">
+        <select class="au-select" id="atm-filter-status">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+        </select>
+        <select class="au-select" id="atm-filter-role">
+          <option value="">All Roles</option>
+          <option value="employee">Employee</option>
+          <option value="employer">Employer</option>
+        </select>
+        <button class="au-btn au-btn-primary" id="atm-filter-btn">&#x1F50D; Filter</button>
+      </div>
+    </div>
+    <div class="au-card-body">
+      <div id="atm-loading" class="au-loading" style="display:flex">
+        <div class="au-spinner"></div>
+        <p class="au-loading-text">Loading testimonials...</p>
+      </div>
+      <div id="atm-error" class="au-error" style="display:none">
+        <div class="au-error-icon">&#x26A0;&#xFE0F;</div>
+        <h3>Failed to load testimonials</h3>
+        <p id="atm-error-msg"></p>
+        <button class="au-btn au-btn-primary" onclick="location.reload()">Retry</button>
+      </div>
+      <div id="atm-empty" style="display:none">
+        <div class="au-empty-icon">&#x1F5E3;&#xFE0F;</div>
+        <h3>No testimonials found</h3>
+        <p id="atm-empty-msg">No testimonials match your filters.</p>
+      </div>
+      <div id="atm-table-wrap" style="display:none">
+        <div class="au-table-wrap">
+          <table class="au-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Content</th>
+                <th>Rating</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Featured</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="atm-tbody"></tbody>
+          </table>
+        </div>
+        <div class="au-pagination" id="atm-pagination" style="display:none">
+          <div class="au-pagi-info" id="atm-pagi-info"></div>
+          <div class="au-pagi-btns" id="atm-pagi-btns"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+#atm-stats { margin-bottom:24px; }
+#atm-stats .au-stat-card { cursor:default; }
+.atm-status { display:inline-flex; align-items:center; gap:4px; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:500; }
+.atm-status-approved { background:#d1fae5; color:#065f46; }
+.atm-status-pending { background:#fef3c7; color:#92400e; }
+.atm-featured-yes { color:#f59e0b; font-size:16px; }
+.atm-featured-no { color:#d1d5db; font-size:16px; }
+.atm-actions { display:flex; gap:4px; flex-wrap:wrap; }
+.atm-actions button { background:none; border:1px solid var(--border,#e5e7eb); border-radius:6px; padding:4px 8px; cursor:pointer; font-size:12px; transition:all 0.15s; color:var(--text-muted,#6b7280); white-space:nowrap; }
+.atm-actions button:hover { background:var(--bg-hover,#f3f4f6); }
+.atm-actions .atm-approve:hover { color:#059669; border-color:#059669; }
+.atm-actions .atm-reject:hover { color:#dc2626; border-color:#dc2626; }
+.atm-actions .atm-feature:hover { color:#d97706; border-color:#d97706; }
+.atm-actions .atm-delete:hover { color:#dc2626; border-color:#dc2626; }
+.atm-content-preview { max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; color:var(--text-muted,#6b7280); }
+.atm-user-cell { display:flex; align-items:center; gap:8px; }
+.atm-user-avatar { width:32px; height:32px; border-radius:50%; background:var(--purple,#7c3aed); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:14px; flex-shrink:0; }
+.atm-user-name { font-weight:500; font-size:14px; color:var(--text,#111827); white-space:nowrap; }
+.atm-user-email { font-size:12px; color:var(--text-muted,#6b7280); }
+.au-card-head { padding:16px 20px; border-bottom:1px solid var(--border,#e5e7eb); }
+.au-card-body { padding:20px; }
+.atm-star { color:#f59e0b; font-size:14px; }
+.atm-star-empty { color:#d1d5db; font-size:14px; }
+</style>
+
+<script src="/static/js/pages/admin/testimonials.js"></script>

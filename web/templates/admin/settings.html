@@ -1,95 +1,171 @@
+{{define "title"}}Settings{{end}}
+{{define "activePage"}}settings{{end}}
 {{/* Admin - Settings */}}
 
 <div class="as-wrap">
   <div class="as-header">
     <div>
       <h1 class="as-title">Settings</h1>
-      <p class="as-sub">Manage account security and system-wide configuration</p>
+      <p class="as-sub">Manage system-wide configuration and security</p>
     </div>
   </div>
 
-  {{/* Account Section */}}
-  <section class="as-section">
-    <div class="as-section-head">
-      <h2 class="as-section-title">Account</h2>
-    </div>
-    <div class="as-form">
-      <p style="font-size:12px;color:var(--muted);line-height:1.5">
-        Manage your profile information, email, and password on the
-        <a href="/admin/profile" style="color:var(--accent);text-decoration:none;font-weight:500">Profile page</a>.
-      </p>
-    </div>
-  </section>
+  <div class="as-loading active" id="as-loading">
+    <div class="as-loading-spinner"></div>
+    <span class="as-loading-text">Loading settings...</span>
+  </div>
 
-  {{/* Two-Factor Authentication */}}
-  <section class="as-section">
-    <div class="as-section-head">
-      <h2 class="as-section-title">Two-Factor Authentication</h2>
-    </div>
-    <div id="tfa-section" class="as-form">
-      <div id="tfa-status-loading" class="as-form-group">
-        <p class="as-form-label" style="text-transform:none;letter-spacing:0">Checking 2FA status...</p>
-      </div>
-      <div id="tfa-not-enabled" style="display:none">
-        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">Secure your administrative account by enabling two-factor authentication.</p>
-        <button class="ap-btn ap-btn-primary" id="tfa-enable-btn" style="padding:10px 20px">Enable Two-Factor Authentication</button>
-      </div>
-      <div id="tfa-enabled" style="display:none">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-          <span class="as-toast as-toast-success" style="display:inline-block;padding:6px 14px">2FA is active</span>
-        </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="ap-btn" id="tfa-view-backup-btn" style="padding:10px 20px">Generate New Backup Codes</button>
-          <button class="ap-btn" id="tfa-disable-btn" style="padding:10px 20px;border-color:rgba(255,79,79,0.3);color:var(--danger)">Disable 2FA</button>
-        </div>
-        <div id="tfa-error" class="as-toast as-toast-error" style="display:none;margin-top:8px"></div>
-      </div>
-    </div>
-  </section>
+  <div class="as-error" id="as-error">
+    <span class="as-error-text" id="as-error-text">Failed to load settings.</span>
+    <button class="ap-btn" id="as-retry-btn">Retry</button>
+  </div>
 
-  {{/* System Configuration */}}
-  <section class="as-section">
-    <div class="as-section-head">
-      <h2 class="as-section-title">System Configuration</h2>
-    </div>
-    {{if .GroupedSettings}}
-    <div class="as-settings-list">
-      {{range $category, $settings := .GroupedSettings}}
-      <div class="as-setting-category" style="padding: 14px 16px; border-bottom: 1px solid var(--border);">
-        <span style="font-family:var(--fm);font-size:10px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:0.5px;">{{$category}}</span>
+  <div id="as-content" style="display:none">
+    {{/* ── Admin Profile ── */}}
+    <section class="as-section" id="as-profile-section">
+      <div class="as-section-head">
+        <h2 class="as-section-title">Administrator</h2>
       </div>
-      {{range $settings}}
-      <div class="as-setting" data-key="{{.Key}}" data-type="{{.Type}}">
-        <div class="as-setting-info">
-          <span class="as-setting-key">{{.Key}}</span>
-          {{if .Description}}<p class="as-setting-desc">{{.Description}}</p>{{end}}
+      {{if .Admin}}
+      <div class="as-profile">
+        <div class="as-profile-avatar">
+          {{if .Admin.Avatar}}<img src="{{.Admin.Avatar}}" alt="Avatar">{{else}}{{.Admin.Initials}}{{end}}
         </div>
-        <div class="as-setting-control">
-          {{if eq .Type "bool"}}
-          <label class="as-toggle">
-            <input type="checkbox" {{if eq .Value "true"}}checked{{end}} data-action="save-setting">
-            <span class="as-toggle-slider"></span>
-          </label>
-          {{else if eq .Type "int"}}
-          <input class="as-input as-input-sm" type="number" value="{{.Value}}" data-original="{{.Value}}" data-action="save-setting">
-          {{else if eq .Type "json"}}
-          <textarea class="as-input as-textarea as-textarea-code" rows="3" data-key="{{.Key}}" data-original="{{.Value}}">{{.Value}}</textarea>
-          <button class="ap-btn" data-action="save-setting" style="font-size:9px;padding:6px 12px">Save</button>
-          {{else}}
-          <input class="as-input as-input-sm" type="text" value="{{.Value}}" data-original="{{.Value}}" data-action="save-setting">
+        <div class="as-profile-info">
+          <div class="as-profile-name">{{.Admin.Name}}</div>
+          <div class="as-profile-email">{{.Admin.Email}}</div>
+        </div>
+        <a href="/admin/profile" class="as-profile-link">Edit Profile &rarr;</a>
+      </div>
+      {{end}}
+    </section>
+
+    {{/* ── Two-Factor Authentication ── */}}
+    <section class="as-section" id="as-tfa-section">
+      <div class="as-section-head">
+        <h2 class="as-section-title">Two-Factor Authentication</h2>
+      </div>
+      <div id="tfa-section" class="as-form">
+        <div id="tfa-status-loading" class="as-form-group">
+          <p class="as-form-label" style="text-transform:none;letter-spacing:0">Checking 2FA status...</p>
+        </div>
+        <div id="tfa-not-enabled" style="display:none">
+          <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">Secure your administrative account by enabling two-factor authentication.</p>
+          <button class="ap-btn ap-btn-primary" id="tfa-enable-btn" style="padding:10px 20px">Enable Two-Factor Authentication</button>
+        </div>
+        <div id="tfa-enabled" style="display:none">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+            <span class="as-toast as-toast-success" style="display:inline-block;padding:6px 14px">2FA is active</span>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="ap-btn" id="tfa-view-backup-btn" style="padding:10px 20px">Generate New Backup Codes</button>
+            <button class="ap-btn" id="tfa-disable-btn" style="padding:10px 20px;border-color:rgba(255,79,79,0.3);color:var(--danger)">Disable 2FA</button>
+          </div>
+          <div id="tfa-error" class="as-toast as-toast-error" style="display:none;margin-top:8px"></div>
+        </div>
+      </div>
+    </section>
+
+    {{/* ── System Configuration ── */}}
+    <section class="as-section" id="as-settings-section">
+      <div class="as-section-head" style="display:flex;align-items:center;justify-content:space-between">
+        <h2 class="as-section-title">System Configuration</h2>
+        <button class="ap-btn" id="as-add-btn" style="font-size:9px;padding:5px 12px">+ Add Setting</button>
+      </div>
+      {{if .GroupedSettings}}
+      <div class="as-toolbar">
+        <div class="as-category-tabs" id="as-category-tabs">
+          <button class="as-category-tab active" data-category="all">All <span class="as-count-badge">{{len .Settings}}</span></button>
+          {{range $cat, $setts := .GroupedSettings}}
+          <button class="as-category-tab" data-category="{{$cat}}">{{$cat}} <span class="as-count-badge">{{len $setts}}</span></button>
           {{end}}
         </div>
+        <div class="as-search-wrap">
+          <span class="as-search-icon">&#x1F50D;</span>
+          <input class="as-search-input" id="as-search" type="text" placeholder="Search settings..." autocomplete="off">
+        </div>
+        <span class="as-toast" id="as-save-toast" style="display:none;flex-shrink:0;padding:6px 12px;font-size:9px"></span>
+      </div>
+      <div class="as-settings-list" id="as-settings-list">
+        {{range $category, $settings := .GroupedSettings}}
+        {{range $settings}}
+        <div class="as-setting" data-key="{{.Key}}" data-type="{{.Type}}" data-category="{{$category}}">
+          <div class="as-setting-info">
+            <span class="as-setting-key">{{.Key}}</span>
+            {{if .Description}}<p class="as-setting-desc">{{.Description}}</p>{{end}}
+          </div>
+          <div class="as-setting-control">
+            <span class="as-setting-modified" id="modified-{{.Key}}">modified</span>
+            {{if eq .Type "bool"}}
+            <label class="as-toggle">
+              <input type="checkbox" {{if eq .Value "true"}}checked{{end}} data-action="save-setting" data-original="{{.Value}}">
+              <span class="as-toggle-slider"></span>
+            </label>
+            {{else if eq .Type "int"}}
+            <input class="as-input as-input-sm" type="number" value="{{.Value}}" data-original="{{.Value}}" data-action="save-setting" style="width:100px">
+            {{else if eq .Type "json"}}
+            <textarea class="as-input as-textarea as-textarea-code" rows="3" data-key="{{.Key}}" data-original="{{.Value}}" data-action="save-setting" style="min-width:280px">{{.Value}}</textarea>
+            <button class="ap-btn as-save-trigger" data-action="save-json" style="font-size:9px;padding:6px 12px">Save</button>
+            {{else}}
+            <input class="as-input as-input-sm" type="text" value="{{.Value}}" data-original="{{.Value}}" data-action="save-setting" style="min-width:200px">
+            {{end}}
+          </div>
+        </div>
+        {{end}}
+        {{end}}
+      </div>
+      {{else}}
+      <div class="as-empty">
+        <div class="as-empty-icon">S</div>
+        <p class="as-empty-desc">No system settings configured. Add entries to the system_settings table to enable configuration.</p>
       </div>
       {{end}}
-      {{end}}
+    </section>
+  </div>
+
+  {{/* ── Add Setting Modal ── */}}
+  <div id="as-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:480px;max-width:90vw;max-height:80vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="font-family:var(--fm);font-size:11px;font-weight:600;color:var(--text)">Add Setting</h3>
+        <button id="as-modal-close" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px">&times;</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="as-form-group">
+          <label class="as-form-label">Key *</label>
+          <input class="as-input" id="as-new-key" type="text" placeholder="e.g. site.name" autocomplete="off">
+        </div>
+        <div class="as-form-group">
+          <label class="as-form-label">Value *</label>
+          <input class="as-input" id="as-new-value" type="text" placeholder="Setting value" autocomplete="off">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="as-form-group">
+            <label class="as-form-label">Type</label>
+            <select class="as-input" id="as-new-type">
+              <option value="string">string</option>
+              <option value="int">int</option>
+              <option value="bool">bool</option>
+              <option value="json">json</option>
+            </select>
+          </div>
+          <div class="as-form-group">
+            <label class="as-form-label">Category</label>
+            <input class="as-input" id="as-new-category" type="text" placeholder="e.g. general" value="general" autocomplete="off">
+          </div>
+        </div>
+        <div class="as-form-group">
+          <label class="as-form-label">Description</label>
+          <textarea class="as-input as-textarea" id="as-new-desc" rows="2" placeholder="What does this setting control?" style="min-height:40px"></textarea>
+        </div>
+        <div id="as-create-error" class="as-toast as-toast-error" style="display:none"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+          <button class="ap-btn" id="as-modal-cancel" style="font-size:10px;padding:8px 16px">Cancel</button>
+          <button class="ap-btn ap-btn-primary" id="as-modal-save" style="font-size:10px;padding:8px 16px">Create Setting</button>
+        </div>
+      </div>
     </div>
-    {{else}}
-    <div class="as-empty">
-      <div class="as-empty-icon" style="font-size:28px;opacity:0.3;text-align:center;padding-top:32px">S</div>
-      <p class="as-empty-desc" style="text-align:center;padding:16px;font-size:11px;color:var(--muted2)">No system settings configured. Add entries to the system_settings table to enable configuration.</p>
-    </div>
-    {{end}}
-  </section>
+  </div>
 </div>
 
 <script src="/static/js/pages/admin/settings.js"></script>

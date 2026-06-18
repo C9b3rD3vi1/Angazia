@@ -74,6 +74,7 @@ type MatchingServiceImpl struct {
 	githubRepo      repository.GitHubRepository
 	matchRepo       repository.MatchRepository
 	notificationSvc NotificationService
+	matcher         *ai.Matcher
 	mu              sync.RWMutex
 }
 
@@ -94,6 +95,7 @@ func NewMatchingService(
 		githubRepo:      githubRepo,
 		matchRepo:       matchRepo,
 		notificationSvc: notificationSvc,
+		matcher:         ai.NewMatcher(),
 	}
 }
 
@@ -126,18 +128,20 @@ func (s *MatchingServiceImpl) GetJobMatches(ctx context.Context, employeeID stri
 
 			analysis, err := s.aiProvider.GenerateMatchAnalysis(ctx, jobDesc, candidateProfile)
 			if err != nil {
-				return
+				analysis = s.fallbackMatchAnalysis(jobDesc, candidateProfile)
 			}
 
+			companyName := ""
 			companyLogo := ""
 			if j.Employer != nil {
+				companyName = j.Employer.CompanyName
 				companyLogo = j.Employer.CompanyLogo
 			}
 			match := &MatchResult{
 				JobID:           j.ID,
 				EmployeeID:      employeeID,
 				JobTitle:        j.Title,
-				CompanyName:     j.Employer.CompanyName,
+				CompanyName:     companyName,
 				CompanyLogo:     companyLogo,
 				OverallScore:    analysis.OverallScore,
 				SkillsScore:     analysis.SkillsScore,
@@ -178,7 +182,7 @@ func (s *MatchingServiceImpl) GetJobMatches(ctx context.Context, employeeID stri
 }
 
 func (s *MatchingServiceImpl) GetCandidateMatches(ctx context.Context, jobID string, employerID string, limit int) ([]*MatchResult, error) {
-	job, err := s.jobRepo.GetByID(ctx, jobID)
+	job, err := s.jobRepo.GetByIDWithEmployer(ctx, jobID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get job: %w", err)
 	}
@@ -211,7 +215,7 @@ func (s *MatchingServiceImpl) GetCandidateMatches(ctx context.Context, jobID str
 
 			analysis, err := s.aiProvider.GenerateMatchAnalysis(ctx, jobDesc, candidateProfile)
 			if err != nil {
-				return
+				analysis = s.fallbackMatchAnalysis(jobDesc, candidateProfile)
 			}
 
 			initials := ""
@@ -270,7 +274,7 @@ func (s *MatchingServiceImpl) GetCandidateMatches(ctx context.Context, jobID str
 }
 
 func (s *MatchingServiceImpl) GetDetailedMatchAnalysis(ctx context.Context, jobID, employeeID string) (*ai.MatchAnalysis, error) {
-	job, err := s.jobRepo.GetByID(ctx, jobID)
+	job, err := s.jobRepo.GetByIDWithEmployer(ctx, jobID)
 	if err != nil {
 		return nil, err
 	}
@@ -283,11 +287,16 @@ func (s *MatchingServiceImpl) GetDetailedMatchAnalysis(ctx context.Context, jobI
 	jobDesc := s.buildJobDescription(job)
 	candidateProfile := s.buildCandidateProfile(employee, githubProfile)
 
-	return s.aiProvider.GenerateMatchAnalysis(ctx, jobDesc, candidateProfile)
+	analysis, err := s.aiProvider.GenerateMatchAnalysis(ctx, jobDesc, candidateProfile)
+	if err != nil {
+		return s.fallbackMatchAnalysis(jobDesc, candidateProfile), nil
+	}
+
+	return analysis, nil
 }
 
 func (s *MatchingServiceImpl) AnalyzeSkillsGap(ctx context.Context, jobID, employeeID string) (*ai.SkillsGapAnalysis, error) {
-	job, err := s.jobRepo.GetByID(ctx, jobID)
+	job, err := s.jobRepo.GetByIDWithEmployer(ctx, jobID)
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +313,7 @@ func (s *MatchingServiceImpl) AnalyzeSkillsGap(ctx context.Context, jobID, emplo
 }
 
 func (s *MatchingServiceImpl) GenerateCoverLetter(ctx context.Context, jobID, employeeID string) (string, error) {
-	job, err := s.jobRepo.GetByID(ctx, jobID)
+	job, err := s.jobRepo.GetByIDWithEmployer(ctx, jobID)
 	if err != nil {
 		return "", err
 	}
@@ -321,7 +330,7 @@ func (s *MatchingServiceImpl) GenerateCoverLetter(ctx context.Context, jobID, em
 }
 
 func (s *MatchingServiceImpl) GenerateInterviewQuestions(ctx context.Context, jobID string) ([]string, error) {
-	job, err := s.jobRepo.GetByID(ctx, jobID)
+	job, err := s.jobRepo.GetByIDWithEmployer(ctx, jobID)
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +424,7 @@ func (s *MatchingServiceImpl) BatchMatchCandidates(ctx context.Context, employee
 
 		analysis, err := s.aiProvider.GenerateMatchAnalysis(ctx, jobDesc, candidateProfile)
 		if err != nil {
-			continue
+			analysis = s.fallbackMatchAnalysis(jobDesc, candidateProfile)
 		}
 
 		s.saveMatch(ctx, job.ID, employeeID, analysis)
@@ -428,6 +437,10 @@ func (s *MatchingServiceImpl) BatchMatchCandidates(ctx context.Context, employee
 // Helper methods
 
 func (s *MatchingServiceImpl) buildJobDescription(job *models.Job) ai.JobDescription {
+	industry := ""
+	if job.Employer != nil {
+		industry = job.Employer.Industry
+	}
 	return ai.JobDescription{
 		ID:               job.ID,
 		Title:            job.Title,
@@ -440,6 +453,7 @@ func (s *MatchingServiceImpl) buildJobDescription(job *models.Job) ai.JobDescrip
 		MinExperience:    job.MinExperience,
 		MaxExperience:    job.MaxExperience,
 		EducationLevel:   job.EducationLevel,
+		Industry:         industry,
 		EmploymentType:   job.EmploymentType,
 		Location:         job.Location,
 		IsRemote:         job.IsRemote,
@@ -455,9 +469,11 @@ func (s *MatchingServiceImpl) buildCandidateProfile(employee *models.EmployeePro
 		Skills:            employee.Skills,
 		ExperienceLevel:   employee.ExperienceLevel,
 		YearsOfExperience: employee.YearsOfExperience,
+		Education:         employee.Education,
 		Location:          employee.Location,
 		IsRemoteOnly:      employee.IsRemoteOnly,
 		GithubUsername:    employee.GetGithubUsername(),
+		ResumeText:        formatExperienceAsText(employee.Experience, employee.Certifications),
 	}
 
 	if githubProfile != nil {
@@ -522,6 +538,112 @@ func (s *MatchingServiceImpl) getUserTypeFromID(ctx context.Context, userID stri
 		return "employee"
 	}
 	return "employer"
+}
+
+func (s *MatchingServiceImpl) fallbackMatchAnalysis(jobDesc ai.JobDescription, candidate ai.CandidateProfile) *ai.MatchAnalysis {
+	matchingSkills, missingSkills, skillsScore := s.matcher.CalculateSkillMatch(jobDesc.RequiredSkills, candidate.Skills)
+	experienceScore := s.matcher.CalculateExperienceMatch(jobDesc.MinExperience, jobDesc.MaxExperience, candidate.YearsOfExperience)
+	locationScore := s.matcher.CalculateLocationMatch(jobDesc.Location, jobDesc.IsRemote, candidate.Location, candidate.IsRemoteOnly)
+	profileCompleteness := calculateProfileCompleteness(candidate)
+	cultureScore := s.matcher.CalculateCultureMatch(candidate.GithubActivity, profileCompleteness)
+	overallScore := s.matcher.CalculateOverallScore(skillsScore, experienceScore, locationScore, cultureScore, nil)
+	recommendation := s.matcher.GetRecommendation(overallScore)
+	summary := s.matcher.GenerateMatchSummary(jobDesc.Title, candidate.FullName, overallScore, matchingSkills, missingSkills)
+
+	return &ai.MatchAnalysis{
+		OverallScore:    overallScore,
+		SkillsScore:     skillsScore,
+		ExperienceScore: experienceScore,
+		CultureScore:    cultureScore,
+		LocationScore:   locationScore,
+		MatchingSkills:  matchingSkills,
+		MissingSkills:   missingSkills,
+		Summary:         summary,
+		Recommendation:  recommendation,
+		AnalysisMetadata: ai.AnalysisMetadata{
+			Provider:   "algorithmic-fallback",
+			AnalyzedAt: time.Now(),
+		},
+	}
+}
+
+func calculateProfileCompleteness(candidate ai.CandidateProfile) int {
+	total := 0
+	fields := 0
+
+	if candidate.FullName != "" {
+		total++
+	}
+	fields++
+	if candidate.Headline != "" {
+		total++
+	}
+	fields++
+	if candidate.Bio != "" {
+		total++
+	}
+	fields++
+	if candidate.Location != "" {
+		total++
+	}
+	fields++
+	if len(candidate.Skills) > 0 {
+		total++
+	}
+	fields++
+	if candidate.Education != "" {
+		total++
+	}
+	fields++
+	if candidate.YearsOfExperience > 0 {
+		total++
+	}
+	fields++
+	if candidate.GithubUsername != "" {
+		total++
+	}
+	fields++
+
+	return (total * 100) / fields
+}
+
+func formatExperienceAsText(exp models.WorkExperiences, certs models.Certifications) string {
+	var parts []string
+
+	for _, e := range exp {
+		line := e.Title
+		if e.Company != "" {
+			line += " at " + e.Company
+		}
+		if e.StartDate != "" || e.EndDate != "" {
+			line += " (" + e.StartDate + " - " + e.EndDate + ")"
+		}
+		if e.Description != "" {
+			line += ": " + e.Description
+		}
+		parts = append(parts, line)
+	}
+
+	for _, c := range certs {
+		line := c.Name
+		if c.Issuer != "" {
+			line += " - " + c.Issuer
+		}
+		if c.Year != "" {
+			line += " (" + c.Year + ")"
+		}
+		parts = append(parts, line)
+	}
+
+	result := ""
+	for i, p := range parts {
+		if i > 0 {
+			result += "\n"
+		}
+		result += p
+	}
+
+	return result
 }
 
 func splitName(name string) []string {

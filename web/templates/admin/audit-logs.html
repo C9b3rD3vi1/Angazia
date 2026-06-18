@@ -1,4 +1,6 @@
 {{/* Admin Audit Logs */}}
+{{define "title"}}Audit Logs{{end}}
+{{define "activePage"}}audit-logs{{end}}
 
 <div class="aal-page" data-page="{{.Page}}" data-total="{{.TotalPages}}" data-limit="{{.Limit}}">
   {{/* ── Page Header ── */}}
@@ -44,12 +46,34 @@
       <span class="aal-date-sep">to</span>
       <input type="date" class="aal-input" id="aal-filter-date-to" value="{{.DateTo}}">
       <button class="aal-btn aal-btn-primary" id="aal-filter-btn">Apply</button>
+      <button class="aal-btn-secondary" id="aal-clear-filters" style="display:none">&#x2716; Clear</button>
     </div>
   </div>
 
+  {{/* ── Summary Bar ── */}}
+  <div class="aal-summary" id="aal-summary">
+    <span class="aal-summary-total" id="aal-total-text"></span>
+    <div class="aal-summary-right">
+      <span class="aal-filter-badge" id="aal-filter-badge"></span>
+      <button class="aal-expand-all" id="aal-expand-all">&#x25BC; Expand All</button>
+    </div>
+  </div>
+
+  {{/* ── Loading State ── */}}
+  <div class="aal-loading" id="aal-loading" style="display:flex">
+    <div class="aal-loading-spinner"></div>
+    <span class="aal-loading-text">Loading audit logs...</span>
+  </div>
+
+  {{/* ── Error State ── */}}
+  <div class="aal-error" id="aal-error">
+    <span class="aal-error-icon">&#x26A0;</span>
+    <span class="aal-error-text" id="aal-error-text"></span>
+    <button class="aal-btn aal-btn-primary" id="aal-error-retry">Retry</button>
+  </div>
+
   {{/* ── Table ── */}}
-  {{if .Logs}}
-  <div class="aal-table-wrap">
+  <div class="aal-table-wrap" id="aal-table-wrap" style="display:none">
     <table class="aal-table">
       <thead>
         <tr>
@@ -62,67 +86,18 @@
           <th>IP Address</th>
         </tr>
       </thead>
-      <tbody id="aal-tbody">
-        {{range .Logs}}
-        <tr class="aal-row" data-log-id="{{.ID}}">
-          <td class="aal-col-expand">
-            <button class="aal-expand-btn" data-expand="{{.ID}}" aria-label="Expand details">&#x25B6;</button>
-          </td>
-          <td>
-            <div class="aal-admin-cell">
-              {{if .Admin.Avatar}}
-              <img src="{{.Admin.Avatar}}" alt="" class="aal-admin-avatar">
-              {{else}}
-              <span class="aal-admin-avatar aal-admin-avatar-text">{{.Admin.Name}}</span>
-              {{end}}
-              <span class="aal-admin-name">{{.Admin.Name}}</span>
-            </div>
-          </td>
-          <td><span class="aal-action-badge aal-action-{{.Action}}">{{.Action}}</span></td>
-          <td><span class="aal-entity-badge aal-entity-{{.EntityType}}">{{.EntityType}}</span></td>
-          <td><code class="aal-entity-id">{{.EntityID}}</code></td>
-          <td class="aal-timestamp">{{.CreatedAt}}</td>
-          <td><code class="aal-ip">{{.IPAddress}}</code></td>
-        </tr>
-        <tr class="aal-detail-row" data-detail-id="{{.ID}}" style="display:none">
-          <td colspan="7">
-            <div class="aal-detail-content">
-              <div class="aal-detail-col">
-                <div class="aal-detail-label">Old Value</div>
-                <pre class="aal-detail-json">{{.OldValue}}</pre>
-              </div>
-              <div class="aal-detail-col">
-                <div class="aal-detail-label">New Value</div>
-                <pre class="aal-detail-json">{{.NewValue}}</pre>
-              </div>
-            </div>
-          </td>
-        </tr>
-        {{end}}
-      </tbody>
+      <tbody id="aal-tbody"></tbody>
     </table>
   </div>
-  {{else}}
-  <div class="aal-empty">
+
+  {{/* ── Empty State ── */}}
+  <div class="aal-empty" id="aal-empty" style="display:none">
     <span class="aal-empty-icon">&#x1F50D;</span>
-    <p class="aal-empty-text">No audit log entries found.</p>
+    <p class="aal-empty-text" id="aal-empty-text">No audit log entries found.</p>
   </div>
-  {{end}}
 
   {{/* ── Pagination ── */}}
-  {{if gt .TotalPages 1}}
-  <div class="aal-pagination" data-page="{{.Page}}" data-total="{{.TotalPages}}" data-limit="{{.Limit}}">
-    <button class="aal-page-btn" data-page="prev" {{if le .Page 1}}disabled{{end}}>&larr; Previous</button>
-    <span class="aal-page-info">Page {{.Page}} of {{.TotalPages}}</span>
-    <button class="aal-page-btn" data-page="next" {{if ge .Page .TotalPages}}disabled{{end}}>Next &rarr;</button>
-  </div>
-  {{end}}
-</div>
-
-{{/* ── Loading Overlay ── */}}
-<div class="aal-loading" id="aal-loading" style="display:none">
-  <div class="aal-loading-spinner"></div>
-  <span class="aal-loading-text">Loading...</span>
+  <div class="aal-pagination" id="aal-pagination"></div>
 </div>
 
 <script src="/static/js/pages/admin/audit-logs.js"></script>

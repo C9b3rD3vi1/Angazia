@@ -1,0 +1,29 @@
+{{define "account_suspended"}}
+<h2>Account Suspended</h2>
+
+<p>Your account on {{.AppName}} has been suspended.</p>
+
+{{if .Reason}}
+<div class="alert-box">
+    <strong>Reason:</strong>
+    <p style="margin-top: 5px;">{{.Reason}}</p>
+</div>
+{{end}}
+
+<div class="warning-box">
+    <strong>What this means:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>You cannot log in to your account</li>
+        <li>Your listings and content are not visible</li>
+        <li>Any active subscriptions are paused</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/contact" class="button">Contact Support</a>
+</div>
+
+<hr>
+
+<p class="text-muted">If you believe this suspension was made in error, please contact our support team immediately.</p>
+{{end}}

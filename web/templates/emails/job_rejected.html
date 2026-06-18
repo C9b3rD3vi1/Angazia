@@ -1,0 +1,30 @@
+{{define "job_rejected"}}
+<h2>Job Posting Update</h2>
+
+<p>Your job posting <strong>{{.JobTitle}}</strong> has been reviewed and was not approved at this time.</p>
+
+{{if .Reason}}
+<div class="alert-box">
+    <strong>Reason:</strong>
+    <p style="margin-top: 5px;">{{.Reason}}</p>
+</div>
+{{end}}
+
+<div class="feature-box">
+    <strong>💡 Suggestions:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Review and update your job description</li>
+        <li>Ensure all required information is provided</li>
+        <li>Make sure your company profile is complete</li>
+        <li>Contact support if you need assistance</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/employer/jobs" class="button">Manage Your Jobs</a>
+</div>
+
+<hr>
+
+<p class="text-muted">If you have questions, please contact our support team.</p>
+{{end}}

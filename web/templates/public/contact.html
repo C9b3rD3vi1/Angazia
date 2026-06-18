@@ -53,75 +53,47 @@
 </div>
 
 <div class="contact-layout">
-  <div class="contact-main">
-    <div class="contact-form-card" id="contact-form-card">
+  <div>
+    <div class="contact-form-card">
+      {{if .Flash}}
+      <div class="form-success" style="display:block">
+        <span class="icon">&#x2705;</span>
+        <h3>Message Sent!</h3>
+        <p>{{.Flash}}</p>
+      </div>
+      {{else}}
       <h2>&#x2709;&#xFE0F; Send Us a Message</h2>
-      <form id="contact-form" onsubmit="return handleContactSubmit(event)">
+      <form action="/contact" method="POST">
         <div class="form-row">
           <div class="form-group">
-            <label for="name">Your Name</label>
-            <input type="text" id="name" name="name" placeholder="e.g. Jane Mwangi" required>
+            <label for="name">YOUR NAME *</label>
+            <input type="text" id="name" name="name" placeholder="John Kamau" required>
           </div>
           <div class="form-group">
-            <label for="email">Email Address</label>
-            <input type="email" id="email" name="email" placeholder="jane@example.com" required>
+            <label for="email">EMAIL ADDRESS *</label>
+            <input type="email" id="email" name="email" placeholder="john@example.com" required>
           </div>
         </div>
         <div class="form-group">
-          <label for="subject">Subject</label>
-          <select id="subject" name="subject" required>
+          <label for="subject">SUBJECT</label>
+          <select id="subject" name="subject">
             <option value="">Select a topic...</option>
-            <option value="general">General Inquiry</option>
-            <option value="support">Technical Support</option>
-            <option value="employer">Employer Partnership</option>
-            <option value="billing">Billing Question</option>
-            <option value="feedback">Feedback</option>
-            <option value="other">Other</option>
+            <option value="General Inquiry">General Inquiry</option>
+            <option value="Technical Support">Technical Support</option>
+            <option value="Feedback">Feedback</option>
+            <option value="Bug Report">Bug Report</option>
+            <option value="Employer Partnership">Employer Partnership</option>
+            <option value="Media & Press">Media & Press</option>
+            <option value="Other">Other</option>
           </select>
         </div>
         <div class="form-group">
-          <label for="message">Message</label>
-          <textarea id="message" name="message" placeholder="Tell us how we can help..." required></textarea>
+          <label for="message">MESSAGE *</label>
+          <textarea id="message" name="message" placeholder="Tell us how we can help you..." required></textarea>
         </div>
-        <button type="submit" class="form-submit">&#x1F680; Send Message</button>
+        <button type="submit" class="form-submit">SEND MESSAGE</button>
       </form>
-      <div class="form-success" id="form-success">
-        <span class="icon">&#x2705;</span>
-        <h3>Message Sent!</h3>
-        <p>Thank you for reaching out. Our team will get back to you within 24 hours.</p>
-      </div>
-    </div>
-
-    <div class="faq-card">
-      <h2>&#x2753; Frequently Asked Questions</h2>
-      <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">
-          How long does it take to get a response?
-          <span class="arrow">&#x25BC;</span>
-        </button>
-        <div class="faq-answer">We aim to respond to all inquiries within 24 hours during business days. For urgent matters, please include "URGENT" in your subject line.</div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">
-          Can I report a bug or suggest a feature?
-          <span class="arrow">&#x25BC;</span>
-        </button>
-        <div class="faq-answer">Absolutely! We welcome bug reports and feature suggestions. Please select "Feedback" as the subject and include as much detail as possible, including screenshots if relevant.</div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">
-          I'm an employer. How do I post a job?
-          <span class="arrow">&#x25BC;</span>
-        </button>
-        <div class="faq-answer">Simply create an employer account and click "Post a Job" from your dashboard. If you need help setting up your company profile, select "Employer Partnership" as your subject and we'll guide you through it.</div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-question" onclick="toggleFaq(this)">
-          Do you offer enterprise pricing?
-          <span class="arrow">&#x25BC;</span>
-        </button>
-        <div class="faq-answer">Yes, we offer custom enterprise plans for organisations with high-volume hiring needs. Select "Employer Partnership" in the form above and a member of our team will reach out with options tailored to your needs.</div>
-      </div>
+      {{end}}
     </div>
   </div>
 
@@ -167,15 +139,6 @@
 </div>
 
 <script>
-function handleContactSubmit(e){
-  e.preventDefault();
-  var card=document.getElementById('contact-form-card');
-  var form=document.getElementById('contact-form');
-  var success=document.getElementById('form-success');
-  form.style.display='none';
-  success.style.display='block';
-  return false;
-}
 function toggleFaq(btn){
   btn.classList.toggle('open');
   var answer=btn.nextElementSibling;
@@ -187,3 +150,36 @@ function toggleFaq(btn){
   }
 }
 </script>
+<div class="faq-card">
+  <h2>&#x2753; Frequently Asked Questions</h2>
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFaq(this)">
+      How long does it take to get a response?
+      <span class="arrow">&#x25BC;</span>
+    </button>
+    <div class="faq-answer">We aim to respond to all inquiries within 24 hours during business days. For urgent matters, please include "URGENT" in your subject line.</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFaq(this)">
+      Can I report a bug or suggest a feature?
+      <span class="arrow">&#x25BC;</span>
+    </button>
+    <div class="faq-answer">Absolutely! We welcome bug reports and feature suggestions. Please select "Feedback" as the subject and include as much detail as possible, including screenshots if relevant.</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFaq(this)">
+      I'm an employer. How do I post a job?
+      <span class="arrow">&#x25BC;</span>
+    </button>
+    <div class="faq-answer">Simply create an employer account and click "Post a Job" from your dashboard. If you need help setting up your company profile, select "Employer Partnership" as your subject and we'll guide you through it.</div>
+  </div>
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFaq(this)">
+      Do you offer enterprise pricing?
+      <span class="arrow">&#x25BC;</span>
+    </button>
+    <div class="faq-answer">Yes, we offer custom enterprise plans for organisations with high-volume hiring needs. Select "Employer Partnership" in the form above and a member of our team will reach out with options tailored to your needs.</div>
+  </div>
+</div>
+
+

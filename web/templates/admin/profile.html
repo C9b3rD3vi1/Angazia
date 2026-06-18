@@ -1,3 +1,5 @@
+{{define "title"}}Profile{{end}}
+{{define "activePage"}}profile{{end}}
 {{/* Admin - Profile */}}
 
 <div class="ap-wrap">
@@ -29,7 +31,7 @@
       </div>
       <div class="ap-info-item">
         <span class="ap-info-label">Member Since</span>
-        <span class="ap-info-value">N/A</span>
+        <span class="ap-info-value">{{or .ProfileUser.CreatedAt "N/A"}}</span>
       </div>
     </div>
   </section>

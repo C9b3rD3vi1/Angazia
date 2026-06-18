@@ -1,4 +1,6 @@
 {{/* Admin User Management */}}
+{{define "title"}}Users{{end}}
+{{define "activePage"}}users{{end}}
 
 <div class="au-page">
   {{/* - Page Header - */}}
@@ -9,6 +11,30 @@
     </div>
     <div class="au-header-actions">
       <button class="au-btn au-btn-ghost" data-action="reload">&#x1F504; Refresh</button>
+    </div>
+  </div>
+
+  {{/* - Stats Cards - */}}
+  <div class="au-stats" id="au-stats">
+    <div class="au-stat-card"><span class="au-stat-label">Total Users</span><span class="au-stat-value" id="au-stat-total">-</span></div>
+    <div class="au-stat-card"><span class="au-stat-label">Active</span><span class="au-stat-value" id="au-stat-active">-</span></div>
+    <div class="au-stat-card"><span class="au-stat-label">New (30d)</span><span class="au-stat-value" id="au-stat-new">-</span></div>
+    <div class="au-stat-card"><span class="au-stat-label">Suspended</span><span class="au-stat-value" id="au-stat-suspended">-</span></div>
+    <div class="au-stat-card"><span class="au-stat-label">Unverified</span><span class="au-stat-value" id="au-stat-unverified">-</span></div>
+  </div>
+
+  {{/* - Growth Chart - */}}
+  <div class="au-chart-card">
+    <div class="au-chart-head">
+      <h3 class="au-chart-title">User Growth</h3>
+      <div class="au-chart-actions">
+        <button class="au-btn au-btn-sm au-btn-ghost au-chart-period active" data-period="7">7d</button>
+        <button class="au-btn au-btn-sm au-btn-ghost au-chart-period" data-period="30">30d</button>
+        <button class="au-btn au-btn-sm au-btn-ghost au-chart-period" data-period="90">90d</button>
+      </div>
+    </div>
+    <div class="au-chart-body">
+      <canvas id="au-growth-chart" height="200"></canvas>
     </div>
   </div>
 
@@ -94,6 +120,7 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 {{/* - Confirm Modal - */}}
 <div class="au-modal-overlay" id="au-modal" style="display:none;">
   <div class="au-modal">

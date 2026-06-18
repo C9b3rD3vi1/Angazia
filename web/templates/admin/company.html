@@ -1,4 +1,6 @@
 {{/* Admin Company Management */}}
+{{define "title"}}Companies{{end}}
+{{define "activePage"}}companies{{end}}
 
 <div class="ac-page">
   <div class="ac-header">
@@ -9,6 +11,33 @@
     <div class="ac-header-actions">
       <button class="ac-btn ac-btn-ghost" data-action="reload">Refresh</button>
     </div>
+  </div>
+
+  <div class="ac-stats" id="ac-stats">
+    <div class="ac-stat-card">
+      <span class="ac-stat-value" id="ac-stat-total">0</span>
+      <span class="ac-stat-label">Total Companies</span>
+    </div>
+    <div class="ac-stat-card">
+      <span class="ac-stat-value" id="ac-stat-verified">0</span>
+      <span class="ac-stat-label">Verified</span>
+    </div>
+    <div class="ac-stat-card">
+      <span class="ac-stat-value" id="ac-stat-pending">0</span>
+      <span class="ac-stat-label">Pending</span>
+    </div>
+    <div class="ac-stat-card">
+      <span class="ac-stat-value" id="ac-stat-rejected">0</span>
+      <span class="ac-stat-label">Rejected</span>
+    </div>
+  </div>
+
+  <div class="ac-tabs" id="ac-tabs">
+    <button class="ac-tab active" data-tab="all">All</button>
+    <button class="ac-tab" data-tab="verified">Verified</button>
+    <button class="ac-tab" data-tab="pending">Pending</button>
+    <button class="ac-tab" data-tab="rejected">Rejected</button>
+    <button class="ac-tab" data-tab="unverified">Unverified</button>
   </div>
 
   <div class="ac-toolbar">
@@ -23,10 +52,15 @@
       <option value="rejected">Rejected</option>
       <option value="unverified">Unverified</option>
     </select>
+    <select class="ac-input ac-select" id="ac-docs-filter">
+      <option value="">All Docs</option>
+      <option value="yes">Has Documents</option>
+      <option value="no">No Documents</option>
+    </select>
     <button class="ac-btn ac-btn-primary" id="ac-apply-filter">Apply</button>
   </div>
 
-  <div class="ac-loading" id="ac-loading">
+  <div class="ac-loading" id="ac-loading" style="display:none;">
     <div class="ac-spinner"></div>
     <p class="ac-loading-text">Loading companies...</p>
   </div>
@@ -36,17 +70,9 @@
     <button class="ac-btn ac-btn-primary" data-action="retry">Retry</button>
   </div>
 
-  <section class="ac-section" id="ac-pending-section">
-    <div class="ac-section-head">
-      <h2 class="ac-section-title">Pending Verifications</h2>
-      <span class="ac-section-count" id="ac-pending-count">0</span>
-    </div>
-    <div id="ac-pending-list">
-      <div class="ac-loading" style="padding: 40px;">
-        <div class="ac-spinner"></div>
-      </div>
-    </div>
-  </section>
+  <div class="ac-empty" id="ac-empty" style="display:none;">
+    <p class="ac-empty-text">No companies found matching your criteria.</p>
+  </div>
 
   <section class="ac-section">
     <div class="ac-section-head">
@@ -61,18 +87,12 @@
             <th>Email</th>
             <th>Verification</th>
             <th>Jobs</th>
+            <th>Docs</th>
             <th>Joined</th>
             <th class="ac-th-actions">Actions</th>
           </tr>
         </thead>
         <tbody id="ac-table-body">
-          <tr>
-            <td colspan="6">
-              <div class="ac-loading" style="padding: 40px;">
-                <div class="ac-spinner"></div>
-              </div>
-            </td>
-          </tr>
         </tbody>
       </table>
     </div>
@@ -81,6 +101,22 @@
   <div class="ac-pagination" id="ac-pagination" style="display:none;">
     <div class="ac-pagi-info" id="ac-pagi-info"></div>
     <div class="ac-pagi-btns" id="ac-pagi-btns"></div>
+  </div>
+</div>
+
+<div class="ac-modal-overlay" id="ac-approve-modal" style="display:none">
+  <div class="ac-modal">
+    <div class="ac-modal-head">
+      <h3 class="ac-modal-title">Approve Company</h3>
+      <button class="ac-modal-close" id="ac-approve-close">&times;</button>
+    </div>
+    <div class="ac-modal-body">
+      <p class="ac-modal-desc">Are you sure you want to approve this company's verification? This will mark the company as verified on the platform.</p>
+    </div>
+    <div class="ac-modal-foot">
+      <button class="ac-btn ac-btn-ghost" id="ac-approve-cancel">Cancel</button>
+      <button class="ac-btn ac-btn-primary" id="ac-approve-confirm">Approve</button>
+    </div>
   </div>
 </div>
 

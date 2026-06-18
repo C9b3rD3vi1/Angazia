@@ -116,101 +116,110 @@
     }
   }
 
-  function generateDataPoints(count, base, variance) {
-    var points = [];
-    var val = base;
-    for (var i = 0; i < count; i++) {
-      val += (Math.random() - 0.48) * variance;
-      if (val < 0) val = 0;
-      points.push(Math.round(val));
-    }
-    return points;
-  }
-
   function drawChart(canvas, type, days) {
     if (!canvas || !canvas.getContext) return;
     var ctx = canvas.getContext('2d');
     var rect = canvas.parentElement.getBoundingClientRect();
     var W = canvas.width = Math.min(canvas.width, rect.width || 800);
     var H = canvas.height = 220;
-    var pad = { top: 16, bottom: 24, left: 40, right: 16 };
-    var chartW = W - pad.left - pad.right;
-    var chartH = H - pad.top - pad.bottom;
 
     ctx.clearRect(0, 0, W, H);
 
-    var base, vari, color;
+    ctx.fillStyle = 'rgba(90,122,114,0.25)';
+    ctx.font = '10px var(--fm, monospace)';
+    ctx.textAlign = 'center';
+    ctx.fillText('Loading...', W / 2, H / 2);
+
+    AngaziaAPI.admin.chartData({ period: days })
+      .then(function (data) {
+        renderChart(ctx, W, H, type, data, days);
+      })
+      .catch(function () {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = 'rgba(90,122,114,0.4)';
+        ctx.font = '12px var(--fm, monospace)';
+        ctx.textAlign = 'center';
+        ctx.fillText('Unable to load chart data', W / 2, H / 2);
+      });
+  }
+
+  function renderChart(ctx, W, H, type, data, days) {
+    if (!data || typeof data !== 'object') return;
+
+    var series = [];
     if (type === 'user-growth') {
-      base = 50;
-      vari = 15;
-      color = '#00e5a0';
-    } else {
-      base = 20;
-      vari = 8;
-      color = '#3d9be9';
+      series = data.user_growth || [];
+    } else if (type === 'job-trend') {
+      series = data.job_postings || [];
     }
 
-    var data = generateDataPoints(days, base, vari);
-    var maxVal = Math.max.apply(null, data);
-    var minVal = Math.min.apply(null, data);
-    if (maxVal === minVal) maxVal = minVal + 1;
-    var range = maxVal - minVal;
+    ctx.clearRect(0, 0, W, H);
 
-    function x(i) { return pad.left + (i / (data.length - 1)) * chartW; }
-    function y(v) { return pad.top + chartH - ((v - minVal) / range) * chartH; }
+    if (!series.length) {
+      ctx.fillStyle = 'rgba(90,122,114,0.4)';
+      ctx.font = '12px var(--fm, monospace)';
+      ctx.textAlign = 'center';
+      ctx.fillText('No data available for this period', W / 2, H / 2);
+      return;
+    }
+
+    var values = series.map(function (p) { return p.count; });
+    var maxVal = Math.max.apply(null, values) || 1;
+    var padding = { top: 20, right: 10, bottom: 25, left: 40 };
+    var chartW = W - padding.left - padding.right;
+    var chartH = H - padding.top - padding.bottom;
+    var barW = Math.max(2, Math.min(12, chartW / values.length - 1));
+    var gap = Math.max(0, Math.min(4, (chartW - barW * values.length) / (values.length - 1)));
+    if (gap < 0) { gap = 0; barW = Math.floor(chartW / values.length); }
 
     // Grid lines
-    ctx.strokeStyle = 'rgba(90,122,114,0.15)';
+    ctx.strokeStyle = 'rgba(90,122,114,0.1)';
     ctx.lineWidth = 1;
     var gridLines = 4;
-    for (var g = 0; g <= gridLines; g++) {
-      var gy = pad.top + (g / gridLines) * chartH;
+    for (var i = 0; i <= gridLines; i++) {
+      var y = padding.top + (chartH / gridLines) * i;
       ctx.beginPath();
-      ctx.moveTo(pad.left, gy);
-      ctx.lineTo(W - pad.right, gy);
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(W - padding.right, y);
       ctx.stroke();
-
-      // Y-axis labels
-      var labelVal = Math.round(maxVal - (g / gridLines) * range);
-      ctx.fillStyle = 'rgba(90,122,114,0.6)';
+      ctx.fillStyle = 'rgba(90,122,114,0.5)';
       ctx.font = '9px var(--fm, monospace)';
       ctx.textAlign = 'right';
-      ctx.fillText(labelVal, pad.left - 6, gy + 3);
+      ctx.fillText(Math.round(maxVal - (maxVal / gridLines) * i), padding.left - 4, y + 3);
     }
 
-    // Fill area
-    ctx.beginPath();
-    ctx.moveTo(x(0), y(data[0]));
-    for (var i = 1; i < data.length; i++) {
-      ctx.lineTo(x(i), y(data[i]));
-    }
-    ctx.lineTo(x(data.length - 1), H - pad.bottom);
-    ctx.lineTo(x(0), H - pad.bottom);
-    ctx.closePath();
-    var grad = ctx.createLinearGradient(0, pad.top, 0, H - pad.bottom);
-    grad.addColorStop(0, color + '40');
-    grad.addColorStop(1, color + '05');
-    ctx.fillStyle = grad;
-    ctx.fill();
+    // Bars
+    var barColor = type === 'user-growth' ? '#3b82f6' : '#22c55e';
 
-    // Line
-    ctx.beginPath();
-    ctx.moveTo(x(0), y(data[0]));
-    for (var i = 1; i < data.length; i++) {
-      ctx.lineTo(x(i), y(data[i]));
+    for (var i = 0; i < values.length; i++) {
+      var barH = maxVal > 0 ? (values[i] / maxVal) * chartH : 0;
+      var x = padding.left + i * (barW + gap);
+      var y = padding.top + chartH - barH;
+
+      ctx.fillStyle = barColor;
+      ctx.globalAlpha = Math.min(0.9, 0.5 + (values[i] / maxVal) * 0.4);
+      ctx.fillRect(x, y, barW, barH);
+
+      var labelInterval = Math.max(1, Math.floor(values.length / 8));
+      if (i % labelInterval === 0) {
+        ctx.fillStyle = 'rgba(90,122,114,0.5)';
+        ctx.font = '8px var(--fm, monospace)';
+        ctx.textAlign = 'center';
+        var label = series[i].date || '';
+        if (label.length > 5) label = label.slice(5);
+        ctx.fillText(label, x + barW / 2, H - 5);
+      }
     }
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
+
+    ctx.globalAlpha = 1;
+
+    // Baseline
+    ctx.strokeStyle = 'rgba(90,122,114,0.2)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top + chartH);
+    ctx.lineTo(W - padding.right, padding.top + chartH);
     ctx.stroke();
-
-    // Dot at latest
-    var lastIdx = data.length - 1;
-    ctx.beginPath();
-    ctx.arc(x(lastIdx), y(data[lastIdx]), 3, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
   }
 
   /* ── Polling & Updates ── */
@@ -232,12 +241,28 @@
   }
 
   function fetchStats() {
-    return AngaziaAPI.get('/admin/stats/platform')
-      .then(function (data) {
-        updateStatCards(data);
-        updateLastUpdated();
-      })
-      .catch(function () {});
+    return Promise.all([
+      AngaziaAPI.admin.platformStats(),
+      AngaziaAPI.admin.jobStats(),
+      AngaziaAPI.admin.moderation({ status: 'pending', limit: 1 })
+    ]).then(function (results) {
+      var platform = results[0] || {};
+      var jobStats = results[1] || {};
+      var modData = results[2] || {};
+
+      var mapped = {};
+      mapped.total_users = platform.total_users;
+      mapped.total_companies = platform.total_employers;
+      mapped.active_jobs = platform.active_jobs;
+      mapped.applications = platform.total_applications;
+      mapped.mrr = platform.mrr;
+      mapped.active_users = platform.active_users_30_days;
+      mapped.pending_verifications = modData.total !== undefined ? modData.total : 0;
+      mapped.reports = 0;
+
+      updateStatCards(mapped);
+      updateLastUpdated();
+    }).catch(function () {});
   }
 
   function fetchPendingVerifications() {
@@ -306,22 +331,17 @@
     var cards = document.querySelectorAll('.ad-stat-card');
     if (!cards.length) return;
 
-    var fields = [
-      'total_users', 'total_companies', 'active_jobs', 'applications',
-      'mrr', 'active_users', 'pending_verifications', 'reports'
-    ];
-
-    for (var i = 0; i < cards.length && i < fields.length; i++) {
+    for (var i = 0; i < cards.length; i++) {
       var card = cards[i];
-      var valEl = card.querySelector('.ad-stat-value');
       var statAttr = card.getAttribute('data-stat');
-      var apiKey = statAttr;
-      if (data[apiKey] === undefined) continue;
+      if (!statAttr || data[statAttr] === undefined) continue;
 
-      var newVal = formatStatValue(data[apiKey]);
-      var isCurrency = statAttr === 'mrr';
-      if (isCurrency) {
-        newVal = Number(data[apiKey]).toLocaleString();
+      var valEl = card.querySelector('.ad-stat-value');
+      if (!valEl) continue;
+
+      var newVal = formatStatValue(data[statAttr]);
+      if (statAttr === 'mrr') {
+        newVal = Number(data[statAttr]).toLocaleString();
       }
       if (valEl.textContent !== newVal) {
         animateValue(card);
@@ -406,7 +426,7 @@
   function approveCompany(btn, companyId) {
     btn.disabled = true;
     btn.textContent = 'Approving...';
-    AngaziaAPI.post('/admin/companies/' + companyId + '/verify')
+    AngaziaAPI.admin.verifyCompany(companyId)
       .then(function () {
         showToast('Verification approved', 'success');
         removeVerificationItem(btn);
@@ -431,7 +451,7 @@
       body.reason = reason.trim();
     }
 
-    AngaziaAPI.post('/admin/companies/' + companyId + '/reject', body)
+    AngaziaAPI.admin.rejectCompany(companyId, body)
       .then(function () {
         showToast('Verification rejected', 'success');
         removeVerificationItem(btn);

@@ -29,11 +29,109 @@ func NewJobHandler(jobService services.JobService, companyService services.Compa
 
 // ── Page rendering handlers ──
 
-// JobsPage renders the public job listings page
+// JobsPage renders the public job listings page with real data
 func (h *JobHandler) JobsPage(c *fiber.Ctx) error {
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+
+	filters := &services.JobFilters{}
+	if q := c.Query("q"); q != "" {
+		filters.Title = q
+	}
+	if loc := c.Query("location"); loc != "" {
+		filters.Location = loc
+	}
+	if t := c.Query("type"); t != "" {
+		filters.EmploymentType = t
+	}
+	if salMin := c.Query("salaryMin"); salMin != "" {
+		if v, err := strconv.Atoi(salMin); err == nil {
+			filters.MinSalary = v
+		}
+	}
+	if salMax := c.Query("salaryMax"); salMax != "" {
+		if v, err := strconv.Atoi(salMax); err == nil {
+			filters.MaxSalary = v
+		}
+	}
+
+	result, err := h.jobService.ListJobs(c.Context(), filters, page, limit)
+	if err != nil {
+		return c.Render("public/jobs", fiber.Map{
+			"Title":      "Tech Jobs in Kenya - Find Your Next Role",
+			"ActivePage": "jobs",
+			"jobs":       []fiber.Map{},
+			"pagination": fiber.Map{"total": 0, "totalPages": 0},
+			"filters":    fiber.Map{},
+		}, "layouts/base")
+	}
+
+	var jobs []fiber.Map
+	for _, job := range result.Jobs {
+		companyName := ""
+		if job.Employer != nil {
+			companyName = job.Employer.CompanyName
+		}
+		jobs = append(jobs, fiber.Map{
+			"id":         job.ID,
+			"title":      job.Title,
+			"company":    companyName,
+			"location":   job.Location,
+			"salary":     formatJobSalary(job),
+			"type":       job.EmploymentType,
+			"postedDate": job.PostedAt.Format("Jan 2, 2006"),
+		})
+	}
+
+	totalPages := int(result.Total) / limit
+	if int(result.Total)%limit != 0 {
+		totalPages++
+	}
+
+	var pages []fiber.Map
+	for i := 1; i <= totalPages; i++ {
+		pages = append(pages, fiber.Map{
+			"page":   i,
+			"active": i == page,
+		})
+	}
+
+	prevPage := page - 1
+	if prevPage < 1 {
+		prevPage = 0
+	}
+	nextPage := page + 1
+	if nextPage > totalPages {
+		nextPage = 0
+	}
+
+	filterMap := fiber.Map{
+		"keyword":   c.Query("q"),
+		"location":  c.Query("location"),
+		"type":      c.Query("type"),
+		"salaryMin": c.Query("salaryMin"),
+		"salaryMax": c.Query("salaryMax"),
+	}
+
 	return c.Render("public/jobs", fiber.Map{
 		"Title":      "Tech Jobs in Kenya - Find Your Next Role",
 		"ActivePage": "jobs",
+		"jobs":       jobs,
+		"pagination": fiber.Map{
+			"total":      result.Total,
+			"totalPages": totalPages,
+			"prevPage":   prevPage,
+			"nextPage":   nextPage,
+			"limit":      limit,
+			"pages":      pages,
+		},
+		"filters": filterMap,
 	}, "layouts/base")
 }
 

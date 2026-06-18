@@ -1,0 +1,22 @@
+{{define "account_activated"}}
+<h2>Account Reactivated! 🎉</h2>
+
+<p>Great news! Your account on {{.AppName}} has been reactivated.</p>
+
+<div class="success-box">
+    <strong>✅ What this means for you:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>You can now log in to your account normally</li>
+        <li>All your listings and content are visible again</li>
+        <li>Any active subscriptions have been resumed</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/dashboard" class="button">Go to Dashboard</a>
+</div>
+
+<hr>
+
+<p class="text-muted">Thank you for being a valued member of {{.AppName}}.</p>
+{{end}}

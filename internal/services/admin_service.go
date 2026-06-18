@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/C9b3rD3vi1/Angazia/internal/config"
@@ -16,21 +18,21 @@ type SearchService interface {
 	SearchJobs(ctx context.Context, filters models.SearchFilters, page, limit int) (*models.SearchResponse, error)
 	SearchCandidates(ctx context.Context, filters models.SearchFilters, page, limit int) (*models.SearchResponse, error)
 	SearchCompanies(ctx context.Context, filters models.SearchFilters, page, limit int) (*models.SearchResponse, error)
-	
+
 	// Facets
 	GetJobFacets(ctx context.Context, filters models.SearchFilters) (*models.FacetResult, error)
-	
+
 	// Search history
 	SaveSearchHistory(ctx context.Context, userID string, query string, filters models.SearchFilters, entityType string, resultsCount int, ipAddress, userAgent string) error
 	GetSearchHistory(ctx context.Context, userID string, limit int) ([]*models.SearchQuery, error)
 	GetPopularSearches(ctx context.Context, days, limit int) ([]PopularSearch, error)
-	
+
 	// Saved searches
 	SaveSearch(ctx context.Context, userID string, name string, filters models.SearchFilters, entityType string, frequency string) (*models.SavedSearch, error)
 	GetSavedSearches(ctx context.Context, userID string, entityType string) ([]*models.SavedSearch, error)
 	DeleteSavedSearch(ctx context.Context, id, userID string) error
 	RunSavedSearch(ctx context.Context, id, userID string) (*models.SearchResponse, error)
-	
+
 	// Auto-complete
 	AutoComplete(ctx context.Context, prefix string, entityType string, limit int) ([]string, error)
 }
@@ -40,11 +42,20 @@ type PopularSearch struct {
 	Count int    `json:"count"`
 }
 
+type SystemHealth struct {
+	API             bool  `json:"api"`
+	APILatency      int64 `json:"api_latency"`
+	Database        bool  `json:"database"`
+	DatabaseLatency int64 `json:"database_latency"`
+	Redis           bool  `json:"redis"`
+	Elasticsearch   bool  `json:"elasticsearch"`
+}
+
 type SearchServiceImpl struct {
-	cfg         *config.Config
-	searchRepo  repository.SearchRepository
-	jobRepo     repository.JobRepository
-	userRepo    repository.UserRepository
+	cfg        *config.Config
+	searchRepo repository.SearchRepository
+	jobRepo    repository.JobRepository
+	userRepo   repository.UserRepository
 }
 
 func NewSearchService(
@@ -63,7 +74,7 @@ func NewSearchService(
 
 func (s *SearchServiceImpl) SearchJobs(ctx context.Context, filters models.SearchFilters, page, limit int) (*models.SearchResponse, error) {
 	startTime := time.Now()
-	
+
 	if page < 1 {
 		page = 1
 	}
@@ -73,34 +84,65 @@ func (s *SearchServiceImpl) SearchJobs(ctx context.Context, filters models.Searc
 	if limit > 100 {
 		limit = 100
 	}
-	
+
 	jobs, total, err := s.searchRepo.SearchJobs(ctx, filters, page, limit)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	results := make([]models.SearchResult, len(jobs))
+	keywords := strings.Fields(filters.Keywords)
 	for i, job := range jobs {
+		score := 1.0
+		if len(keywords) > 0 {
+			matchCount := 0
+			checks := 0
+			for _, kw := range keywords {
+				kwLower := strings.ToLower(kw)
+				if strings.Contains(strings.ToLower(job.Title), kwLower) {
+					matchCount++
+				}
+				checks++
+				if strings.Contains(strings.ToLower(job.Description), kwLower) {
+					matchCount++
+				}
+				checks++
+				for _, skill := range job.RequiredSkills {
+					if strings.Contains(strings.ToLower(skill), kwLower) {
+						matchCount++
+						break
+					}
+				}
+				checks++
+				if strings.Contains(strings.ToLower(job.Location), kwLower) {
+					matchCount++
+				}
+				checks++
+			}
+			if checks > 0 {
+				score = float64(matchCount) / float64(checks)
+			}
+		}
 		results[i] = models.SearchResult{
 			ID:          job.ID,
 			Type:        "job",
 			Title:       job.Title,
 			Description: job.Description,
-			Score:       1.0,
+			Score:       score,
 			Data:        job,
 		}
 	}
-	
+
 	totalPages := int(total) / limit
 	if int(total)%limit > 0 {
 		totalPages++
 	}
-	
+
 	// Get facets
 	facets, _ := s.searchRepo.GetJobFacets(ctx, filters)
-	
+
 	searchTimeMs := time.Since(startTime).Milliseconds()
-	
+
 	return &models.SearchResponse{
 		Results:      results,
 		Total:        total,
@@ -114,7 +156,7 @@ func (s *SearchServiceImpl) SearchJobs(ctx context.Context, filters models.Searc
 
 func (s *SearchServiceImpl) SearchCandidates(ctx context.Context, filters models.SearchFilters, page, limit int) (*models.SearchResponse, error) {
 	startTime := time.Now()
-	
+
 	if page < 1 {
 		page = 1
 	}
@@ -124,31 +166,58 @@ func (s *SearchServiceImpl) SearchCandidates(ctx context.Context, filters models
 	if limit > 100 {
 		limit = 100
 	}
-	
+
 	candidates, total, err := s.searchRepo.SearchCandidates(ctx, filters, page, limit)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	results := make([]models.SearchResult, len(candidates))
+	keywords := strings.Fields(filters.Keywords)
 	for i, candidate := range candidates {
+		score := 1.0
+		if len(keywords) > 0 {
+			matchCount := 0
+			checks := 0
+			for _, kw := range keywords {
+				kwLower := strings.ToLower(kw)
+				if strings.Contains(strings.ToLower(candidate.FullName), kwLower) {
+					matchCount++
+				}
+				checks++
+				if strings.Contains(strings.ToLower(candidate.Headline), kwLower) {
+					matchCount++
+				}
+				checks++
+				for _, skill := range candidate.Skills {
+					if strings.Contains(strings.ToLower(skill), kwLower) {
+						matchCount++
+						break
+					}
+				}
+				checks++
+			}
+			if checks > 0 {
+				score = float64(matchCount) / float64(checks)
+			}
+		}
 		results[i] = models.SearchResult{
 			ID:          candidate.UserID,
 			Type:        "candidate",
 			Title:       candidate.FullName,
 			Description: candidate.Headline,
-			Score:       1.0,
+			Score:       score,
 			Data:        candidate,
 		}
 	}
-	
+
 	totalPages := int(total) / limit
 	if int(total)%limit > 0 {
 		totalPages++
 	}
-	
+
 	searchTimeMs := time.Since(startTime).Milliseconds()
-	
+
 	return &models.SearchResponse{
 		Results:      results,
 		Total:        total,
@@ -161,7 +230,7 @@ func (s *SearchServiceImpl) SearchCandidates(ctx context.Context, filters models
 
 func (s *SearchServiceImpl) SearchCompanies(ctx context.Context, filters models.SearchFilters, page, limit int) (*models.SearchResponse, error) {
 	startTime := time.Now()
-	
+
 	if page < 1 {
 		page = 1
 	}
@@ -171,31 +240,51 @@ func (s *SearchServiceImpl) SearchCompanies(ctx context.Context, filters models.
 	if limit > 100 {
 		limit = 100
 	}
-	
+
 	companies, total, err := s.searchRepo.SearchCompanies(ctx, filters, page, limit)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	results := make([]models.SearchResult, len(companies))
+	keywords := strings.Fields(filters.Keywords)
 	for i, company := range companies {
+		score := 1.0
+		if len(keywords) > 0 {
+			matchCount := 0
+			checks := 0
+			for _, kw := range keywords {
+				kwLower := strings.ToLower(kw)
+				if strings.Contains(strings.ToLower(company.CompanyName), kwLower) {
+					matchCount++
+				}
+				checks++
+				if strings.Contains(strings.ToLower(company.CompanyDescription), kwLower) {
+					matchCount++
+				}
+				checks++
+			}
+			if checks > 0 {
+				score = float64(matchCount) / float64(checks)
+			}
+		}
 		results[i] = models.SearchResult{
 			ID:          company.UserID,
 			Type:        "company",
 			Title:       company.CompanyName,
 			Description: company.CompanyDescription,
-			Score:       1.0,
+			Score:       score,
 			Data:        company,
 		}
 	}
-	
+
 	totalPages := int(total) / limit
 	if int(total)%limit > 0 {
 		totalPages++
 	}
-	
+
 	searchTimeMs := time.Since(startTime).Milliseconds()
-	
+
 	return &models.SearchResponse{
 		Results:      results,
 		Total:        total,
@@ -211,8 +300,6 @@ func (s *SearchServiceImpl) GetJobFacets(ctx context.Context, filters models.Sea
 }
 
 func (s *SearchServiceImpl) SaveSearchHistory(ctx context.Context, userID string, query string, filters models.SearchFilters, entityType string, resultsCount int, ipAddress, userAgent string) error {
-	filtersJSON, _ := json.Marshal(filters)
-	
 	searchQuery := &models.SearchQuery{
 		UserID:       userID,
 		Query:        query,
@@ -222,8 +309,7 @@ func (s *SearchServiceImpl) SaveSearchHistory(ctx context.Context, userID string
 		IPAddress:    ipAddress,
 		UserAgent:    userAgent,
 	}
-	_ = filtersJSON
-	
+
 	return s.searchRepo.LogSearch(ctx, searchQuery)
 }
 
@@ -247,12 +333,12 @@ func (s *SearchServiceImpl) GetPopularSearches(ctx context.Context, days, limit 
 	if limit > 50 {
 		limit = 50
 	}
-	
+
 	results, err := s.searchRepo.GetPopularSearches(ctx, days, limit)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	popular := make([]PopularSearch, len(results))
 	for i, r := range results {
 		popular[i] = PopularSearch{
@@ -260,7 +346,7 @@ func (s *SearchServiceImpl) GetPopularSearches(ctx context.Context, days, limit 
 			Count: r.Count,
 		}
 	}
-	
+
 	return popular, nil
 }
 
@@ -268,7 +354,7 @@ func (s *SearchServiceImpl) SaveSearch(ctx context.Context, userID string, name 
 	if frequency == "" {
 		frequency = "daily"
 	}
-	
+
 	savedSearch := &models.SavedSearch{
 		UserID:     userID,
 		Name:       name,
@@ -277,11 +363,11 @@ func (s *SearchServiceImpl) SaveSearch(ctx context.Context, userID string, name 
 		Frequency:  frequency,
 		IsActive:   true,
 	}
-	
+
 	if err := s.searchRepo.SaveSearch(ctx, savedSearch); err != nil {
 		return nil, err
 	}
-	
+
 	return savedSearch, nil
 }
 
@@ -298,7 +384,7 @@ func (s *SearchServiceImpl) RunSavedSearch(ctx context.Context, id, userID strin
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var target *models.SavedSearch
 	for _, search := range searches {
 		if search.ID == id {
@@ -306,14 +392,14 @@ func (s *SearchServiceImpl) RunSavedSearch(ctx context.Context, id, userID strin
 			break
 		}
 	}
-	
+
 	if target == nil {
 		return nil, fmt.Errorf("saved search not found")
 	}
-	
+
 	// Update last run timestamp
 	s.searchRepo.UpdateSavedSearchLastRun(ctx, id)
-	
+
 	switch target.EntityType {
 	case "job":
 		return s.SearchJobs(ctx, target.Filters, 1, 20)
@@ -333,22 +419,47 @@ func (s *SearchServiceImpl) AutoComplete(ctx context.Context, prefix string, ent
 	if limit > 20 {
 		limit = 20
 	}
-	
+
+	seen := make(map[string]struct{})
 	var suggestions []string
-	
+
 	switch entityType {
 	case "job":
-		var titles []string
-		s.searchRepo.SearchJobs(ctx, models.SearchFilters{Keywords: prefix}, 1, limit)
-		_ = titles
-		// Simplified - would query actual job titles
-		suggestions = []string{prefix + " Developer", prefix + " Engineer", "Senior " + prefix}
+		jobs, _, err := s.searchRepo.SearchJobs(ctx, models.SearchFilters{Keywords: prefix}, 1, limit)
+		if err == nil {
+			for _, j := range jobs {
+				if j != nil && j.Title != "" {
+					if _, ok := seen[j.Title]; !ok {
+						seen[j.Title] = struct{}{}
+						suggestions = append(suggestions, j.Title)
+					}
+				}
+			}
+		}
+		if len(suggestions) == 0 {
+			suggestions = append(suggestions, prefix)
+		}
 	case "skill":
-		suggestions = []string{prefix, prefix + " Development", prefix + " Programming", "Advanced " + prefix}
+		jobs, _, err := s.searchRepo.SearchJobs(ctx, models.SearchFilters{Keywords: prefix}, 1, limit)
+		if err == nil {
+			for _, j := range jobs {
+				if j != nil {
+					for _, skill := range j.RequiredSkills {
+						if _, ok := seen[skill]; !ok {
+							seen[skill] = struct{}{}
+							suggestions = append(suggestions, skill)
+						}
+					}
+				}
+			}
+		}
+		if len(suggestions) == 0 {
+			suggestions = append(suggestions, prefix)
+		}
 	default:
-		suggestions = []string{prefix}
+		suggestions = append(suggestions, prefix)
 	}
-	
+
 	return suggestions, nil
 }
 
@@ -367,17 +478,30 @@ type AdminService interface {
 	ActivateUser(ctx context.Context, userID string) error
 	DeleteUser(ctx context.Context, userID string) error
 	VerifyUser(ctx context.Context, userID string) error
-	GetModerationQueue(ctx context.Context, entityType, status string, page, limit int) ([]*models.ModerationQueue, int64, error)
+	GetModerationQueue(ctx context.Context, entityType, status string, page, limit int, dateFrom, dateTo *time.Time) ([]*models.ModerationQueue, int64, error)
+	GetModerationItem(ctx context.Context, id string) (*models.ModerationQueue, error)
 	ApproveContent(ctx context.Context, id, reviewerID string) error
 	RejectContent(ctx context.Context, id, reviewerID, reason string) error
 	GetSettings(ctx context.Context, category string) ([]*models.SystemSetting, error)
 	UpdateSetting(ctx context.Context, key, value string) error
+	CreateSetting(ctx context.Context, key, value, settingType, category, description string, isPublic bool) error
 	ApproveCompanyVerification(ctx context.Context, adminID, companyID string) error
 	RejectCompanyVerification(ctx context.Context, adminID, companyID, reason string) error
 	GetPendingVerifications(ctx context.Context, page, limit int) (*PendingVerificationsResponse, error)
 	GetReportReasons(ctx context.Context, entityType string) ([]*models.ReportReason, error)
+	CreateReportReason(ctx context.Context, reason *models.ReportReason) error
+	UpdateReportReason(ctx context.Context, id string, updates map[string]interface{}) error
+	DeleteReportReason(ctx context.Context, id string) error
 	GetAuditLogs(ctx context.Context, filters map[string]interface{}, page, limit int) ([]*models.AdminActionLog, int64, error)
 	ReportContent(ctx context.Context, submittedBy string, req ReportContentRequest) error
+	CheckHealth(ctx context.Context) (*SystemHealth, error)
+	GetPendingReportsCount(ctx context.Context) (int64, error)
+	GetJobEngagementMetrics(ctx context.Context, jobID string) (uniqueViews int, savesCount int, err error)
+	GetAdminJobs(ctx context.Context, filters map[string]interface{}, page, limit int) ([]*models.AdminJobReport, int64, error)
+	GetJobApplications(ctx context.Context, jobID, status string, page, limit int) ([]*models.Application, int64, error)
+	GetChartData(ctx context.Context, period int) (*models.ChartData, error)
+	GetUsersByIDs(ctx context.Context, ids []string) (map[string]*models.User, error)
+	GetAdminUserIDs(ctx context.Context) ([]string, error)
 }
 
 type ReportContentRequest struct {
@@ -388,24 +512,26 @@ type ReportContentRequest struct {
 }
 
 type PendingVerificationsResponse struct {
-    Verifications []*models.CompanyVerification `json:"verifications"`
-    Total         int64                         `json:"total"`
-    Page          int                           `json:"page"`
-    Limit         int                           `json:"limit"`
-    TotalPages    int                           `json:"total_pages"`
+	Verifications []*models.CompanyVerification `json:"verifications"`
+	Total         int64                         `json:"total"`
+	Page          int                           `json:"page"`
+	Limit         int                           `json:"limit"`
+	TotalPages    int                           `json:"total_pages"`
 }
 
 type VerificationStats struct {
-    TotalPending   int64 `json:"total_pending"`
-    TotalApproved  int64 `json:"total_approved"`
-    TotalRejected  int64 `json:"total_rejected"`
-    TotalSubmitted int64 `json:"total_submitted"`
-    AverageWaitTimeDays float64 `json:"average_wait_time_days"`
+	TotalPending        int64   `json:"total_pending"`
+	TotalApproved       int64   `json:"total_approved"`
+	TotalRejected       int64   `json:"total_rejected"`
+	TotalSubmitted      int64   `json:"total_submitted"`
+	AverageWaitTimeDays float64 `json:"average_wait_time_days"`
 }
 
 type AdminServiceImpl struct {
-	cfg       *config.Config
-	adminRepo repository.AdminRepository
+	cfg                 *config.Config
+	adminRepo           repository.AdminRepository
+	notificationService NotificationService
+	emailService        EmailService
 }
 
 func NewAdminService(cfg *config.Config, adminRepo repository.AdminRepository) AdminService {
@@ -413,6 +539,14 @@ func NewAdminService(cfg *config.Config, adminRepo repository.AdminRepository) A
 		cfg:       cfg,
 		adminRepo: adminRepo,
 	}
+}
+
+func (s *AdminServiceImpl) SetNotificationService(ns NotificationService) {
+	s.notificationService = ns
+}
+
+func (s *AdminServiceImpl) SetEmailService(es EmailService) {
+	s.emailService = es
 }
 
 func (s *AdminServiceImpl) GetPlatformStats(ctx context.Context) (*models.PlatformStats, error) {
@@ -440,11 +574,29 @@ func (s *AdminServiceImpl) GetUserDetails(ctx context.Context, userID string) (*
 }
 
 func (s *AdminServiceImpl) SuspendUser(ctx context.Context, userID string) error {
-	return s.adminRepo.SuspendUser(ctx, userID, true)
+	if err := s.adminRepo.SuspendUser(ctx, userID, true); err != nil {
+		return err
+	}
+
+	// Send notification
+	if s.notificationService != nil {
+		s.notificationService.NotifyUserSuspended(ctx, userID)
+	}
+
+	return nil
 }
 
 func (s *AdminServiceImpl) ActivateUser(ctx context.Context, userID string) error {
-	return s.adminRepo.SuspendUser(ctx, userID, false)
+	if err := s.adminRepo.SuspendUser(ctx, userID, false); err != nil {
+		return err
+	}
+
+	// Send notification
+	if s.notificationService != nil {
+		s.notificationService.NotifyUserActivated(ctx, userID)
+	}
+
+	return nil
 }
 
 func (s *AdminServiceImpl) DeleteUser(ctx context.Context, userID string) error {
@@ -455,16 +607,50 @@ func (s *AdminServiceImpl) VerifyUser(ctx context.Context, userID string) error 
 	return s.adminRepo.VerifyUser(ctx, userID, true)
 }
 
-func (s *AdminServiceImpl) GetModerationQueue(ctx context.Context, entityType, status string, page, limit int) ([]*models.ModerationQueue, int64, error) {
-	return s.adminRepo.GetModerationQueue(ctx, entityType, status, page, limit)
+func (s *AdminServiceImpl) GetModerationQueue(ctx context.Context, entityType, status string, page, limit int, dateFrom, dateTo *time.Time) ([]*models.ModerationQueue, int64, error) {
+	return s.adminRepo.GetModerationQueue(ctx, entityType, status, page, limit, dateFrom, dateTo)
+}
+
+func (s *AdminServiceImpl) GetModerationItem(ctx context.Context, id string) (*models.ModerationQueue, error) {
+	return s.adminRepo.GetModerationItem(ctx, id)
 }
 
 func (s *AdminServiceImpl) ApproveContent(ctx context.Context, id, reviewerID string) error {
-	return s.adminRepo.ApproveModeration(ctx, id, reviewerID)
+	// Fetch the item first to know entity type and submitter
+	item, fetchErr := s.adminRepo.GetModerationItem(ctx, id)
+	if fetchErr != nil {
+		fmt.Printf("Warning: Could not fetch moderation item %s for notification: %v\n", id, fetchErr)
+	}
+
+	if err := s.adminRepo.ApproveModeration(ctx, id, reviewerID); err != nil {
+		return err
+	}
+
+	// Send notification to submitter
+	if item != nil && item.SubmittedBy != "" && s.notificationService != nil {
+		s.notificationService.NotifyContentApproved(ctx, item.SubmittedBy, item.EntityType, item.EntityID)
+	}
+
+	return nil
 }
 
 func (s *AdminServiceImpl) RejectContent(ctx context.Context, id, reviewerID, reason string) error {
-	return s.adminRepo.RejectModeration(ctx, id, reviewerID, reason)
+	// Fetch the item first to know entity type and submitter
+	item, fetchErr := s.adminRepo.GetModerationItem(ctx, id)
+	if fetchErr != nil {
+		fmt.Printf("Warning: Could not fetch moderation item %s for notification: %v\n", id, fetchErr)
+	}
+
+	if err := s.adminRepo.RejectModeration(ctx, id, reviewerID, reason); err != nil {
+		return err
+	}
+
+	// Send notification to submitter
+	if item != nil && item.SubmittedBy != "" && s.notificationService != nil {
+		s.notificationService.NotifyContentRejected(ctx, item.SubmittedBy, item.EntityType, item.EntityID, reason)
+	}
+
+	return nil
 }
 
 func (s *AdminServiceImpl) GetSettings(ctx context.Context, category string) ([]*models.SystemSetting, error) {
@@ -475,121 +661,189 @@ func (s *AdminServiceImpl) UpdateSetting(ctx context.Context, key, value string)
 	return s.adminRepo.UpdateSetting(ctx, key, value)
 }
 
-// ApproveCompanyVerification approves a company verification request
-func (s *AdminServiceImpl) ApproveCompanyVerification(ctx context.Context, adminID, companyID string) error {
-    // First, check if employer profile exists
-    profile, err := s.adminRepo.GetUserDetails(ctx, companyID)
-    if err != nil || profile == nil {
-        return fmt.Errorf("company not found")
-    }
-    
-    // Directly update employer profile verification status
-    if err := s.adminRepo.UpdateEmployerVerificationStatus(ctx, companyID, "verified"); err != nil {
-        return fmt.Errorf("failed to update company status: %w", err)
-    }
-    
-    // Update or create verification record
-    verification, err := s.adminRepo.GetVerificationByCompanyID(ctx, companyID)
-    if err != nil {
-        // Create new verification record if doesn't exist
-        verification = &models.CompanyVerification{
-            CompanyID:   companyID,
-            Status:      "approved",
-            VerifiedBy:  &adminID,
-            VerifiedAt:  timePtr(time.Now()),
-            SubmittedAt: time.Now(),
-        }
-        if err := s.adminRepo.CreateCompanyVerification(ctx, verification); err != nil {
-            // Log error but don't fail since employer profile is already updated
-            fmt.Printf("Warning: Failed to create verification record: %v\n", err)
-        }
-    } else {
-        // Update existing verification
-        if err := s.adminRepo.ApproveCompanyVerification(ctx, companyID, adminID); err != nil {
-            // Log error but don't fail since employer profile is already updated
-            fmt.Printf("Warning: Failed to update verification record: %v\n", err)
-        }
-    }
-    
-    // Log action
-    log := &models.AdminActionLog{
-        AdminID:    adminID,
-        Action:     "approve_company",
-        EntityType: "company",
-        EntityID:   companyID,
-        NewValue:   map[string]interface{}{"verification_status": "verified"},
-    }
-    s.adminRepo.LogAction(ctx, log)
-    
-    return nil
+func (s *AdminServiceImpl) CreateSetting(ctx context.Context, key, value, settingType, category, description string, isPublic bool) error {
+	return s.adminRepo.SetSetting(ctx, key, value, settingType, category, description, isPublic)
 }
 
-// RejectCompanyVerification rejects a company verification request
-// RejectCompanyVerification rejects a company verification request
+// ApproveCompanyVerification approves a company verification request
+func (s *AdminServiceImpl) ApproveCompanyVerification(ctx context.Context, adminID, companyID string) error {
+	profile, err := s.adminRepo.GetUserDetails(ctx, companyID)
+	if err != nil || profile == nil {
+		return fmt.Errorf("company not found")
+	}
+
+	if err := s.adminRepo.UpdateEmployerVerificationStatus(ctx, companyID, "verified"); err != nil {
+		return fmt.Errorf("failed to update company status: %w", err)
+	}
+
+	verification, err := s.adminRepo.GetVerificationByCompanyID(ctx, companyID)
+	if err != nil {
+		verification = &models.CompanyVerification{
+			CompanyID:   companyID,
+			Status:      "approved",
+			VerifiedBy:  &adminID,
+			VerifiedAt:  timePtr(time.Now()),
+			SubmittedAt: time.Now(),
+		}
+		if err := s.adminRepo.CreateCompanyVerification(ctx, verification); err != nil {
+			fmt.Printf("Warning: Failed to create verification record: %v\n", err)
+		}
+	} else {
+		if err := s.adminRepo.ApproveCompanyVerification(ctx, companyID, adminID); err != nil {
+			fmt.Printf("Warning: Failed to update verification record: %v\n", err)
+		}
+	}
+
+	log := &models.AdminActionLog{
+		AdminID:    adminID,
+		Action:     "approve_company",
+		EntityType: "company",
+		EntityID:   companyID,
+		NewValue:   map[string]interface{}{"verification_status": "verified"},
+	}
+	s.adminRepo.LogAction(ctx, log)
+
+	// Send notification and email to company owner
+	companyName := profile.CompanyName
+	if companyName == "" {
+		companyName = profile.FullName
+	}
+	if s.notificationService != nil {
+		s.notificationService.NotifyCompanyVerified(ctx, companyID, companyName)
+	}
+	if s.emailService != nil {
+		s.emailService.SendVerificationApprovedEmail(profile.Email, companyName)
+	}
+
+	return nil
+}
+
+func (s *AdminServiceImpl) GetJobApplications(ctx context.Context, jobID, status string, page, limit int) ([]*models.Application, int64, error) {
+	return s.adminRepo.GetJobApplications(ctx, jobID, status, page, limit)
+}
+
 func (s *AdminServiceImpl) RejectCompanyVerification(ctx context.Context, adminID, companyID, reason string) error {
-    // First, check if employer profile exists
-    profile, err := s.adminRepo.GetUserDetails(ctx, companyID)
-    if err != nil || profile == nil {
-        return fmt.Errorf("company not found")
-    }
-    
-    // Validate reason
-    if reason == "" {
-        return fmt.Errorf("rejection reason is required")
-    }
-    
-    // Directly update employer profile verification status
-    if err := s.adminRepo.UpdateEmployerVerificationStatus(ctx, companyID, "rejected"); err != nil {
-        return fmt.Errorf("failed to update company status: %w", err)
-    }
-    
-    // Update or create verification record
-    verification, err := s.adminRepo.GetVerificationByCompanyID(ctx, companyID)
-    if err != nil {
-        // Create new verification record if doesn't exist
-        verification = &models.CompanyVerification{
-            CompanyID:        companyID,
-            Status:           "rejected",
-            RejectionReason:  reason,
-            VerifiedBy:       &adminID,
-            VerifiedAt:       timePtr(time.Now()),
-            SubmittedAt:      time.Now(),
-        }
-        if err := s.adminRepo.CreateCompanyVerification(ctx, verification); err != nil {
-            // Log error but don't fail since employer profile is already updated
-            fmt.Printf("Warning: Failed to create verification record: %v\n", err)
-        }
-    } else {
-        // Update existing verification
-        if err := s.adminRepo.RejectCompanyVerification(ctx, companyID, reason, adminID); err != nil {
-            // Log error but don't fail since employer profile is already updated
-            fmt.Printf("Warning: Failed to update verification record: %v\n", err)
-        }
-    }
-    
-    // Log action
-    log := &models.AdminActionLog{
-        AdminID:    adminID,
-        Action:     "reject_company",
-        EntityType: "company",
-        EntityID:   companyID,
-        NewValue: map[string]interface{}{
-            "verification_status": "rejected",
-            "reason": reason,
-        },
-    }
-    s.adminRepo.LogAction(ctx, log)
-    
-    return nil
+	profile, err := s.adminRepo.GetUserDetails(ctx, companyID)
+	if err != nil || profile == nil {
+		return fmt.Errorf("company not found")
+	}
+
+	if reason == "" {
+		return fmt.Errorf("rejection reason is required")
+	}
+
+	if err := s.adminRepo.UpdateEmployerVerificationStatus(ctx, companyID, "rejected"); err != nil {
+		return fmt.Errorf("failed to update company status: %w", err)
+	}
+
+	verification, err := s.adminRepo.GetVerificationByCompanyID(ctx, companyID)
+	if err != nil {
+		verification = &models.CompanyVerification{
+			CompanyID:       companyID,
+			Status:          "rejected",
+			RejectionReason: reason,
+			VerifiedBy:      &adminID,
+			VerifiedAt:      timePtr(time.Now()),
+			SubmittedAt:     time.Now(),
+		}
+		if err := s.adminRepo.CreateCompanyVerification(ctx, verification); err != nil {
+			fmt.Printf("Warning: Failed to create verification record: %v\n", err)
+		}
+	} else {
+		if err := s.adminRepo.RejectCompanyVerification(ctx, companyID, reason, adminID); err != nil {
+			fmt.Printf("Warning: Failed to update verification record: %v\n", err)
+		}
+	}
+
+	log := &models.AdminActionLog{
+		AdminID:    adminID,
+		Action:     "reject_company",
+		EntityType: "company",
+		EntityID:   companyID,
+		NewValue: map[string]interface{}{
+			"verification_status": "rejected",
+			"reason":              reason,
+		},
+	}
+	s.adminRepo.LogAction(ctx, log)
+
+	// Send notification and email to company owner
+	companyName := profile.CompanyName
+	if companyName == "" {
+		companyName = profile.FullName
+	}
+	if s.notificationService != nil {
+		s.notificationService.NotifyCompanyRejected(ctx, companyID, companyName, reason)
+	}
+	if s.emailService != nil {
+		s.emailService.SendVerificationRejectedEmail(profile.Email, companyName, reason)
+	}
+
+	return nil
 }
 
 func timePtr(t time.Time) *time.Time {
-    return &t
+	return &t
 }
 
+func (s *AdminServiceImpl) CheckHealth(ctx context.Context) (*SystemHealth, error) {
+	health := &SystemHealth{API: true}
+
+	dbLatency, dbErr := s.adminRepo.PingDatabase(ctx)
+	health.Database = dbErr == nil
+	health.DatabaseLatency = dbLatency
+
+	if s.cfg.RedisHost != "" {
+		addr := net.JoinHostPort(s.cfg.RedisHost, s.cfg.RedisPort)
+		conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
+		if err == nil {
+			health.Redis = true
+			conn.Close()
+		}
+	}
+
+	if s.cfg.ElasticsearchURL != "" {
+		client := &http.Client{Timeout: 2 * time.Second}
+		resp, err := client.Get(s.cfg.ElasticsearchURL + "/_cluster/health")
+		if err == nil {
+			health.Elasticsearch = true
+			resp.Body.Close()
+		}
+	}
+
+	return health, nil
+}
+
+func (s *AdminServiceImpl) GetPendingReportsCount(ctx context.Context) (int64, error) {
+	return s.adminRepo.GetPendingReportsCount(ctx)
+}
+
+func (s *AdminServiceImpl) GetJobEngagementMetrics(ctx context.Context, jobID string) (int, int, error) {
+	return s.adminRepo.GetJobEngagementMetrics(ctx, jobID)
+}
 
 func (s *AdminServiceImpl) GetReportReasons(ctx context.Context, entityType string) ([]*models.ReportReason, error) {
 	return s.adminRepo.GetReportReasons(ctx, entityType)
+}
+
+func (s *AdminServiceImpl) CreateReportReason(ctx context.Context, reason *models.ReportReason) error {
+	return s.adminRepo.CreateReportReason(ctx, reason)
+}
+
+func (s *AdminServiceImpl) UpdateReportReason(ctx context.Context, id string, updates map[string]interface{}) error {
+	return s.adminRepo.UpdateReportReason(ctx, id, updates)
+}
+
+func (s *AdminServiceImpl) DeleteReportReason(ctx context.Context, id string) error {
+	return s.adminRepo.DeleteReportReason(ctx, id)
+}
+
+func (s *AdminServiceImpl) GetUsersByIDs(ctx context.Context, ids []string) (map[string]*models.User, error) {
+	return s.adminRepo.GetUsersByIDs(ctx, ids)
+}
+
+func (s *AdminServiceImpl) GetAdminUserIDs(ctx context.Context) ([]string, error) {
+	return s.adminRepo.GetAdminUserIDs(ctx)
 }
 
 func (s *AdminServiceImpl) GetAuditLogs(ctx context.Context, filters map[string]interface{}, page, limit int) ([]*models.AdminActionLog, int64, error) {
@@ -604,38 +858,73 @@ func (s *AdminServiceImpl) ReportContent(ctx context.Context, submittedBy string
 		Reason:      req.Description,
 		SubmittedBy: submittedBy,
 	}
-	return s.adminRepo.AddToModerationQueue(ctx, item)
+	if err := s.adminRepo.AddToModerationQueue(ctx, item); err != nil {
+		return err
+	}
+
+	// Notify all admin users about the new report
+	if s.notificationService != nil {
+		adminIDs, err := s.adminRepo.GetAdminUserIDs(ctx)
+		if err == nil && len(adminIDs) > 0 {
+			for _, adminID := range adminIDs {
+				s.notificationService.NotifyAdminNewReport(ctx, adminID, req.EntityType, req.EntityID)
+			}
+		}
+	}
+
+	return nil
 }
 
+func (s *AdminServiceImpl) GetChartData(ctx context.Context, period int) (*models.ChartData, error) {
+	if period < 1 {
+		period = 30
+	}
+	if period > 365 {
+		period = 365
+	}
+	return s.adminRepo.GetChartData(ctx, period)
+}
 
 // GetPendingVerifications - Get all pending verifications with pagination
-func (s *AdminServiceImpl) GetPendingVerifications(ctx context.Context, page, limit int) (*PendingVerificationsResponse, error) {
-    if page < 1 {
-        page = 1
-    }
-    if limit < 1 {
-        limit = 20
-    }
-    if limit > 100 {
-        limit = 100
-    }
-    
-    verifications, total, err := s.adminRepo.GetPendingVerifications(ctx, page, limit)
-    if err != nil {
-        return nil, err
-    }
-    
-    totalPages := int(total) / limit
-    if int(total)%limit > 0 {
-        totalPages++
-    }
-    
-    return &PendingVerificationsResponse{
-        Verifications: verifications,
-        Total:         total,
-        Page:          page,
-        Limit:         limit,
-        TotalPages:    totalPages,
-    }, nil
+func (s *AdminServiceImpl) GetAdminJobs(ctx context.Context, filters map[string]interface{}, page, limit int) ([]*models.AdminJobReport, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	return s.adminRepo.GetAdminJobs(ctx, filters, page, limit)
 }
 
+func (s *AdminServiceImpl) GetPendingVerifications(ctx context.Context, page, limit int) (*PendingVerificationsResponse, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	verifications, total, err := s.adminRepo.GetPendingVerifications(ctx, page, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int(total) / limit
+	if int(total)%limit > 0 {
+		totalPages++
+	}
+
+	return &PendingVerificationsResponse{
+		Verifications: verifications,
+		Total:         total,
+		Page:          page,
+		Limit:         limit,
+		TotalPages:    totalPages,
+	}, nil
+}

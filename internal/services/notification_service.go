@@ -19,12 +19,12 @@ type NotificationService interface {
 	// Create and send notifications
 	SendNotification(ctx context.Context, userID string, notif *NotificationInput) (*models.Notification, error)
 	SendBulkNotifications(ctx context.Context, userIDs []string, notif *NotificationInput) error
-	
+
 	// Get notifications
 	GetNotifications(ctx context.Context, userID string, params *models.NotificationListParams) (*models.NotificationListResponse, error)
 	GetUnreadNotifications(ctx context.Context, userID string, limit int) ([]*models.Notification, error)
 	GetNotification(ctx context.Context, id, userID string) (*models.Notification, error)
-	
+
 	// Notification actions
 	MarkAsRead(ctx context.Context, id, userID string) error
 	MarkMultipleAsRead(ctx context.Context, ids []string, userID string) error
@@ -32,14 +32,14 @@ type NotificationService interface {
 	Archive(ctx context.Context, id, userID string) error
 	Delete(ctx context.Context, id, userID string) error
 	DeleteAll(ctx context.Context, userID string) error
-	
+
 	// Counts
 	GetUnreadCount(ctx context.Context, userID string) (*models.NotificationCounts, error)
-	
+
 	// Preferences
 	GetPreferences(ctx context.Context, userID string) (*models.NotificationPreferences, error)
 	UpdatePreferences(ctx context.Context, userID string, req *UpdatePreferencesRequest) (*models.NotificationPreferences, error)
-	
+
 	// Cleanup
 	DeleteOldNotifications(ctx context.Context, days int) error
 	StartCleanupRoutine(ctx context.Context, interval time.Duration, retentionDays int)
@@ -63,6 +63,18 @@ type NotificationService interface {
 
 	// Withdrawal trigger
 	NotifyApplicationWithdrawn(ctx context.Context, employerID string, jobID string, employeeName string) error
+
+	// Admin action triggers
+	NotifyJobApproved(ctx context.Context, employerID string, jobID string, jobTitle string) error
+	NotifyJobRejected(ctx context.Context, employerID string, jobID string, jobTitle string, reason string) error
+	NotifyContentApproved(ctx context.Context, reporterID string, entityType string, entityID string) error
+	NotifyContentRejected(ctx context.Context, reporterID string, entityType string, entityID string, reason string) error
+	NotifyCompanyVerified(ctx context.Context, companyID string, companyName string) error
+	NotifyCompanyRejected(ctx context.Context, companyID string, companyName string, reason string) error
+	NotifyUserSuspended(ctx context.Context, userID string) error
+	NotifyUserActivated(ctx context.Context, userID string) error
+	NotifyAdminNewReport(ctx context.Context, adminID string, entityType string, entityID string) error
+	NotifyAdminNewVerificationRequest(ctx context.Context, adminID string, companyName string) error
 }
 
 type NotificationInput struct {
@@ -76,21 +88,21 @@ type NotificationInput struct {
 }
 
 type UpdatePreferencesRequest struct {
-	PushEnabled        *bool `json:"push_enabled"`
-	PushSound          *bool `json:"push_sound"`
-	EmailEnabled       *bool `json:"email_enabled"`
-	EmailDigest        *bool `json:"email_digest"`
-	InAppEnabled       *bool `json:"in_app_enabled"`
-	ApplicationUpdates *bool `json:"application_updates"`
-	JobAlerts          *bool `json:"job_alerts"`
-	InterviewReminders *bool `json:"interview_reminders"`
-	Messages           *bool `json:"messages"`
+	PushEnabled        *bool   `json:"push_enabled"`
+	PushSound          *bool   `json:"push_sound"`
+	EmailEnabled       *bool   `json:"email_enabled"`
+	EmailDigest        *bool   `json:"email_digest"`
+	InAppEnabled       *bool   `json:"in_app_enabled"`
+	ApplicationUpdates *bool   `json:"application_updates"`
+	JobAlerts          *bool   `json:"job_alerts"`
+	InterviewReminders *bool   `json:"interview_reminders"`
+	Messages           *bool   `json:"messages"`
 	SystemAlerts       *bool   `json:"system_alerts"`
 	Marketing          *bool   `json:"marketing"`
 	DigestFrequency    *string `json:"digest_frequency"`
 	QuietHoursEnabled  *bool   `json:"quiet_hours_enabled"`
-	QuietStartHour     *int  `json:"quiet_start_hour"`
-	QuietEndHour       *int  `json:"quiet_end_hour"`
+	QuietStartHour     *int    `json:"quiet_start_hour"`
+	QuietEndHour       *int    `json:"quiet_end_hour"`
 	QuietTimezone      *string `json:"quiet_timezone"`
 }
 
@@ -129,12 +141,12 @@ func (s *NotificationServiceImpl) SendNotification(ctx context.Context, userID s
 		}
 		s.notificationRepo.CreatePreferences(ctx, prefs)
 	}
-	
+
 	// Check if notification type is enabled
 	if !s.isNotificationTypeEnabled(prefs, input.Type) {
 		return nil, nil
 	}
-	
+
 	// Check quiet hours — defer instead of dropping
 	if s.isInQuietHours(prefs) {
 		return s.deferNotification(ctx, userID, input, prefs)
@@ -162,7 +174,7 @@ func (s *NotificationServiceImpl) SendNotification(ctx context.Context, userID s
 		IsRead:    false,
 		CreatedAt: time.Now(),
 	}
-	
+
 	now := time.Now()
 	notification.CreatedAt = now
 	notification.DeliveredAt = &now
@@ -173,11 +185,11 @@ func (s *NotificationServiceImpl) SendNotification(ctx context.Context, userID s
 	if notification.Icon == "" {
 		notification.Icon = s.getIconForType(input.Type)
 	}
-	
+
 	if err := s.notificationRepo.Create(ctx, notification); err != nil {
 		return nil, fmt.Errorf("failed to create notification: %w", err)
 	}
-	
+
 	// Send real-time via WebSocket if in-app enabled
 	if prefs.InAppEnabled {
 		s.websocketHub.SendToUser(userID, models.WebSocketMessage{
@@ -186,12 +198,12 @@ func (s *NotificationServiceImpl) SendNotification(ctx context.Context, userID s
 			Timestamp: time.Now(),
 		})
 	}
-	
+
 	// Send email if enabled and high priority
 	if prefs.EmailEnabled && input.Priority == "high" {
 		go s.sendEmailNotification(notification, userID)
 	}
-	
+
 	return notification, nil
 }
 
@@ -364,7 +376,7 @@ func (s *NotificationServiceImpl) GetPreferences(ctx context.Context, userID str
 
 func (s *NotificationServiceImpl) UpdatePreferences(ctx context.Context, userID string, req *UpdatePreferencesRequest) (*models.NotificationPreferences, error) {
 	updates := make(map[string]interface{})
-	
+
 	if req.PushEnabled != nil {
 		updates["push_enabled"] = *req.PushEnabled
 	}
@@ -413,13 +425,13 @@ func (s *NotificationServiceImpl) UpdatePreferences(ctx context.Context, userID 
 	if req.QuietTimezone != nil {
 		updates["quiet_timezone"] = *req.QuietTimezone
 	}
-	
+
 	if len(updates) > 0 {
 		if err := s.notificationRepo.UpdatePreferences(ctx, userID, updates); err != nil {
 			return nil, err
 		}
 	}
-	
+
 	return s.GetPreferences(ctx, userID)
 }
 
@@ -433,12 +445,12 @@ func (s *NotificationServiceImpl) NotifyApplicationStatusChange(ctx context.Cont
 		"interview":   "Interview scheduled for your application",
 		"withdrawn":   "You have withdrawn your application",
 	}
-	
+
 	message, ok := statusMessages[status]
 	if !ok {
 		message = "Your application status has been updated"
 	}
-	
+
 	input := &NotificationInput{
 		Type:      "application",
 		Title:     "Application Status Update",
@@ -447,7 +459,7 @@ func (s *NotificationServiceImpl) NotifyApplicationStatusChange(ctx context.Cont
 		ActionURL: fmt.Sprintf("/employee/applications/%s", applicationID),
 		Icon:      "briefcase",
 	}
-		
+
 	_, err := s.SendNotification(ctx, employeeID, input)
 	return err
 }
@@ -475,7 +487,7 @@ func (s *NotificationServiceImpl) NotifyNewApplication(ctx context.Context, jobI
 		ActionURL: fmt.Sprintf("/employer/jobs/%s/applications", jobID),
 		Icon:      "user-plus",
 	}
-	
+
 	_, err := s.SendNotification(ctx, employerID, input)
 	return err
 }
@@ -489,7 +501,7 @@ func (s *NotificationServiceImpl) NotifyNewJobMatch(ctx context.Context, employe
 		ActionURL: fmt.Sprintf("/jobs/%s", jobID),
 		Icon:      "star",
 	}
-	
+
 	_, err := s.SendNotification(ctx, employeeID, input)
 	return err
 }
@@ -503,7 +515,7 @@ func (s *NotificationServiceImpl) NotifyJobAlert(ctx context.Context, employeeID
 		ActionURL: "/jobs",
 		Icon:      "bell",
 	}
-	
+
 	_, err := s.SendNotification(ctx, employeeID, input)
 	return err
 }
@@ -522,7 +534,7 @@ func (s *NotificationServiceImpl) NotifyMessageReceived(ctx context.Context, use
 		ActionURL: messagesPath,
 		Icon:      "message",
 	}
-	
+
 	_, err := s.SendNotification(ctx, userID, input)
 	return err
 }
@@ -607,17 +619,17 @@ func (s *NotificationServiceImpl) deferNotification(ctx context.Context, userID 
 	}
 
 	notification := &models.Notification{
-		UserID:      userID,
-		Type:        input.Type,
-		Title:       input.Title,
-		Content:     input.Content,
-		Metadata:    metadata,
-		ActionURL:   input.ActionURL,
-		Icon:        input.Icon,
-		Priority:    input.Priority,
-		IsRead:      false,
+		UserID:       userID,
+		Type:         input.Type,
+		Title:        input.Title,
+		Content:      input.Content,
+		Metadata:     metadata,
+		ActionURL:    input.ActionURL,
+		Icon:         input.Icon,
+		Priority:     input.Priority,
+		IsRead:       false,
 		ScheduledFor: &scheduledFor,
-		CreatedAt:   time.Now(),
+		CreatedAt:    time.Now(),
 	}
 
 	if notification.Priority == "" {
@@ -768,7 +780,7 @@ func (s *NotificationServiceImpl) getIconForType(notifType string) string {
 		"system":      "settings",
 		"marketing":   "megaphone",
 	}
-	
+
 	if icon, ok := icons[notifType]; ok {
 		return icon
 	}
@@ -812,4 +824,148 @@ func (s *NotificationServiceImpl) sendEmailNotification(notification *models.Not
 	textBody := notification.Title + "\n\n" + notification.Content
 
 	s.emailService.SendNotificationEmail(user.Email, notification.Title, htmlBody, textBody, user.Email)
+}
+
+// Admin action notification triggers
+
+func (s *NotificationServiceImpl) NotifyJobApproved(ctx context.Context, employerID string, jobID string, jobTitle string) error {
+	input := &NotificationInput{
+		Type:      "system",
+		Title:     "Job Approved",
+		Content:   fmt.Sprintf("Your job \"%s\" has been approved and is now live", jobTitle),
+		Priority:  "high",
+		ActionURL: fmt.Sprintf("/employer/jobs/%s", jobID),
+		Icon:      "check-circle",
+	}
+	_, err := s.SendNotification(ctx, employerID, input)
+	return err
+}
+
+func (s *NotificationServiceImpl) NotifyJobRejected(ctx context.Context, employerID string, jobID string, jobTitle string, reason string) error {
+	content := fmt.Sprintf("Your job \"%s\" has been rejected", jobTitle)
+	if reason != "" {
+		content += ": " + reason
+	}
+	input := &NotificationInput{
+		Type:      "system",
+		Title:     "Job Rejected",
+		Content:   content,
+		Priority:  "high",
+		ActionURL: fmt.Sprintf("/employer/jobs/%s", jobID),
+		Icon:      "x-circle",
+	}
+	_, err := s.SendNotification(ctx, employerID, input)
+	return err
+}
+
+func (s *NotificationServiceImpl) NotifyContentApproved(ctx context.Context, reporterID string, entityType string, entityID string) error {
+	input := &NotificationInput{
+		Type:      "system",
+		Title:     "Report Resolved",
+		Content:   fmt.Sprintf("Your report on %s has been reviewed and resolved", entityType),
+		Priority:  "normal",
+		ActionURL: "/reports",
+		Icon:      "flag",
+	}
+	_, err := s.SendNotification(ctx, reporterID, input)
+	return err
+}
+
+func (s *NotificationServiceImpl) NotifyContentRejected(ctx context.Context, reporterID string, entityType string, entityID string, reason string) error {
+	content := fmt.Sprintf("Your report on %s was reviewed", entityType)
+	if reason != "" {
+		content += ": " + reason
+	}
+	input := &NotificationInput{
+		Type:      "system",
+		Title:     "Report Update",
+		Content:   content,
+		Priority:  "normal",
+		ActionURL: "/reports",
+		Icon:      "flag",
+	}
+	_, err := s.SendNotification(ctx, reporterID, input)
+	return err
+}
+
+func (s *NotificationServiceImpl) NotifyCompanyVerified(ctx context.Context, companyID string, companyName string) error {
+	input := &NotificationInput{
+		Type:      "system",
+		Title:     "Company Verified",
+		Content:   fmt.Sprintf("Your company \"%s\" has been verified successfully", companyName),
+		Priority:  "high",
+		ActionURL: fmt.Sprintf("/employer/company"),
+		Icon:      "shield-check",
+	}
+	_, err := s.SendNotification(ctx, companyID, input)
+	return err
+}
+
+func (s *NotificationServiceImpl) NotifyCompanyRejected(ctx context.Context, companyID string, companyName string, reason string) error {
+	content := fmt.Sprintf("Your company \"%s\" verification was rejected", companyName)
+	if reason != "" {
+		content += ": " + reason
+	}
+	input := &NotificationInput{
+		Type:      "system",
+		Title:     "Verification Update",
+		Content:   content,
+		Priority:  "high",
+		ActionURL: "/employer/settings",
+		Icon:      "shield-off",
+	}
+	_, err := s.SendNotification(ctx, companyID, input)
+	return err
+}
+
+func (s *NotificationServiceImpl) NotifyUserSuspended(ctx context.Context, userID string) error {
+	input := &NotificationInput{
+		Type:      "system",
+		Title:     "Account Suspended",
+		Content:   "Your account has been suspended. Please contact support for more information.",
+		Priority:  "high",
+		ActionURL: "/contact",
+		Icon:      "alert-triangle",
+	}
+	_, err := s.SendNotification(ctx, userID, input)
+	return err
+}
+
+func (s *NotificationServiceImpl) NotifyUserActivated(ctx context.Context, userID string) error {
+	input := &NotificationInput{
+		Type:      "system",
+		Title:     "Account Reactivated",
+		Content:   "Your account has been reactivated. You can now use all features normally.",
+		Priority:  "high",
+		ActionURL: "/dashboard",
+		Icon:      "check-circle",
+	}
+	_, err := s.SendNotification(ctx, userID, input)
+	return err
+}
+
+func (s *NotificationServiceImpl) NotifyAdminNewReport(ctx context.Context, adminID string, entityType string, entityID string) error {
+	input := &NotificationInput{
+		Type:      "system",
+		Title:     "New Content Report",
+		Content:   fmt.Sprintf("A new report has been submitted for %s", entityType),
+		Priority:  "high",
+		ActionURL: fmt.Sprintf("/admin/reports?entity_type=%s", entityType),
+		Icon:      "flag",
+	}
+	_, err := s.SendNotification(ctx, adminID, input)
+	return err
+}
+
+func (s *NotificationServiceImpl) NotifyAdminNewVerificationRequest(ctx context.Context, adminID string, companyName string) error {
+	input := &NotificationInput{
+		Type:      "system",
+		Title:     "New Verification Request",
+		Content:   fmt.Sprintf("Company \"%s\" has submitted a verification request", companyName),
+		Priority:  "high",
+		ActionURL: "/admin/companies?status=pending",
+		Icon:      "shield",
+	}
+	_, err := s.SendNotification(ctx, adminID, input)
+	return err
 }

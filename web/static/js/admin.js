@@ -77,8 +77,7 @@
     var logoutBtn = target.closest('[data-action="logout"]');
     if (logoutBtn) {
       e.preventDefault();
-      localStorage.removeItem('angazia_access_token');
-      localStorage.removeItem('angazia_refresh_token');
+      if (window.AngaziaAPI) AngaziaAPI.clearTokens();
       window.location.href = '/admin/logout';
       return;
     }
@@ -109,5 +108,15 @@
     aInitNavbar();
     aFetchNotifCount();
     setInterval(aFetchNotifCount, 30000);
+
+    if (window.AngaziaAPI && AngaziaAPI.setOnUnauthorized) {
+      AngaziaAPI.setOnUnauthorized(function () {
+        localStorage.removeItem('angazia_access_token');
+        localStorage.removeItem('angazia_refresh_token');
+        if (window.location.pathname !== '/admin/login') {
+          window.location.href = '/admin/login';
+        }
+      });
+    }
   });
 })();

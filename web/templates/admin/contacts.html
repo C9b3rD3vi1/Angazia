@@ -1,0 +1,160 @@
+<style>
+:root{--bg:#050a0a;--s1:#0c1414;--s2:#111e1e;--s3:#162020;--border:#1a2e2e;--border2:#243e3e;--accent:#00e5a0;--accent-dim:#00b87a;--text:#ddeee8;--muted:#5a7a72;--muted2:#3d5a54;--fh:'Syne',sans-serif;--fm:'DM Mono',monospace;--fb:'Instrument Sans',sans-serif;--radius:2px;--danger:#ef4444;--warn:#f59e0b}
+.page-title{margin:0 0 24px;font-family:var(--fh);font-size:28px;font-weight:800;letter-spacing:-1px;color:var(--text)}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.stat-card{background:var(--s1);border:1px solid var(--border);padding:20px}
+.stat-card .label{font-family:var(--fm);font-size:10px;letter-spacing:.5px;color:var(--muted2);margin-bottom:6px}
+.stat-card .value{font-family:var(--fh);font-size:28px;font-weight:700;color:var(--text)}
+.stat-card .sub{font-size:12px;color:var(--muted);margin-top:4px}
+.contacts-table-wrap{background:var(--s1);border:1px solid var(--border);overflow-x:auto}
+.contacts-table{width:100%;border-collapse:collapse;min-width:700px}
+.contacts-table th{font-family:var(--fm);font-size:10px;letter-spacing:.5px;color:var(--muted2);padding:14px 16px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+.contacts-table td{padding:14px 16px;border-bottom:1px solid var(--border);font-size:14px;color:var(--text);vertical-align:top}
+.contacts-table tr:last-child td{border-bottom:none}
+.contacts-table tr:hover{background:var(--s2)}
+.contacts-table tr.unread{background:rgba(0,229,160,.04)}
+.contacts-table tr.unread td{font-weight:600}
+.msg-preview{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:13px;display:block}
+.subject-cell{font-weight:inherit;color:var(--text)}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.status-dot.unread{background:var(--accent)}
+.status-dot.read{background:var(--muted2)}
+.actions-cell{white-space:nowrap}
+.action-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 12px;font-family:var(--fm);font-size:10px;cursor:pointer;letter-spacing:.5px;transition:all .15s;margin-right:4px}
+.action-btn:hover{border-color:var(--accent);color:var(--accent)}
+.action-btn.danger:hover{border-color:var(--danger);color:var(--danger)}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--s1);border:1px solid var(--border);width:100%;max-width:560px;max-height:80vh;overflow-y:auto}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-header h3{margin:0;font-family:var(--fh);font-size:16px;color:var(--text)}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0;line-height:1}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:24px}
+.modal-body .field{margin-bottom:16px}
+.modal-body .field .label{font-family:var(--fm);font-size:10px;letter-spacing:.5px;color:var(--muted2);margin-bottom:4px}
+.modal-body .field .val{font-size:14px;color:var(--text);line-height:1.6}
+.modal-body .field .val a{color:var(--accent);text-decoration:none}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.modal-footer .btn{font-family:var(--fm);font-size:11px;padding:8px 20px;border:none;cursor:pointer;letter-spacing:.5px;transition:background .15s}
+.modal-footer .btn-secondary{background:var(--s3);color:var(--muted)}
+.modal-footer .btn-secondary:hover{color:var(--text)}
+.modal-footer .btn-primary{background:var(--accent);color:var(--bg)}
+.modal-footer .btn-primary:hover{background:var(--accent-dim)}
+.modal-footer .btn-danger{background:var(--danger);color:#fff}
+.modal-footer .btn-danger:hover{opacity:.85}
+.search-bar{display:flex;gap:12px;margin-bottom:20px;align-items:center}
+.search-bar input{flex:1;background:var(--s1);border:1px solid var(--border);padding:10px 14px;color:var(--text);font-family:var(--fb);font-size:14px;outline:none;transition:border-color .2s;max-width:320px}
+.search-bar input:focus{border-color:var(--accent)}
+.search-bar input::placeholder{color:var(--muted2)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-state .icon{font-size:40px;margin-bottom:12px;display:block}
+.empty-state h3{font-family:var(--fh);color:var(--text);margin-bottom:8px}
+.empty-state p{font-size:14px}
+@media(max-width:768px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.stats-row{grid-template-columns:1fr}}
+</style>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+  <h1 class="page-title">Contact Submissions</h1>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="label">TOTAL</div>
+    <div class="value" id="stat-total">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">UNREAD</div>
+    <div class="value" id="stat-unread">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">READ</div>
+    <div class="value" id="stat-read">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">MESSAGES</div>
+    <div class="value" id="stat-messages">0</div>
+  </div>
+</div>
+
+<div class="search-bar">
+  <input type="text" id="search-input" placeholder="Search by name, email, subject..." />
+</div>
+
+<div class="contacts-table-wrap">
+  <table class="contacts-table">
+    <thead>
+      <tr>
+        <th style="width:24px"></th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Subject</th>
+        <th>Message</th>
+        <th>Date</th>
+        <th style="width:140px">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="contacts-tbody">
+    </tbody>
+  </table>
+  <div id="contacts-empty" class="empty-state" style="display:none">
+    <span class="icon">&#x1F4E8;</span>
+    <h3>No contact submissions</h3>
+    <p>Messages from the contact form will appear here.</p>
+  </div>
+</div>
+
+<div id="contacts-pagination" style="display:flex;justify-content:center;gap:8px;margin-top:20px;flex-wrap:wrap"></div>
+
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Message Details</h3>
+      <button class="modal-close" onclick="closeDetailModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <div class="label">NAME</div>
+        <div class="val" id="detail-name"></div>
+      </div>
+      <div class="field">
+        <div class="label">EMAIL</div>
+        <div class="val" id="detail-email"></div>
+      </div>
+      <div class="field">
+        <div class="label">SUBJECT</div>
+        <div class="val" id="detail-subject"></div>
+      </div>
+      <div class="field">
+        <div class="label">DATE</div>
+        <div class="val" id="detail-date"></div>
+      </div>
+      <div class="field">
+        <div class="label">MESSAGE</div>
+        <div class="val" id="detail-message" style="white-space:pre-wrap"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeDetailModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h3>Delete Message</h3>
+      <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:14px">Are you sure you want to delete this contact submission? This action cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/pages/admin/contacts.js"></script>

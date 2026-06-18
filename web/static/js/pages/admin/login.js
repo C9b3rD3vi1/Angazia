@@ -22,7 +22,7 @@
       if (e) { e.textContent = 'Please enter email and password'; e.style.display = ''; }
       b.disabled = false; b.textContent = 'Sign In'; return;
     }
-    AngaziaAPI.post('/auth/admin/login', { email: email, password: password }).then(function (data) {
+    AngaziaAPI.auth.adminLogin({ email: email, password: password }).then(function (data) {
       AngaziaAPI.setTokens(data.access_token, data.refresh_token);
       window.location.href = '/admin/dashboard';
     }).catch(function (err) {

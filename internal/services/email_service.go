@@ -51,7 +51,7 @@ type EmailService interface {
 	SendAdminVerificationNotification(adminEmail, companyID, registrationNumber, taxID, verificationID string)
 	SendVerificationApprovedEmail(to, companyName string)
 	SendVerificationRejectedEmail(to, companyName, reason string)
-	
+
 	// Team invitation emails
 	SendTeamInvitationExistingUser(to, companyName, role, token string)
 	SendTeamInvitationNewUser(to, companyName, role, token string)
@@ -73,6 +73,12 @@ type EmailService interface {
 
 	// Notification emails
 	SendNotificationEmail(to, subject, htmlBody, textBody, email string) error
+
+	// Admin action emails
+	SendJobApprovedEmail(to, jobTitle, companyName, email string)
+	SendJobRejectedEmail(to, jobTitle, companyName, reason, email string)
+	SendAccountSuspendedEmail(to, reason, email string)
+	SendAccountActivatedEmail(to, email string)
 }
 
 type EmailServiceImpl struct {
@@ -110,7 +116,7 @@ type EmailData struct {
 	ButtonHoverColor string
 	LinkColor        string
 	StatusColor      string
-	
+
 	// Company verification fields
 	CompanyID          string
 	RegistrationNumber string
@@ -118,11 +124,11 @@ type EmailData struct {
 	VerificationID     string
 	CompanyName        string
 	Reason             string
-	
+
 	// Team invitation fields
-	Role             string
-	Token            string
-	
+	Role  string
+	Token string
+
 	// Template-specific content
 	BodyContent      template.HTML
 	VerificationURL  string
@@ -211,20 +217,29 @@ func (s *EmailServiceImpl) loadTemplates() error {
 		"team_invitation_existing":     filepath.Join(templateDir, "team_invitation_existing.html"),
 		"team_invitation_new":          filepath.Join(templateDir, "team_invitation_new.html"),
 		// Billing templates
-		"payment_confirmation":         filepath.Join(templateDir, "payment_confirmation.html"),
-		"payment_failed":               filepath.Join(templateDir, "payment_failed.html"),
-		"subscription_cancelled":       filepath.Join(templateDir, "subscription_cancelled.html"),
-		"subscription_reactivated":     filepath.Join(templateDir, "subscription_reactivated.html"),
-		"renewal_reminder":             filepath.Join(templateDir, "renewal_reminder.html"),
-		"invoice_available":            filepath.Join(templateDir, "invoice_available.html"),
+		"payment_confirmation":     filepath.Join(templateDir, "payment_confirmation.html"),
+		"payment_failed":           filepath.Join(templateDir, "payment_failed.html"),
+		"subscription_cancelled":   filepath.Join(templateDir, "subscription_cancelled.html"),
+		"subscription_reactivated": filepath.Join(templateDir, "subscription_reactivated.html"),
+		"renewal_reminder":         filepath.Join(templateDir, "renewal_reminder.html"),
+		"invoice_available":        filepath.Join(templateDir, "invoice_available.html"),
 		// 2FA templates
-		"twofa_code":                   filepath.Join(templateDir, "twofa_code.html"),
-		"twofa_backup_codes":           filepath.Join(templateDir, "twofa_backup_codes.html"),
-		"twofa_enabled":                filepath.Join(templateDir, "twofa_enabled.html"),
-		"twofa_disabled":               filepath.Join(templateDir, "twofa_disabled.html"),
-		"twofa_recovery":               filepath.Join(templateDir, "twofa_recovery.html"),
+		"twofa_code":         filepath.Join(templateDir, "twofa_code.html"),
+		"twofa_backup_codes": filepath.Join(templateDir, "twofa_backup_codes.html"),
+		"twofa_enabled":      filepath.Join(templateDir, "twofa_enabled.html"),
+		"twofa_disabled":     filepath.Join(templateDir, "twofa_disabled.html"),
+		"twofa_recovery":     filepath.Join(templateDir, "twofa_recovery.html"),
+		// Admin action templates
+		"job_approved":      filepath.Join(templateDir, "job_approved.html"),
+		"job_rejected":      filepath.Join(templateDir, "job_rejected.html"),
+		"account_suspended": filepath.Join(templateDir, "account_suspended.html"),
+		"account_activated": filepath.Join(templateDir, "account_activated.html"),
+		// Testimonial & Contact templates
+		"testimonial_approved": filepath.Join(templateDir, "testimonial_approved.html"),
+		"testimonial_rejected": filepath.Join(templateDir, "testimonial_rejected.html"),
+		"contact_auto_reply":   filepath.Join(templateDir, "contact_auto_reply.html"),
 	}
-	
+
 	loaded := 0
 	for name, tmplPath := range templates {
 		tmpl, err := template.ParseFiles(baseTemplate, tmplPath)
@@ -711,24 +726,23 @@ func (s *EmailServiceImpl) sendEmail(to, subject, htmlBody, textBody, email stri
 	}()
 }
 
-
 func (s *EmailServiceImpl) SendAdminVerificationNotification(adminEmail, companyID, registrationNumber, taxID, verificationID string) {
 	data := &EmailData{
-		AppName:          s.cfg.AppName,
-		AppURL:           s.cfg.AppURL,
-		AppDomain:        s.cfg.AppDomain,
-		Year:             time.Now().Year(),
-		Email:            adminEmail,
-		Subject:          "New Company Verification Request - " + s.cfg.AppName,
-		HeaderTitle:      "New Verification Request",
-		HeaderColor:      "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-		ButtonColor:      "#f59e0b",
-		ButtonHoverColor: "#d97706",
-		LinkColor:        "#f59e0b",
-		CompanyID:        companyID,
+		AppName:            s.cfg.AppName,
+		AppURL:             s.cfg.AppURL,
+		AppDomain:          s.cfg.AppDomain,
+		Year:               time.Now().Year(),
+		Email:              adminEmail,
+		Subject:            "New Company Verification Request - " + s.cfg.AppName,
+		HeaderTitle:        "New Verification Request",
+		HeaderColor:        "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+		ButtonColor:        "#f59e0b",
+		ButtonHoverColor:   "#d97706",
+		LinkColor:          "#f59e0b",
+		CompanyID:          companyID,
 		RegistrationNumber: registrationNumber,
-		TaxID:            taxID,
-		VerificationID:   verificationID,
+		TaxID:              taxID,
+		VerificationID:     verificationID,
 	}
 
 	htmlBody, err := s.renderTemplate("admin_verification", data)
@@ -980,18 +994,18 @@ func (s *EmailServiceImpl) SendRenewalReminderEmail(to, planName, amount, curren
 
 func (s *EmailServiceImpl) SendInvoiceAvailableEmail(to, invoiceNumber, amount, currency, invoiceURL, email string) {
 	data := &EmailData{
-		AppName:     s.cfg.AppName,
-		AppURL:      s.cfg.AppURL,
-		AppDomain:   s.cfg.AppDomain,
-		Year:        time.Now().Year(),
-		Email:       email,
-		Subject:     fmt.Sprintf("Invoice Available - %s", invoiceNumber),
-		HeaderTitle: "Invoice Available",
-		HeaderColor: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
-		ButtonColor: "#8b5cf6",
-		LinkColor:   "#8b5cf6",
-		Name:        invoiceNumber,
-		Company:     fmt.Sprintf("%s %s", amount, currency),
+		AppName:         s.cfg.AppName,
+		AppURL:          s.cfg.AppURL,
+		AppDomain:       s.cfg.AppDomain,
+		Year:            time.Now().Year(),
+		Email:           email,
+		Subject:         fmt.Sprintf("Invoice Available - %s", invoiceNumber),
+		HeaderTitle:     "Invoice Available",
+		HeaderColor:     "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+		ButtonColor:     "#8b5cf6",
+		LinkColor:       "#8b5cf6",
+		Name:            invoiceNumber,
+		Company:         fmt.Sprintf("%s %s", amount, currency),
 		VerificationURL: invoiceURL,
 	}
 
@@ -1005,22 +1019,21 @@ func (s *EmailServiceImpl) SendInvoiceAvailableEmail(to, invoiceNumber, amount, 
 	s.sendEmail(to, data.Subject, htmlBody, textBody, email)
 }
 
-
 func (s *EmailServiceImpl) SendTwoFACode(to, code string) error {
 	data := &EmailData{
-		AppName:      s.cfg.AppName,
-		AppURL:       s.cfg.AppURL,
-		AppDomain:    s.cfg.AppDomain,
-		Year:         time.Now().Year(),
-		Email:        to,
-		Name:         to,
-		Subject:      "Your Two-Factor Authentication Code - " + s.cfg.AppName,
-		HeaderTitle:  "Verification Code",
-		HeaderColor:  "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-		ButtonColor:  "#667eea",
+		AppName:          s.cfg.AppName,
+		AppURL:           s.cfg.AppURL,
+		AppDomain:        s.cfg.AppDomain,
+		Year:             time.Now().Year(),
+		Email:            to,
+		Name:             to,
+		Subject:          "Your Two-Factor Authentication Code - " + s.cfg.AppName,
+		HeaderTitle:      "Verification Code",
+		HeaderColor:      "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+		ButtonColor:      "#667eea",
 		ButtonHoverColor: "#5a67d8",
-		LinkColor:    "#667eea",
-		Code:         code,
+		LinkColor:        "#667eea",
+		Code:             code,
 	}
 
 	htmlBody, err := s.renderTemplate("twofa_code", data)
@@ -1028,23 +1041,23 @@ func (s *EmailServiceImpl) SendTwoFACode(to, code string) error {
 		return fmt.Errorf("failed to render 2FA code template: %w", err)
 	}
 	textBody := fmt.Sprintf("Your verification code is: %s", code)
-	
+
 	s.sendEmail(to, data.Subject, htmlBody, textBody, to)
 	return nil
 }
 
 func (s *EmailServiceImpl) SendTwoFABackupCodes(to string, codes []string) error {
 	data := &EmailData{
-		AppName:      s.cfg.AppName,
-		AppURL:       s.cfg.AppURL,
-		AppDomain:    s.cfg.AppDomain,
-		Year:         time.Now().Year(),
-		Email:        to,
-		Name:         to,
-		Subject:      "Your Backup Codes - " + s.cfg.AppName,
-		HeaderTitle:  "Backup Codes",
-		HeaderColor:  "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-		Codes:        codes,
+		AppName:     s.cfg.AppName,
+		AppURL:      s.cfg.AppURL,
+		AppDomain:   s.cfg.AppDomain,
+		Year:        time.Now().Year(),
+		Email:       to,
+		Name:        to,
+		Subject:     "Your Backup Codes - " + s.cfg.AppName,
+		HeaderTitle: "Backup Codes",
+		HeaderColor: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+		Codes:       codes,
 	}
 
 	htmlBody, err := s.renderTemplate("twofa_backup_codes", data)
@@ -1052,22 +1065,22 @@ func (s *EmailServiceImpl) SendTwoFABackupCodes(to string, codes []string) error
 		return fmt.Errorf("failed to render backup codes template: %w", err)
 	}
 	textBody := "Your backup codes have been generated. Please store them securely."
-	
+
 	s.sendEmail(to, data.Subject, htmlBody, textBody, to)
 	return nil
 }
 
 func (s *EmailServiceImpl) SendTwoFAEnabled(to string) error {
 	data := &EmailData{
-		AppName:      s.cfg.AppName,
-		AppURL:       s.cfg.AppURL,
-		AppDomain:    s.cfg.AppDomain,
-		Year:         time.Now().Year(),
-		Email:        to,
-		Name:         to,
-		Subject:      "Two-Factor Authentication Enabled - " + s.cfg.AppName,
-		HeaderTitle:  "2FA Enabled",
-		HeaderColor:  "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+		AppName:     s.cfg.AppName,
+		AppURL:      s.cfg.AppURL,
+		AppDomain:   s.cfg.AppDomain,
+		Year:        time.Now().Year(),
+		Email:       to,
+		Name:        to,
+		Subject:     "Two-Factor Authentication Enabled - " + s.cfg.AppName,
+		HeaderTitle: "2FA Enabled",
+		HeaderColor: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
 	}
 
 	htmlBody, err := s.renderTemplate("twofa_enabled", data)
@@ -1075,22 +1088,22 @@ func (s *EmailServiceImpl) SendTwoFAEnabled(to string) error {
 		return fmt.Errorf("failed to render 2FA enabled template: %w", err)
 	}
 	textBody := "Two-factor authentication has been enabled on your account."
-	
+
 	s.sendEmail(to, data.Subject, htmlBody, textBody, to)
 	return nil
 }
 
 func (s *EmailServiceImpl) SendTwoFADisabled(to string) error {
 	data := &EmailData{
-		AppName:      s.cfg.AppName,
-		AppURL:       s.cfg.AppURL,
-		AppDomain:    s.cfg.AppDomain,
-		Year:         time.Now().Year(),
-		Email:        to,
-		Name:         to,
-		Subject:      "Two-Factor Authentication Disabled - " + s.cfg.AppName,
-		HeaderTitle:  "2FA Disabled",
-		HeaderColor:  "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+		AppName:     s.cfg.AppName,
+		AppURL:      s.cfg.AppURL,
+		AppDomain:   s.cfg.AppDomain,
+		Year:        time.Now().Year(),
+		Email:       to,
+		Name:        to,
+		Subject:     "Two-Factor Authentication Disabled - " + s.cfg.AppName,
+		HeaderTitle: "2FA Disabled",
+		HeaderColor: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
 	}
 
 	htmlBody, err := s.renderTemplate("twofa_disabled", data)
@@ -1098,7 +1111,7 @@ func (s *EmailServiceImpl) SendTwoFADisabled(to string) error {
 		return fmt.Errorf("failed to render 2FA disabled template: %w", err)
 	}
 	textBody := "Two-factor authentication has been disabled on your account."
-	
+
 	s.sendEmail(to, data.Subject, htmlBody, textBody, to)
 	return nil
 }
@@ -1129,4 +1142,102 @@ func (s *EmailServiceImpl) SendTwoFARecoveryEmail(to, recoveryLink string) error
 func (s *EmailServiceImpl) SendNotificationEmail(to, subject, htmlBody, textBody, email string) error {
 	s.sendEmail(to, subject, htmlBody, textBody, email)
 	return nil
+}
+
+func (s *EmailServiceImpl) SendJobApprovedEmail(to, jobTitle, companyName, email string) {
+	data := &EmailData{
+		AppName:          s.cfg.AppName,
+		AppURL:           s.cfg.AppURL,
+		AppDomain:        s.cfg.AppDomain,
+		Year:             time.Now().Year(),
+		Email:            email,
+		Subject:          fmt.Sprintf("Job Approved: %s - %s", jobTitle, s.cfg.AppName),
+		HeaderTitle:      "Job Approved! 🎉",
+		HeaderColor:      "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+		ButtonColor:      "#10b981",
+		ButtonHoverColor: "#059669",
+		LinkColor:        "#10b981",
+		JobTitle:         jobTitle,
+		Company:          companyName,
+	}
+	htmlBody, err := s.renderTemplate("job_approved", data)
+	if err != nil {
+		fmt.Printf("Failed to render job approved email: %v\n", err)
+		return
+	}
+	textBody := fmt.Sprintf("Your job \"%s\" has been approved and is now live on %s.", jobTitle, s.cfg.AppName)
+	s.sendEmail(to, data.Subject, htmlBody, textBody, email)
+}
+
+func (s *EmailServiceImpl) SendJobRejectedEmail(to, jobTitle, companyName, reason, email string) {
+	data := &EmailData{
+		AppName:          s.cfg.AppName,
+		AppURL:           s.cfg.AppURL,
+		AppDomain:        s.cfg.AppDomain,
+		Year:             time.Now().Year(),
+		Email:            email,
+		Subject:          fmt.Sprintf("Job Rejected: %s - %s", jobTitle, s.cfg.AppName),
+		HeaderTitle:      "Job Posting Update",
+		HeaderColor:      "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+		ButtonColor:      "#ef4444",
+		ButtonHoverColor: "#dc2626",
+		LinkColor:        "#ef4444",
+		JobTitle:         jobTitle,
+		Company:          companyName,
+		Reason:           reason,
+	}
+	htmlBody, err := s.renderTemplate("job_rejected", data)
+	if err != nil {
+		fmt.Printf("Failed to render job rejected email: %v\n", err)
+		return
+	}
+	textBody := fmt.Sprintf("Your job \"%s\" has been rejected. Reason: %s", jobTitle, reason)
+	s.sendEmail(to, data.Subject, htmlBody, textBody, email)
+}
+
+func (s *EmailServiceImpl) SendAccountSuspendedEmail(to, reason, email string) {
+	data := &EmailData{
+		AppName:          s.cfg.AppName,
+		AppURL:           s.cfg.AppURL,
+		AppDomain:        s.cfg.AppDomain,
+		Year:             time.Now().Year(),
+		Email:            email,
+		Subject:          fmt.Sprintf("Account Suspended - %s", s.cfg.AppName),
+		HeaderTitle:      "Account Suspended",
+		HeaderColor:      "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+		ButtonColor:      "#ef4444",
+		ButtonHoverColor: "#dc2626",
+		LinkColor:        "#ef4444",
+		Reason:           reason,
+	}
+	htmlBody, err := s.renderTemplate("account_suspended", data)
+	if err != nil {
+		fmt.Printf("Failed to render account suspended email: %v\n", err)
+		return
+	}
+	textBody := fmt.Sprintf("Your account has been suspended. Reason: %s. If you believe this is an error, please contact support.", reason)
+	s.sendEmail(to, data.Subject, htmlBody, textBody, email)
+}
+
+func (s *EmailServiceImpl) SendAccountActivatedEmail(to, email string) {
+	data := &EmailData{
+		AppName:          s.cfg.AppName,
+		AppURL:           s.cfg.AppURL,
+		AppDomain:        s.cfg.AppDomain,
+		Year:             time.Now().Year(),
+		Email:            email,
+		Subject:          fmt.Sprintf("Account Reactivated - %s", s.cfg.AppName),
+		HeaderTitle:      "Account Reactivated! 🎉",
+		HeaderColor:      "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+		ButtonColor:      "#10b981",
+		ButtonHoverColor: "#059669",
+		LinkColor:        "#10b981",
+	}
+	htmlBody, err := s.renderTemplate("account_activated", data)
+	if err != nil {
+		fmt.Printf("Failed to render account activated email: %v\n", err)
+		return
+	}
+	textBody := fmt.Sprintf("Your account has been reactivated. You can now use all features normally on %s.", s.cfg.AppName)
+	s.sendEmail(to, data.Subject, htmlBody, textBody, email)
 }

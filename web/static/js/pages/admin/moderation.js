@@ -134,13 +134,11 @@
     state.loading = true;
     showLoading();
 
-    var params = [];
-    params.push('page=' + state.page);
-    params.push('limit=' + state.limit);
-    if (state.status) params.push('status=' + encodeURIComponent(state.status));
-    if (state.entityType) params.push('entity_type=' + encodeURIComponent(state.entityType));
+    var params = { page: state.page, limit: state.limit };
+    if (state.status) params.status = state.status;
+    if (state.entityType) params.entity_type = state.entityType;
 
-    AngaziaAPI.get('/admin/moderation?' + params.join('&'))
+    AngaziaAPI.admin.moderation(params)
       .then(function (data) {
         state.loading = false;
         state.items = data.items || data.moderation_items || [];
@@ -217,7 +215,7 @@
     var status = item.status || 'pending';
     var entityType = item.entity_type || 'unknown';
     var title = item.title || item.name || entityType + ' #' + id;
-    var submittedBy = item.submitted_by_name || item.submitted_by || 'Unknown';
+    var submittedBy = (item.submitter && item.submitter.name) || item.submitted_by_name || item.submitted_by || 'Unknown';
     var submittedAt = item.created_at ? formatDateTime(item.created_at) : '-';
     var reason = item.rejection_reason || item.reason || '';
 
@@ -300,7 +298,7 @@
 
   function approveItem(btn, id) {
     btn.disabled = true;
-    AngaziaAPI.post('/admin/moderation/' + id + '/approve')
+    AngaziaAPI.admin.approveContent(id)
       .then(function () {
         showToast('Item approved', 'success');
         removeItem(id);
@@ -334,7 +332,7 @@
     var btn = els.modalConfirm;
     if (btn) btn.disabled = true;
 
-    AngaziaAPI.post('/admin/moderation/' + id + '/reject', { reason: reason })
+    AngaziaAPI.admin.rejectContent(id, { reason: reason })
       .then(function () {
         showToast('Item rejected', 'success');
         removeItem(id);

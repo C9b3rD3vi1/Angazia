@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"log"
+
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
@@ -34,6 +36,9 @@ type WebHandler struct {
 	companyService      services.CompanyService
 	notificationService services.NotificationService
 	subscriptionService services.SubscriptionService
+	jobService          services.JobService
+	testimonialService  services.TestimonialService
+	contactService      services.ContactService
 }
 
 func NewWebHandler(companyService services.CompanyService) *WebHandler {
@@ -56,19 +61,25 @@ func NewWebHandlerWithAll(
 	companyService services.CompanyService,
 	notificationService services.NotificationService,
 	subscriptionService services.SubscriptionService,
+	jobService services.JobService,
+	testimonialService services.TestimonialService,
+	contactService services.ContactService,
 ) *WebHandler {
 	return &WebHandler{
 		companyService:      companyService,
 		notificationService: notificationService,
 		subscriptionService: subscriptionService,
+		jobService:          jobService,
+		testimonialService:  testimonialService,
+		contactService:      contactService,
 	}
 }
 
 // HomePage renders the landing page
 func (h *WebHandler) HomePage(c *fiber.Ctx) error {
-	return c.Render("public/index", fiber.Map{
-		"Title":       "Angazia - Find Your Dream Tech Job in Kenya",
-		"Description": "Connect with top tech employers in Kenya. AI-powered job matching for developers, engineers, and tech professionals.",
+	return c.Render("public/landing", fiber.Map{
+		"Title":       "Angazia - Find Your Place in Kenya's Tech Ecosystem",
+		"Description": "Angazia connects developers, engineers, and tech professionals with top Kenyan employers through AI-powered matching.",
 		"ActivePage":  "home",
 	}, "layouts/base")
 }
@@ -76,27 +87,122 @@ func (h *WebHandler) HomePage(c *fiber.Ctx) error {
 // CompanyPage renders the company profile page
 func (h *WebHandler) CompanyPage(c *fiber.Ctx) error {
 	companyID := c.Params("id")
+
+	profile, err := h.companyService.GetPublicCompanyProfile(c.Context(), companyID)
+	if err != nil {
+		return c.Render("public/company", fiber.Map{
+			"Title":      "Company Not Found",
+			"ActivePage": "companies",
+		}, "layouts/base")
+	}
+
+	companyMap := fiber.Map{
+		"name":        profile.CompanyName,
+		"logo":        profile.CompanyLogo,
+		"description": profile.Description,
+		"industry":    profile.Industry,
+		"size":        profile.CompanySize,
+		"location":    profile.Location,
+		"website":     profile.Website,
+	}
+	if profile.Rating > 0 {
+		companyMap["rating"] = profile.Rating
+	}
+	if profile.ReviewCount > 0 {
+		companyMap["review_count"] = profile.ReviewCount
+	}
+	if profile.Stats != nil {
+		companyMap["employees"] = profile.Stats.TotalHires
+	}
+
+	var jobs []fiber.Map
+	if h.jobService != nil {
+		jobFilters := &services.JobFilters{CompanyName: profile.CompanyName}
+		jobResult, jobErr := h.jobService.ListJobs(c.Context(), jobFilters, 1, 50)
+		if jobErr == nil && jobResult != nil {
+			for _, j := range jobResult.Jobs {
+				if !j.IsActive {
+					continue
+				}
+				jobs = append(jobs, fiber.Map{
+					"id":         j.ID,
+					"title":      j.Title,
+					"location":   j.Location,
+					"salary":     formatJobSalary(j),
+					"type":       j.EmploymentType,
+					"postedDate": j.PostedAt.Format("Jan 2, 2006"),
+				})
+			}
+		}
+	}
+
 	return c.Render("public/company", fiber.Map{
-		"Title":      "Company Profile",
-		"CompanyID":  companyID,
+		"Title":      profile.CompanyName + " - Angazia",
 		"ActivePage": "companies",
+		"company":    companyMap,
+		"jobs":       jobs,
 	}, "layouts/base")
 }
 
 // AboutPage renders the about page
 func (h *WebHandler) AboutPage(c *fiber.Ctx) error {
+	team := []fiber.Map{
+		{"name": "James Mwangi", "role": "CEO & Co-Founder", "bio": "Former CTO at Safaricom, passionate about connecting Kenyan tech talent with opportunities."},
+		{"name": "Grace Akinyi", "role": "CTO & Co-Founder", "bio": "Software engineer with 12+ years experience building scalable platforms across Africa."},
+		{"name": "David Ochieng", "role": "Head of Product", "bio": "Product leader focused on creating delightful user experiences for job seekers and employers."},
+		{"name": "Sarah Wanjiku", "role": "Head of Operations", "bio": "Operations expert ensuring Angazia runs smoothly and delivers value to every user."},
+	}
+	values := []fiber.Map{
+		{"icon": "🤝", "title": "Community First", "description": "We believe in the power of community and building connections that matter."},
+		{"icon": "🔬", "title": "Innovation Driven", "description": "Leveraging AI and data to create smarter matching between talent and opportunity."},
+		{"icon": "🎯", "title": "Impact Focused", "description": "Measured by the careers launched and businesses transformed through our platform."},
+		{"icon": "🌍", "title": "Pan-African Vision", "description": "Starting in Kenya, building for the continent, competing on the global stage."},
+	}
+	milestones := []fiber.Map{
+		{"year": "2023", "title": "Platform Launch", "description": "Angazia launched with AI-powered matching for Kenyan tech professionals."},
+		{"year": "2024", "title": "10,000 Users", "description": "Reached 10,000 active users and 300+ employer partners across Kenya."},
+		{"year": "2025", "title": "Regional Expansion", "description": "Expanded operations to Uganda, Tanzania, and Rwanda."},
+	}
+
 	return c.Render("public/about", fiber.Map{
 		"Title":      "About Angazia - Connecting Kenyan Tech Talent",
 		"ActivePage": "about",
+		"team":       team,
+		"values":     values,
+		"milestones": milestones,
 	}, "layouts/base")
 }
 
 // ContactPage renders the contact page
 func (h *WebHandler) ContactPage(c *fiber.Ctx) error {
+	flash := ""
+	if c.Query("success") == "1" {
+		flash = "Thank you for your message! Our team will get back to you within 24 hours."
+	}
 	return c.Render("public/contact", fiber.Map{
 		"Title":      "Contact Us",
 		"ActivePage": "contact",
+		"Flash":      flash,
 	}, "layouts/base")
+}
+
+// ContactSubmit handles contact form submission
+func (h *WebHandler) ContactSubmit(c *fiber.Ctx) error {
+	name := c.FormValue("name")
+	email := c.FormValue("email")
+	subject := c.FormValue("subject")
+	message := c.FormValue("message")
+
+	if name == "" || email == "" || message == "" {
+		return c.Redirect("/contact?success=0")
+	}
+
+	if err := h.contactService.Submit(c.Context(), name, email, subject, message); err != nil {
+		log.Printf("Contact submission error: %v", err)
+		return c.Redirect("/contact?success=0")
+	}
+
+	return c.Redirect("/contact?success=1")
 }
 
 // PricingPage renders the pricing page
@@ -355,4 +461,20 @@ func (h *WebHandler) NotificationsPage(c *fiber.Ctx) error {
 		"Title":      "Notifications - Angazia",
 		"ActivePage": "notifications",
 	}), layout)
+}
+
+// EmployeeTestimonialsPage renders the employee testimonials page
+func (h *WebHandler) EmployeeTestimonialsPage(c *fiber.Ctx) error {
+	return c.Render("employee/testimonials", mergePageData(c, fiber.Map{
+		"Title":      "My Testimonials - Angazia",
+		"ActivePage": "testimonials",
+	}), "layouts/employee")
+}
+
+// EmployerTestimonialsPage renders the employer testimonials page
+func (h *WebHandler) EmployerTestimonialsPage(c *fiber.Ctx) error {
+	return c.Render("employer/testimonials", mergePageData(c, fiber.Map{
+		"Title":      "Company Testimonials - Angazia",
+		"ActivePage": "testimonials",
+	}), "layouts/employer")
 }

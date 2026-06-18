@@ -1,0 +1,22 @@
+{{define "job_approved"}}
+<h2>Your Job Has Been Approved! 🎉</h2>
+
+<p>Great news! Your job posting <strong>{{.JobTitle}}</strong> has been approved and is now live on {{.AppName}}.</p>
+
+<div class="success-box">
+    <strong>✅ What happens next:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Your job is now visible to thousands of qualified candidates</li>
+        <li>You'll start receiving applications shortly</li>
+        <li>You can manage applications from your employer dashboard</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{.AppURL}}/employer/jobs" class="button">View Your Jobs</a>
+</div>
+
+<hr>
+
+<p class="text-muted">Thank you for using {{.AppName}} to find top tech talent in Kenya.</p>
+{{end}}

@@ -1,0 +1,20 @@
+{{define "contact_auto_reply"}}
+<h2>Thank You for Contacting {{.AppName}}!</h2>
+
+<p>We have received your message and our team will review it shortly.</p>
+
+<div class="success-box">
+    <strong>✅ What to expect:</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Our team typically responds within <strong>24 hours</strong> during business days</li>
+        <li>If your inquiry is urgent, please include "URGENT" in the subject line of any follow-up</li>
+        <li>You can also reach us directly at <a href="mailto:hello@angazia.co.ke">hello@angazia.co.ke</a></li>
+    </ul>
+</div>
+
+<p>In the meantime, feel free to explore <a href="{{.AppURL}}">{{.AppName}}</a> and check out available opportunities.</p>
+
+<hr>
+
+<p class="text-muted">Best regards,<br>The {{.AppName}} Team</p>
+{{end}}

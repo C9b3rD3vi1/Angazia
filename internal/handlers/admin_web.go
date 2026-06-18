@@ -2,31 +2,37 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 
+	"github.com/C9b3rD3vi1/Angazia/internal/config"
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
 
 type AdminWebHandler struct {
+	cfg                 *config.Config
 	adminService        services.AdminService
 	jobService          services.JobService
 	subscriptionService services.SubscriptionService
 	companyService      services.CompanyService
 	authService         services.AuthService
+	contactService      services.ContactService
 }
 
-func NewAdminWebHandler(adminService services.AdminService, jobService services.JobService, subscriptionService services.SubscriptionService, companyService services.CompanyService, authService services.AuthService) *AdminWebHandler {
+func NewAdminWebHandler(cfg *config.Config, adminService services.AdminService, jobService services.JobService, subscriptionService services.SubscriptionService, companyService services.CompanyService, authService services.AuthService, contactService services.ContactService) *AdminWebHandler {
 	return &AdminWebHandler{
+		cfg:                 cfg,
 		adminService:        adminService,
 		jobService:          jobService,
 		subscriptionService: subscriptionService,
 		companyService:      companyService,
 		authService:         authService,
+		contactService:      contactService,
 	}
 }
 
@@ -49,14 +55,33 @@ func (h *AdminWebHandler) render(c *fiber.Ctx, tmpl string, data fiber.Map) erro
 }
 
 func (h *AdminWebHandler) LogoutPage(c *fiber.Ctx) error {
-	c.ClearCookie("access_token", "refresh_token")
+	token := c.Cookies("access_token")
+	if token != "" {
+		if claims, err := utils.ValidateJWT(token); err == nil {
+			h.authService.Logout(c.Context(), claims.UserID, token)
+		}
+	}
+
+	c.Cookie(&fiber.Cookie{Name: "access_token", Value: "", Path: "/", MaxAge: -1, HTTPOnly: true, Secure: !utils.IsDevelopment(), SameSite: "Strict"})
+	c.Cookie(&fiber.Cookie{Name: "refresh_token", Value: "", Path: "/", MaxAge: -1, HTTPOnly: true, Secure: !utils.IsDevelopment(), SameSite: "Strict"})
+	c.Cookie(&fiber.Cookie{Name: "refresh_token", Value: "", Path: "/api/v1/auth/refresh", MaxAge: -1, HTTPOnly: true, Secure: !utils.IsDevelopment(), SameSite: "Strict"})
+
 	return utils.FlashRedirect(c, "/admin/login", "info", "You have been logged out.")
 }
 
 func (h *AdminWebHandler) sidebarData(ctx *fiber.Ctx) fiber.Map {
-	stats, _ := h.adminService.GetPlatformStats(ctx.Context())
-	userStats, _ := h.adminService.GetUserStats(ctx.Context())
-	jobStats, _ := h.adminService.GetJobStats(ctx.Context())
+	stats, err := h.adminService.GetPlatformStats(ctx.Context())
+	if err != nil {
+		log.Printf("sidebar: GetPlatformStats error: %v", err)
+	}
+	userStats, err := h.adminService.GetUserStats(ctx.Context())
+	if err != nil {
+		log.Printf("sidebar: GetUserStats error: %v", err)
+	}
+	jobStats, err := h.adminService.GetJobStats(ctx.Context())
+	if err != nil {
+		log.Printf("sidebar: GetJobStats error: %v", err)
+	}
 
 	pendingUsers := 0
 	if userStats != nil {
@@ -73,16 +98,22 @@ func (h *AdminWebHandler) sidebarData(ctx *fiber.Ctx) fiber.Map {
 	}
 
 	pendingVerifications := 0
-	pendingReports := 0
 	if stats != nil {
 		pendingVerifications = int(stats.TotalEmployers - stats.VerifiedEmployers)
 	}
 
+	pendingReportsCount, err := h.adminService.GetPendingReportsCount(ctx.Context())
+	if err != nil {
+		log.Printf("sidebar: GetPendingReportsCount error: %v", err)
+	}
+
 	adminAvatar := ""
 	adminInitials := "A"
+	adminName := ""
 	if uid, ok := ctx.Locals("user_id").(string); ok && uid != "" {
 		if p, err := h.authService.GetProfile(ctx.Context(), uid); err == nil && p != nil && p.User != nil {
 			adminAvatar = p.User.AvatarURL
+			adminName = p.User.FullName
 			if name := p.User.FullName; name != "" {
 				parts := strings.Fields(name)
 				initials := ""
@@ -97,15 +128,24 @@ func (h *AdminWebHandler) sidebarData(ctx *fiber.Ctx) fiber.Map {
 			}
 		}
 	}
+	if adminName == "" {
+		adminName, _ = ctx.Locals("user_email").(string)
+	}
+
+	companyCount := int64(0)
+	if stats != nil {
+		companyCount = stats.TotalEmployers
+	}
 
 	return fiber.Map{
 		"PendingUsers":         pendingUsers,
 		"PendingVerifications": pendingVerifications,
 		"PendingJobs":          pendingJobs,
-		"PendingReports":       pendingReports,
-		"Env":                  "development",
+		"PendingReports":       pendingReportsCount,
+		"CompanyCount":         companyCount,
+		"Env":                  h.cfg.Environment,
 		"Admin": fiber.Map{
-			"Name":     ctx.Locals("user_email"),
+			"Name":     adminName,
 			"Email":    ctx.Locals("user_email"),
 			"Avatar":   adminAvatar,
 			"Initials": adminInitials,
@@ -114,12 +154,34 @@ func (h *AdminWebHandler) sidebarData(ctx *fiber.Ctx) fiber.Map {
 }
 
 func (h *AdminWebHandler) DashboardPage(c *fiber.Ctx) error {
-	stats, _ := h.adminService.GetPlatformStats(c.Context())
-	userStats, _ := h.adminService.GetUserStats(c.Context())
-	jobStats, _ := h.adminService.GetJobStats(c.Context())
-	engagementStats, _ := h.adminService.GetEngagementStats(c.Context())
+	stats, err := h.adminService.GetPlatformStats(c.Context())
+	if err != nil {
+		log.Printf("Dashboard: GetPlatformStats error: %v", err)
+	}
+	jobStats, err := h.adminService.GetJobStats(c.Context())
+	if err != nil {
+		log.Printf("Dashboard: GetJobStats error: %v", err)
+	}
+	engagementStats, err := h.adminService.GetEngagementStats(c.Context())
+	if err != nil {
+		log.Printf("Dashboard: GetEngagementStats error: %v", err)
+	}
 
-	recentUsers, _, _ := h.adminService.GetAllUsers(c.Context(), map[string]interface{}{}, 1, 10)
+	recentUsers, _, err := h.adminService.GetAllUsers(c.Context(), map[string]interface{}{}, 1, 10)
+	if err != nil {
+		log.Printf("Dashboard: GetAllUsers error: %v", err)
+	}
+
+	health, err := h.adminService.CheckHealth(c.Context())
+	if err != nil {
+		log.Printf("Dashboard: CheckHealth error: %v", err)
+		health = &services.SystemHealth{}
+	}
+
+	pendingReportsCount, err := h.adminService.GetPendingReportsCount(c.Context())
+	if err != nil {
+		log.Printf("Dashboard: GetPendingReportsCount error: %v", err)
+	}
 
 	var recentUserItems []fiber.Map
 	for _, u := range recentUsers {
@@ -127,42 +189,42 @@ func (h *AdminWebHandler) DashboardPage(c *fiber.Ctx) error {
 		if len(u.FullName) > 0 {
 			initials = string(u.FullName[0])
 		}
+		avatar := u.AvatarURL
 		recentUserItems = append(recentUserItems, fiber.Map{
 			"ID":             u.ID,
 			"Name":           u.FullName,
 			"Email":          u.Email,
 			"Role":           u.Role,
 			"Active":         u.IsActive,
-			"Avatar":         "",
+			"Avatar":         avatar,
 			"Initials":       initials,
 			"RegisteredDate": u.CreatedAt.Format("2006-01-02"),
 		})
 	}
 
 	var (
-		totalUsers            int64
-		totalCompanies        int64
-		totalJobs             int64
-		activeJobs            int64
-		pendingVerifications  int64
-		verifiedEmployers     int64
-		activeUsers30Days     int
-		newUsers7Days         int64
-		newUsers30Days        int64
-		totalApplications     int64
-		totalRevenue          float64
-		mrr                   float64
-		userGrowthRate        float64
-		jobGrowthRate         float64
-		totalProfileViews     int
-		totalJobViews         int
-		avgMatchScore         float64
-		avgResponseDays       int
-		conversionRate        int
-		verifiedCount         int
-		pendingCount          int
-		activeJobsCount       int
-		inactiveJobsCount     int
+		totalUsers           int64
+		totalCompanies       int64
+		totalJobs            int64
+		activeJobs           int64
+		pendingVerifications int64
+		verifiedEmployers    int64
+		activeUsers30Days    int
+		newUsers7Days        int64
+		newUsers30Days       int64
+		totalApplications    int64
+		totalRevenue         float64
+		mrr                  float64
+		userGrowthRate       float64
+		jobGrowthRate        float64
+		totalProfileViews    int
+		totalJobViews        int
+		avgMatchScore        float64
+		avgResponseDays      int
+		conversionRate       int
+		activeJobsCount      int
+		inactiveJobsCount    int
+		mrrProgress          float64
 	)
 
 	if stats != nil {
@@ -185,11 +247,6 @@ func (h *AdminWebHandler) DashboardPage(c *fiber.Ctx) error {
 	}
 	pendingVerifications = totalCompanies - verifiedEmployers
 
-	if userStats != nil {
-		verifiedCount = userStats["verification_verified"]
-		pendingCount = userStats["verification_pending"]
-	}
-
 	if jobStats != nil {
 		activeJobsCount = jobStats["status_active"]
 		inactiveJobsCount = jobStats["status_inactive"]
@@ -200,9 +257,17 @@ func (h *AdminWebHandler) DashboardPage(c *fiber.Ctx) error {
 		conversionRate = engagementStats["conversion_rate"]
 	}
 
+	mrrProgress = 0.0
+	if mrr > 0 {
+		mrrProgress = mrr / 10000 * 100
+		if mrrProgress > 100 {
+			mrrProgress = 100
+		}
+	}
+
 	data := fiber.Map{
-		"Title":      "Admin Dashboard - Angazia",
-		"ActivePage": "dashboard",
+		"Title":       "Admin Dashboard - Angazia",
+		"ActivePage":  "dashboard",
 		"CurrentDate": time.Now().Format("Monday, January 2, 2006"),
 		"Stats": fiber.Map{
 			"TotalUsers":           totalUsers,
@@ -210,7 +275,7 @@ func (h *AdminWebHandler) DashboardPage(c *fiber.Ctx) error {
 			"TotalJobs":            totalJobs,
 			"ActiveJobs":           activeJobs,
 			"PendingVerifications": pendingVerifications,
-			"PendingReports":       0,
+			"PendingReports":       pendingReportsCount,
 			"TotalApplications":    totalApplications,
 			"TotalRevenue":         totalRevenue,
 			"MRR":                  mrr,
@@ -224,19 +289,20 @@ func (h *AdminWebHandler) DashboardPage(c *fiber.Ctx) error {
 			"AvgMatchScore":        avgMatchScore,
 			"AvgResponseDays":      avgResponseDays,
 			"ConversionRate":       conversionRate,
-			"VerifiedEmployers":    verifiedCount,
-			"PendingEmployers":     pendingCount,
+			"VerifiedEmployers":    verifiedEmployers,
+			"PendingEmployers":     pendingVerifications,
 			"ActiveJobsCount":      activeJobsCount,
 			"InactiveJobsCount":    inactiveJobsCount,
+			"MRRProgress":          mrrProgress,
 		},
 		"RecentUsers": recentUserItems,
 		"SystemHealth": fiber.Map{
-			"API":             true,
-			"APILatency":      12,
-			"Database":        true,
-			"DatabaseLatency": 3,
-			"Redis":           false,
-			"Elasticsearch":   false,
+			"API":             health.API,
+			"APILatency":      health.APILatency,
+			"Database":        health.Database,
+			"DatabaseLatency": health.DatabaseLatency,
+			"Redis":           health.Redis,
+			"Elasticsearch":   health.Elasticsearch,
 		},
 	}
 
@@ -274,62 +340,52 @@ func (h *AdminWebHandler) UserDetailPage(c *fiber.Ctx) error {
 }
 
 func (h *AdminWebHandler) CompaniesPage(c *fiber.Ctx) error {
-	pendingItems, _, _ := h.adminService.GetModerationQueue(c.Context(), "company", "pending", 1, 100)
-	allItems, totalComps, _ := h.adminService.GetModerationQueue(c.Context(), "company", "", 1, 100)
+	employers, totalComps, _ := h.adminService.GetAllUsers(c.Context(), map[string]interface{}{"role": "employer"}, 1, 200)
 
 	type companyItem struct {
-		ID                string
-		Name              string
-		Email             string
-		Logo              string
-		Initials          string
+		ID                 string
+		Name               string
+		Email              string
+		Logo               string
+		Initials           string
 		VerificationStatus string
-		JobsCount         int
-		JoinedDate        string
-		SubmittedDate     string
-		DocumentCount     int
+		JobsCount          int
+		JoinedDate         string
+		DocumentCount      int
 	}
 
-	var pendingComps []companyItem
-	for _, item := range pendingItems {
-		initials := "C"
-		if len(item.EntityID) > 0 {
-			initials = string(item.EntityID[0])
+	var comps []companyItem
+	for _, u := range employers {
+		name := u.CompanyName
+		if name == "" {
+			name = u.FullName
 		}
-		pendingComps = append(pendingComps, companyItem{
-			ID:                item.EntityID,
-			Name:              item.EntityType,
-			VerificationStatus: "pending",
-			SubmittedDate:     item.CreatedAt.Format("2006-01-02"),
-			Initials:          initials,
-		})
-	}
-
-	var allComps []companyItem
-	for _, item := range allItems {
-		initials := "C"
-		if len(item.EntityID) > 0 {
-			initials = string(item.EntityID[0])
+		vs := u.VerificationStatus
+		if vs == "" {
+			vs = "unverified"
 		}
-		status := item.Status
-		if status == "" {
-			status = "unverified"
+		initials := "?"
+		if len(name) > 0 {
+			initials = string(name[0])
 		}
-		allComps = append(allComps, companyItem{
-			ID:                item.EntityID,
-			Name:              item.EntityType,
-			VerificationStatus: status,
-			JoinedDate:        item.CreatedAt.Format("2006-01-02"),
-			Initials:          initials,
+		comps = append(comps, companyItem{
+			ID:                 u.ID,
+			Name:               name,
+			Email:              u.Email,
+			Logo:               u.CompanyLogo,
+			Initials:           initials,
+			VerificationStatus: vs,
+			JobsCount:          u.JobCount,
+			JoinedDate:         u.CreatedAt.Format("Jan 02, 2006"),
+			DocumentCount:      u.DocumentCount,
 		})
 	}
 
 	data := fiber.Map{
-		"Title":             "Company Management - Angazia",
-		"ActivePage":        "companies",
-		"PendingCompanies":  pendingComps,
-		"Companies":         allComps,
-		"TotalCompanies":    int(totalComps),
+		"Title":          "Company Management - Angazia",
+		"ActivePage":     "companies",
+		"Companies":      comps,
+		"TotalCompanies": int(totalComps),
 	}
 	for k, v := range h.sidebarData(c) {
 		data[k] = v
@@ -564,10 +620,10 @@ func (h *AdminWebHandler) JobsPage(c *fiber.Ctx) error {
 		"Title":      "Job Management - Angazia",
 		"ActivePage": "jobs",
 		"Stats": fiber.Map{
-			"TotalJobs":  totalJobs,
-			"ActiveJobs": activeJobs,
+			"TotalJobs":   totalJobs,
+			"ActiveJobs":  activeJobs,
 			"PendingJobs": pendingJobs,
-			"ClosedJobs": closedJobs,
+			"ClosedJobs":  closedJobs,
 		},
 		"TotalJobs": totalJobs,
 		"Jobs":      jobs,
@@ -624,6 +680,13 @@ func (h *AdminWebHandler) JobDetailPage(c *fiber.Ctx) error {
 			"UniqueViews":       0,
 			"SavesCount":        0,
 		}
+		uniqueViews, savesCount, err := h.adminService.GetJobEngagementMetrics(c.Context(), job.ID)
+		if err != nil {
+			log.Printf("JobDetail: GetJobEngagementMetrics error: %v", err)
+		} else {
+			jobDetail["UniqueViews"] = uniqueViews
+			jobDetail["SavesCount"] = savesCount
+		}
 		if job.SalaryMin > 0 || job.SalaryMax > 0 {
 			currency := job.SalaryCurrency
 			if currency == "" {
@@ -645,6 +708,17 @@ func (h *AdminWebHandler) JobDetailPage(c *fiber.Ctx) error {
 		data[k] = v
 	}
 	return h.render(c, "admin/job-detail", data)
+}
+
+func (h *AdminWebHandler) ModerationPage(c *fiber.Ctx) error {
+	data := fiber.Map{
+		"Title":      "Moderation Queue - Angazia",
+		"ActivePage": "moderation",
+	}
+	for k, v := range h.sidebarData(c) {
+		data[k] = v
+	}
+	return h.render(c, "admin/moderation", data)
 }
 
 func (h *AdminWebHandler) ReportsPage(c *fiber.Ctx) error {
@@ -726,14 +800,33 @@ func (h *AdminWebHandler) NotificationsPage(c *fiber.Ctx) error {
 
 func (h *AdminWebHandler) ProfilePage(c *fiber.Ctx) error {
 	email := c.Locals("user_email").(string)
+	uid, _ := c.Locals("user_id").(string)
+
+	profileName := email
+	profileRole := "admin"
+	createdAt := ""
+	if uid != "" {
+		if p, err := h.authService.GetProfile(c.Context(), uid); err == nil && p != nil && p.User != nil {
+			if name := p.User.FullName; name != "" {
+				profileName = name
+			}
+			if role := p.User.Role; role != "" {
+				profileRole = string(role)
+			}
+			if !p.User.CreatedAt.IsZero() {
+				createdAt = p.User.CreatedAt.Format("January 2, 2006")
+			}
+		}
+	}
 
 	data := fiber.Map{
 		"Title":      "Admin Profile - Angazia",
 		"ActivePage": "profile",
 		"ProfileUser": fiber.Map{
-			"Email": email,
-			"Role":  "admin",
-			"Name":  email,
+			"Email":     email,
+			"Role":      profileRole,
+			"Name":      profileName,
+			"CreatedAt": createdAt,
 		},
 	}
 	for k, v := range h.sidebarData(c) {
@@ -749,26 +842,71 @@ func (h *AdminWebHandler) ProfileUpdatePassword(c *fiber.Ctx) error {
 	confirm := c.FormValue("confirm_password")
 
 	email := c.Locals("user_email").(string)
+	profileName := email
+	profileRole := "admin"
+	if uid := userID; uid != "" {
+		if p, err := h.authService.GetProfile(c.Context(), uid); err == nil && p != nil && p.User != nil {
+			if name := p.User.FullName; name != "" {
+				profileName = name
+			}
+			if role := p.User.Role; role != "" {
+				profileRole = string(role)
+			}
+		}
+	}
+
+	profileUser := fiber.Map{"Email": email, "Role": profileRole, "Name": profileName}
+
 	if newPwd != confirm {
-		data := fiber.Map{"Title": "Admin Profile - Angazia", "ActivePage": "profile", "Error": "New passwords do not match", "ProfileUser": fiber.Map{"Email": email, "Role": "admin", "Name": email}}
-		for k, v := range h.sidebarData(c) { data[k] = v }
+		data := fiber.Map{"Title": "Admin Profile - Angazia", "ActivePage": "profile", "Error": "New passwords do not match", "ProfileUser": profileUser}
+		for k, v := range h.sidebarData(c) {
+			data[k] = v
+		}
 		return h.render(c, "admin/profile", data)
 	}
 	if len(newPwd) < 8 {
-		data := fiber.Map{"Title": "Admin Profile - Angazia", "ActivePage": "profile", "Error": "Password must be at least 8 characters", "ProfileUser": fiber.Map{"Email": email, "Role": "admin", "Name": email}}
-		for k, v := range h.sidebarData(c) { data[k] = v }
+		data := fiber.Map{"Title": "Admin Profile - Angazia", "ActivePage": "profile", "Error": "Password must be at least 8 characters", "ProfileUser": profileUser}
+		for k, v := range h.sidebarData(c) {
+			data[k] = v
+		}
 		return h.render(c, "admin/profile", data)
 	}
 
 	if err := h.authService.ChangePassword(c.Context(), userID, oldPwd, newPwd); err != nil {
-		data := fiber.Map{"Title": "Admin Profile - Angazia", "ActivePage": "profile", "Error": err.Error(), "ProfileUser": fiber.Map{"Email": email, "Role": "admin", "Name": email}}
-		for k, v := range h.sidebarData(c) { data[k] = v }
+		data := fiber.Map{"Title": "Admin Profile - Angazia", "ActivePage": "profile", "Error": err.Error(), "ProfileUser": profileUser}
+		for k, v := range h.sidebarData(c) {
+			data[k] = v
+		}
 		return h.render(c, "admin/profile", data)
 	}
 
-	data := fiber.Map{"Title": "Admin Profile - Angazia", "ActivePage": "profile", "Success": "Password changed successfully", "ProfileUser": fiber.Map{"Email": email, "Role": "admin", "Name": email}}
-	for k, v := range h.sidebarData(c) { data[k] = v }
+	data := fiber.Map{"Title": "Admin Profile - Angazia", "ActivePage": "profile", "Success": "Password changed successfully", "ProfileUser": profileUser}
+	for k, v := range h.sidebarData(c) {
+		data[k] = v
+	}
 	return h.render(c, "admin/profile", data)
+}
+
+func (h *AdminWebHandler) TestimonialsPage(c *fiber.Ctx) error {
+	data := fiber.Map{
+		"Title":      "Testimonials - Angazia",
+		"ActivePage": "testimonials",
+	}
+	for k, v := range h.sidebarData(c) {
+		data[k] = v
+	}
+	return h.render(c, "admin/testimonials", data)
+}
+
+func (h *AdminWebHandler) ContactsPage(c *fiber.Ctx) error {
+	data := fiber.Map{
+		"Title":      "Contact Submissions - Angazia",
+		"ActivePage": "contacts",
+	}
+	for k, v := range h.sidebarData(c) {
+		data[k] = v
+	}
+	return h.render(c, "admin/contacts", data)
 }
 
 func (h *AdminWebHandler) SettingsPage(c *fiber.Ctx) error {
@@ -780,9 +918,9 @@ func (h *AdminWebHandler) SettingsPage(c *fiber.Ctx) error {
 	}
 
 	data := fiber.Map{
-		"Title":          "System Settings - Angazia",
-		"ActivePage":     "settings",
-		"Settings":       settings,
+		"Title":           "System Settings - Angazia",
+		"ActivePage":      "settings",
+		"Settings":        settings,
 		"GroupedSettings": grouped,
 	}
 	for k, v := range h.sidebarData(c) {

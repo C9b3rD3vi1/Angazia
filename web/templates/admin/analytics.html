@@ -9,232 +9,276 @@
       <p class="aan-sub">Platform-wide metrics and growth trends</p>
     </div>
     <div class="aan-header-actions">
-      <button class="aan-refresh-btn" data-action="load-all">&#x1F504; Refresh</button>
+      <div class="aan-period-tabs" id="aan-period-tabs">
+        <button class="aan-period-tab" data-period="7">7d</button>
+        <button class="aan-period-tab active" data-period="30">30d</button>
+        <button class="aan-period-tab" data-period="90">90d</button>
+      </div>
+      <button class="aan-refresh-btn" data-action="aan-load">&#x1F504; Refresh</button>
     </div>
   </div>
 
-  {{/* ── Row 1: Primary Stats Cards ── */}}
-  <div class="aan-row" id="aan-row-primary">
-    <div class="aan-card" data-stat="total_users">
-      <div class="aan-card-icon">&#x1F465;</div>
-      <div class="aan-card-body">
-        <span class="aan-card-value">{{if .Stats}}{{.Stats.TotalUsers}}{{else}}0{{end}}</span>
-        <span class="aan-card-label">Total Users</span>
-      </div>
-    </div>
-    <div class="aan-card" data-stat="total_jobs">
-      <div class="aan-card-icon">&#x1F4BC;</div>
-      <div class="aan-card-body">
-        <span class="aan-card-value">{{if .Stats}}{{.Stats.TotalJobs}}{{else}}0{{end}}</span>
-        <span class="aan-card-label">Total Jobs</span>
-      </div>
-    </div>
-    <div class="aan-card" data-stat="total_applications">
-      <div class="aan-card-icon">&#x1F4E5;</div>
-      <div class="aan-card-body">
-        <span class="aan-card-value">{{if .Stats}}{{.Stats.TotalApplications}}{{else}}0{{end}}</span>
-        <span class="aan-card-label">Total Applications</span>
-      </div>
-    </div>
-    <div class="aan-card" data-stat="total_revenue">
-      <div class="aan-card-icon">&#x1F4B0;</div>
-      <div class="aan-card-body">
-        <span class="aan-card-value">{{if .Stats}}KES {{formatNumber .Stats.TotalRevenue}}{{else}}KES 0{{end}}</span>
-        <span class="aan-card-label">Total Revenue</span>
-      </div>
-    </div>
-    <div class="aan-card" data-stat="mrr">
-      <div class="aan-card-icon">&#x1F4C8;</div>
-      <div class="aan-card-body">
-        <span class="aan-card-value">{{if .Stats}}KES {{formatNumber .Stats.MRR}}{{else}}KES 0{{end}}</span>
-        <span class="aan-card-label">MRR</span>
-      </div>
-    </div>
-    <div class="aan-card" data-stat="average_match_score">
-      <div class="aan-card-icon">&#x1F3AF;</div>
-      <div class="aan-card-body">
-        <span class="aan-card-value">{{if .Stats}}{{.Stats.AverageMatchScore}}%{{else}}0%{{end}}</span>
-        <span class="aan-card-label">Avg Match Score</span>
-      </div>
-    </div>
+  <div class="aan-loading-state active" id="aan-loading">
+    <div class="aan-loading-spinner"></div>
+    <span class="aan-loading-text">Loading analytics data...</span>
   </div>
 
-  {{/* ── Row 2: User Breakdown ── */}}
-  <div class="aan-section">
-    <div class="aan-section-head">
-      <h2 class="aan-section-title">&#x1F465; User Breakdown</h2>
-    </div>
-    <div class="aan-row" id="aan-row-users">
-      <div class="aan-card" data-stat="total">
+  <div class="aan-error-state" id="aan-error">
+    <span class="aan-error-icon">&#x26A0;</span>
+    <span class="aan-error-text" id="aan-error-text"></span>
+    <button class="aan-refresh-btn" data-action="aan-load">Retry</button>
+  </div>
+
+  <div class="aan-content" id="aan-content">
+    {{/* ── Row 1: Primary Stats Cards ── */}}
+    <div class="aan-row" id="aan-row-primary">
+      <div class="aan-card" data-stat="total_users">
+        <div class="aan-card-icon">&#x1F465;</div>
         <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
+          <span class="aan-card-value">-</span>
           <span class="aan-card-label">Total Users</span>
         </div>
       </div>
-      <div class="aan-card" data-stat="candidates">
+      <div class="aan-card" data-stat="total_jobs">
+        <div class="aan-card-icon">&#x1F4BC;</div>
         <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Candidates</span>
-        </div>
-      </div>
-      <div class="aan-card" data-stat="employers">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Employers</span>
-        </div>
-      </div>
-      <div class="aan-card" data-stat="admins">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Admins</span>
-        </div>
-      </div>
-      <div class="aan-card" data-stat="active">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Active Users</span>
-        </div>
-      </div>
-      <div class="aan-card" data-stat="suspended">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Suspended</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {{/* ── Row 3: Job Stats ── */}}
-  <div class="aan-section">
-    <div class="aan-section-head">
-      <h2 class="aan-section-title">&#x1F4BC; Job Statistics</h2>
-    </div>
-    <div class="aan-row" id="aan-row-jobs">
-      <div class="aan-card" data-stat="total">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
+          <span class="aan-card-value">-</span>
           <span class="aan-card-label">Total Jobs</span>
         </div>
       </div>
-      <div class="aan-card" data-stat="active">
+      <div class="aan-card" data-stat="total_applications">
+        <div class="aan-card-icon">&#x1F4E5;</div>
         <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Active</span>
+          <span class="aan-card-value">-</span>
+          <span class="aan-card-label">Total Applications</span>
         </div>
       </div>
-      <div class="aan-card" data-stat="closed">
+      <div class="aan-card" data-stat="total_revenue">
+        <div class="aan-card-icon">&#x1F4B0;</div>
         <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Closed</span>
+          <span class="aan-card-value">-</span>
+          <span class="aan-card-label">Total Revenue</span>
         </div>
       </div>
-      <div class="aan-card" data-stat="draft">
+      <div class="aan-card" data-stat="mrr">
+        <div class="aan-card-icon">&#x1F4C8;</div>
         <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Draft</span>
+          <span class="aan-card-value">-</span>
+          <span class="aan-card-label">MRR</span>
         </div>
       </div>
-      <div class="aan-card" data-stat="pending">
+      <div class="aan-card" data-stat="average_match_score">
+        <div class="aan-card-icon">&#x1F3AF;</div>
         <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Pending</span>
+          <span class="aan-card-value">-</span>
+          <span class="aan-card-label">Avg Match Score</span>
         </div>
       </div>
     </div>
-  </div>
 
-  {{/* ── Row 4: Growth Rates ── */}}
-  <div class="aan-section">
-    <div class="aan-section-head">
-      <h2 class="aan-section-title">&#x1F4C8; Growth Rates</h2>
-    </div>
-    <div class="aan-row" id="aan-row-growth">
-      <div class="aan-card" data-stat="user_growth_rate">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0%</span>
-          <span class="aan-card-label">User Growth</span>
-        </div>
-        <span class="aan-trend"></span>
+    {{/* ── Charts: User Growth, Job Postings, Applications ── */}}
+    <div class="aan-section">
+      <div class="aan-section-head">
+        <h2 class="aan-section-title">&#x1F4C8; Trends Over Time</h2>
       </div>
-      <div class="aan-card" data-stat="job_growth_rate">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0%</span>
-          <span class="aan-card-label">Job Growth</span>
+      <div class="aan-charts-grid">
+        <div class="aan-chart-card">
+          <div class="aan-chart-title">User Registrations</div>
+          <div class="aan-chart-wrap"><canvas id="aan-chart-users"></canvas></div>
         </div>
-        <span class="aan-trend"></span>
-      </div>
-      <div class="aan-card" data-stat="application_growth_rate">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0%</span>
-          <span class="aan-card-label">Application Growth</span>
+        <div class="aan-chart-card">
+          <div class="aan-chart-title">Job Postings</div>
+          <div class="aan-chart-wrap"><canvas id="aan-chart-jobs"></canvas></div>
         </div>
-        <span class="aan-trend"></span>
-      </div>
-      <div class="aan-card" data-stat="active_users_30_days">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Active Users (30d)</span>
-        </div>
-      </div>
-      <div class="aan-card" data-stat="new_users_7_days">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">New Users (7d)</span>
-        </div>
-      </div>
-      <div class="aan-card" data-stat="new_users_30_days">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">New Users (30d)</span>
+        <div class="aan-chart-card">
+          <div class="aan-chart-title">Applications</div>
+          <div class="aan-chart-wrap"><canvas id="aan-chart-apps"></canvas></div>
         </div>
       </div>
     </div>
-  </div>
 
-  {{/* ── Activity Section ── */}}
-  <div class="aan-section">
-    <div class="aan-section-head">
-      <h2 class="aan-section-title">&#x1F4CA; Activity Metrics</h2>
+    {{/* ── Row 2: User Breakdown + Chart ── */}}
+    <div class="aan-section">
+      <div class="aan-section-head">
+        <h2 class="aan-section-title">&#x1F465; User Breakdown</h2>
+      </div>
+      <div class="aan-split-row">
+        <div>
+          <div class="aan-row" id="aan-row-users">
+            <div class="aan-card" data-stat="total">
+              <div class="aan-card-body">
+                <span class="aan-card-value">-</span>
+                <span class="aan-card-label">Total Users</span>
+              </div>
+            </div>
+            <div class="aan-card" data-stat="employee">
+              <div class="aan-card-body">
+                <span class="aan-card-value">-</span>
+                <span class="aan-card-label">Candidates</span>
+              </div>
+            </div>
+            <div class="aan-card" data-stat="employer">
+              <div class="aan-card-body">
+                <span class="aan-card-value">-</span>
+                <span class="aan-card-label">Employers</span>
+              </div>
+            </div>
+            <div class="aan-card" data-stat="admin">
+              <div class="aan-card-body">
+                <span class="aan-card-value">-</span>
+                <span class="aan-card-label">Admins</span>
+              </div>
+            </div>
+            <div class="aan-card" data-stat="active">
+              <div class="aan-card-body">
+                <span class="aan-card-value">-</span>
+                <span class="aan-card-label">Active</span>
+              </div>
+            </div>
+            <div class="aan-card" data-stat="suspended">
+              <div class="aan-card-body">
+                <span class="aan-card-value">-</span>
+                <span class="aan-card-label">Suspended</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="aan-chart-card">
+          <div class="aan-chart-title">Users by Role</div>
+          <div class="aan-chart-split-wrap"><canvas id="aan-chart-user-role"></canvas></div>
+        </div>
+      </div>
     </div>
-    <div class="aan-row" id="aan-row-activity">
-      <div class="aan-card" data-stat="jobs_posted_7_days">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Jobs Posted (7d)</span>
+
+    {{/* ── Row 3: Job Statistics + Chart ── */}}
+    <div class="aan-section">
+      <div class="aan-section-head">
+        <h2 class="aan-section-title">&#x1F4BC; Job Statistics</h2>
+      </div>
+      <div class="aan-split-row">
+        <div>
+          <div class="aan-row" id="aan-row-jobs">
+            <div class="aan-card" data-stat="status_active">
+              <div class="aan-card-body">
+                <span class="aan-card-value">-</span>
+                <span class="aan-card-label">Active</span>
+              </div>
+            </div>
+            <div class="aan-card" data-stat="status_inactive">
+              <div class="aan-card-body">
+                <span class="aan-card-value">-</span>
+                <span class="aan-card-label">Inactive</span>
+              </div>
+            </div>
+            <div class="aan-card" data-stat="total">
+              <div class="aan-card-body">
+                <span class="aan-card-value">-</span>
+                <span class="aan-card-label">Total Jobs</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="aan-chart-card">
+          <div class="aan-chart-title">Jobs by Status</div>
+          <div class="aan-chart-split-wrap"><canvas id="aan-chart-job-status"></canvas></div>
         </div>
       </div>
-      <div class="aan-card" data-stat="jobs_posted_30_days">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Jobs Posted (30d)</span>
+    </div>
+
+    {{/* ── Row 4: Growth Rates ── */}}
+    <div class="aan-section">
+      <div class="aan-section-head">
+        <h2 class="aan-section-title">&#x1F4C8; Growth Rates</h2>
+      </div>
+      <div class="aan-row" id="aan-row-growth">
+        <div class="aan-card" data-stat="user_growth_rate">
+          <div class="aan-card-body">
+            <span class="aan-card-value">-</span>
+            <span class="aan-card-label">User Growth</span>
+          </div>
+          <span class="aan-trend"></span>
+        </div>
+        <div class="aan-card" data-stat="job_growth_rate">
+          <div class="aan-card-body">
+            <span class="aan-card-value">-</span>
+            <span class="aan-card-label">Job Growth</span>
+          </div>
+          <span class="aan-trend"></span>
+        </div>
+        <div class="aan-card" data-stat="application_growth_rate">
+          <div class="aan-card-body">
+            <span class="aan-card-value">-</span>
+            <span class="aan-card-label">Application Growth</span>
+          </div>
+          <span class="aan-trend"></span>
+        </div>
+        <div class="aan-card" data-stat="active_users_30_days">
+          <div class="aan-card-body">
+            <span class="aan-card-value">-</span>
+            <span class="aan-card-label">Active Users (30d)</span>
+          </div>
+        </div>
+        <div class="aan-card" data-stat="new_users_7_days">
+          <div class="aan-card-body">
+            <span class="aan-card-value">-</span>
+            <span class="aan-card-label">New Users (7d)</span>
+          </div>
+        </div>
+        <div class="aan-card" data-stat="new_users_30_days">
+          <div class="aan-card-body">
+            <span class="aan-card-value">-</span>
+            <span class="aan-card-label">New Users (30d)</span>
+          </div>
         </div>
       </div>
-      <div class="aan-card" data-stat="total_profile_views">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Profile Views</span>
-        </div>
+    </div>
+
+    {{/* ── Row 5: Activity Metrics ── */}}
+    <div class="aan-section">
+      <div class="aan-section-head">
+        <h2 class="aan-section-title">&#x1F4CA; Activity Metrics</h2>
       </div>
-      <div class="aan-card" data-stat="total_job_views">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Job Views</span>
+      <div class="aan-row" id="aan-row-activity">
+        <div class="aan-card" data-stat="jobs_posted_7_days">
+          <div class="aan-card-body">
+            <span class="aan-card-value">-</span>
+            <span class="aan-card-label">Jobs Posted (7d)</span>
+          </div>
         </div>
-      </div>
-      <div class="aan-card" data-stat="verified_employers">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Verified Employers</span>
+        <div class="aan-card" data-stat="jobs_posted_30_days">
+          <div class="aan-card-body">
+            <span class="aan-card-value">-</span>
+            <span class="aan-card-label">Jobs Posted (30d)</span>
+          </div>
         </div>
-      </div>
-      <div class="aan-card" data-stat="total_candidates">
-        <div class="aan-card-body">
-          <span class="aan-card-value">0</span>
-          <span class="aan-card-label">Total Candidates</span>
+        <div class="aan-card" data-stat="total_profile_views">
+          <div class="aan-card-body">
+            <span class="aan-card-value">-</span>
+            <span class="aan-card-label">Profile Views</span>
+          </div>
+        </div>
+        <div class="aan-card" data-stat="total_job_views">
+          <div class="aan-card-body">
+            <span class="aan-card-value">-</span>
+            <span class="aan-card-label">Job Views</span>
+          </div>
+        </div>
+        <div class="aan-card" data-stat="verified_employers">
+          <div class="aan-card-body">
+            <span class="aan-card-value">-</span>
+            <span class="aan-card-label">Verified Employers</span>
+          </div>
+        </div>
+        <div class="aan-card" data-stat="total_candidates">
+          <div class="aan-card-body">
+            <span class="aan-card-value">-</span>
+            <span class="aan-card-label">Total Candidates</span>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="/static/js/pages/admin/analytics.js"></script>

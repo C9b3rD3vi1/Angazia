@@ -109,6 +109,7 @@ type EmployeeProfile struct {
 	Skills            []string        `json:"skills" gorm:"type:jsonb;serializer:json"`
 	Experience        WorkExperiences `json:"experience" gorm:"type:jsonb"`
 	Certifications    Certifications  `json:"certifications" gorm:"type:jsonb"`
+	Education         string          `json:"education,omitempty" gorm:"size:255"`
 	ResumeURL         string          `json:"resume_url,omitempty" gorm:"size:512"`
 	PortfolioURL      string          `json:"portfolio_url,omitempty" gorm:"size:512"`
 	LinkedInURL       string          `json:"linkedin_url,omitempty" gorm:"size:512"`

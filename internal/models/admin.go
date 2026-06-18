@@ -6,86 +6,91 @@ import (
 
 // AdminActionLog represents admin actions for audit trail
 type AdminActionLog struct {
-	ID          string                 `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	AdminID     string                 `json:"admin_id" gorm:"type:uuid;not null;index"`
-	Action      string                 `json:"action" gorm:"size:100;not null"` // create, update, delete, suspend, verify
-	EntityType  string                 `json:"entity_type" gorm:"size:50;not null"` // user, job, company, review
-	EntityID    string                 `json:"entity_id" gorm:"type:uuid;index"`
-	OldValue    JSONMap                `json:"old_value" gorm:"type:jsonb"`
-	NewValue    JSONMap                `json:"new_value" gorm:"type:jsonb"`
-	IPAddress   string                 `json:"ip_address" gorm:"size:45"`
-	UserAgent   string                 `json:"user_agent" gorm:"type:text"`
-	CreatedAt   time.Time              `json:"created_at" gorm:"autoCreateTime;index"`
-	
+	ID         string    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	AdminID    string    `json:"admin_id" gorm:"type:uuid;not null;index"`
+	Action     string    `json:"action" gorm:"size:100;not null"`     // create, update, delete, suspend, verify
+	EntityType string    `json:"entity_type" gorm:"size:50;not null"` // user, job, company, review
+	EntityID   string    `json:"entity_id" gorm:"type:uuid;index"`
+	OldValue   JSONMap   `json:"old_value" gorm:"type:jsonb"`
+	NewValue   JSONMap   `json:"new_value" gorm:"type:jsonb"`
+	IPAddress  string    `json:"ip_address" gorm:"size:45"`
+	UserAgent  string    `json:"user_agent" gorm:"type:text"`
+	CreatedAt  time.Time `json:"created_at" gorm:"autoCreateTime;index"`
+
 	// Relationships
-	Admin       *User                  `json:"admin,omitempty" gorm:"foreignKey:AdminID"`
+	Admin *User `json:"admin,omitempty" gorm:"foreignKey:AdminID"`
 }
 
 // PlatformStats represents overall platform statistics
 type PlatformStats struct {
 	// User statistics
-	TotalUsers          int64          `json:"total_users"`
-	TotalCandidates     int64          `json:"total_candidates"`
-	TotalEmployers      int64          `json:"total_employers"`
-	VerifiedEmployers   int64          `json:"verified_employers"`
-	ActiveUsers30Days   int            `json:"active_users_30_days"`
-	NewUsers7Days       int64          `json:"new_users_7_days"`
-	NewUsers30Days      int64          `json:"new_users_30_days"`
-	
+	TotalUsers        int64 `json:"total_users"`
+	TotalCandidates   int64 `json:"total_candidates"`
+	TotalEmployers    int64 `json:"total_employers"`
+	VerifiedEmployers int64 `json:"verified_employers"`
+	ActiveUsers30Days int   `json:"active_users_30_days"`
+	NewUsers7Days     int64 `json:"new_users_7_days"`
+	NewUsers30Days    int64 `json:"new_users_30_days"`
+	SuspendedUsers    int64 `json:"suspended_users"`
+	UnverifiedUsers   int64 `json:"unverified_users"`
+
 	// Job statistics
-	TotalJobs           int64          `json:"total_jobs"`
-	ActiveJobs          int64          `json:"active_jobs"`
-	TotalApplications   int64          `json:"total_applications"`
-	JobsPosted7Days     int64          `json:"jobs_posted_7_days"`
-	JobsPosted30Days    int64          `json:"jobs_posted_30_days"`
-	
+	TotalJobs         int64 `json:"total_jobs"`
+	ActiveJobs        int64 `json:"active_jobs"`
+	TotalApplications int64 `json:"total_applications"`
+	JobsPosted7Days   int64 `json:"jobs_posted_7_days"`
+	JobsPosted30Days  int64 `json:"jobs_posted_30_days"`
+
 	// Engagement metrics
-	TotalProfileViews   int            `json:"total_profile_views"`
-	TotalJobViews       int            `json:"total_job_views"`
-	AverageMatchScore   float64        `json:"average_match_score"`
-	
+	TotalProfileViews int     `json:"total_profile_views"`
+	TotalJobViews     int     `json:"total_job_views"`
+	AverageMatchScore float64 `json:"average_match_score"`
+
 	// Growth metrics
-	UserGrowthRate      float64        `json:"user_growth_rate"`
-	JobGrowthRate       float64        `json:"job_growth_rate"`
-	ApplicationGrowthRate float64      `json:"application_growth_rate"`
-	
+	UserGrowthRate        float64 `json:"user_growth_rate"`
+	JobGrowthRate         float64 `json:"job_growth_rate"`
+	ApplicationGrowthRate float64 `json:"application_growth_rate"`
+
 	// Revenue (future)
-	TotalRevenue        float64        `json:"total_revenue"`
-	MRR                 float64        `json:"mrr"`
-	
-	UpdatedAt           time.Time      `json:"updated_at"`
+	TotalRevenue float64 `json:"total_revenue"`
+	MRR          float64 `json:"mrr"`
+
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // UserReport represents user data for admin reporting
 type UserReport struct {
-	ID              string    `json:"id"`
-	Email           string    `json:"email"`
-	Role            string    `json:"role"`
-	FullName              string    `json:"full_name"`
-	CompanyName           string    `json:"company_name"`
-	VerificationStatus    string    `json:"verification_status"`
-	IsVerified            bool      `json:"is_verified"`
-	IsActive        bool      `json:"is_active"`
-	CreatedAt       time.Time `json:"created_at"`
-	LastLoginAt     *time.Time `json:"last_login_at"`
-	JobCount        int       `json:"job_count,omitempty"`
-	ApplicationCount int      `json:"application_count,omitempty"`
-	ReportsCount    int       `json:"reports_count"`
+	ID                 string     `json:"id"`
+	Email              string     `json:"email"`
+	Role               string     `json:"role"`
+	FullName           string     `json:"full_name"`
+	CompanyName        string     `json:"company_name"`
+	VerificationStatus string     `json:"verification_status"`
+	IsVerified         bool       `json:"is_verified"`
+	IsActive           bool       `json:"is_active"`
+	CreatedAt          time.Time  `json:"created_at"`
+	LastLoginAt        *time.Time `json:"last_login_at"`
+	JobCount           int        `json:"job_count,omitempty"`
+	ApplicationCount   int        `json:"application_count,omitempty"`
+	ReportsCount       int        `json:"reports_count"`
+	AvatarURL          string     `json:"avatar_url,omitempty"`
+	CompanyLogo        string     `json:"company_logo,omitempty"`
+	DocumentCount      int        `json:"document_count,omitempty"`
 }
 
 // ModerationQueue represents items pending moderation
 type ModerationQueue struct {
-	ID          string                 `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	EntityType  string                 `json:"entity_type" gorm:"size:50;not null"` // job, review, company
-	EntityID    string                 `json:"entity_id" gorm:"type:uuid;not null;index"`
-	Status      string                 `json:"status" gorm:"size:50;default:'pending'"` // pending, approved, rejected
-	Reason      string                 `json:"reason" gorm:"type:text"`
-	SubmittedBy string                 `json:"submitted_by" gorm:"type:uuid"`
-	ReviewedBy  *string                `json:"reviewed_by,omitempty" gorm:"type:uuid"`
-	ReviewedAt  *time.Time             `json:"reviewed_at,omitempty"`
-	Metadata    JSONMap                `json:"metadata" gorm:"type:jsonb"`
-	CreatedAt   time.Time              `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt   time.Time              `json:"updated_at" gorm:"autoUpdateTime"`
+	ID          string     `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	EntityType  string     `json:"entity_type" gorm:"size:50;not null"` // job, review, company
+	EntityID    string     `json:"entity_id" gorm:"type:uuid;not null;index"`
+	Status      string     `json:"status" gorm:"size:50;default:'pending'"` // pending, approved, rejected
+	Reason      string     `json:"reason" gorm:"type:text"`
+	SubmittedBy string     `json:"submitted_by" gorm:"type:uuid"`
+	ReviewedBy  *string    `json:"reviewed_by,omitempty" gorm:"type:uuid"`
+	ReviewedAt  *time.Time `json:"reviewed_at,omitempty"`
+	Metadata    JSONMap    `json:"metadata" gorm:"type:jsonb"`
+	CreatedAt   time.Time  `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt   time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
 // SystemSetting represents platform configuration
@@ -110,6 +115,43 @@ type ReportReason struct {
 	IsActive    bool      `json:"is_active" gorm:"default:true"`
 	SortOrder   int       `json:"sort_order" gorm:"default:0"`
 	CreatedAt   time.Time `json:"created_at" gorm:"autoCreateTime"`
+}
+
+// ChartDataPoint represents a single data point for dashboard charts
+type ChartDataPoint struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
+}
+
+// ChartData represents time-series chart data
+type ChartData struct {
+	UserGrowth   []ChartDataPoint `json:"user_growth"`
+	JobPostings  []ChartDataPoint `json:"job_postings"`
+	Applications []ChartDataPoint `json:"applications"`
+}
+
+// AdminJobReport represents a job listing in admin views
+type AdminJobReport struct {
+	ID                string `json:"id"`
+	Title             string `json:"title"`
+	EmployerID        string `json:"employer_id"`
+	CompanyName       string `json:"company_name"`
+	CompanyLogo       string `json:"company_logo"`
+	CompanyID         string `json:"company_id"`
+	Email             string `json:"email"`
+	Status            string `json:"status"`
+	Location          string `json:"location"`
+	EmploymentType    string `json:"employment_type"`
+	ExperienceLevel   string `json:"experience_level"`
+	SalaryMin         int    `json:"salary_min"`
+	SalaryMax         int    `json:"salary_max"`
+	SalaryCurrency    string `json:"salary_currency"`
+	IsActive          bool   `json:"is_active"`
+	ApplicationsCount int    `json:"applications_count"`
+	ViewsCount        int    `json:"views_count"`
+	PostedAt          string `json:"posted_at"`
+	CreatedAt         string `json:"created_at"`
+	ExpiresAt         string `json:"expires_at,omitempty"`
 }
 
 func (AdminActionLog) TableName() string {

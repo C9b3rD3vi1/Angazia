@@ -1,4 +1,6 @@
 {{/* Admin Job Management */}}
+{{define "title"}}Jobs{{end}}
+{{define "activePage"}}jobs{{end}}
 
 <div class="aj-page">
   <div class="aj-header">
@@ -11,38 +13,61 @@
     </div>
   </div>
 
+  <div class="aj-stats" id="aj-stats">
+    <div class="aj-stat-card">
+      <span class="aj-stat-value" id="aj-stat-total">0</span>
+      <span class="aj-stat-label">Total Jobs</span>
+    </div>
+    <div class="aj-stat-card">
+      <span class="aj-stat-value" id="aj-stat-active">0</span>
+      <span class="aj-stat-label">Active</span>
+    </div>
+    <div class="aj-stat-card">
+      <span class="aj-stat-value" id="aj-stat-pending">0</span>
+      <span class="aj-stat-label">Pending</span>
+    </div>
+    <div class="aj-stat-card">
+      <span class="aj-stat-value" id="aj-stat-closed">0</span>
+      <span class="aj-stat-label">Closed</span>
+    </div>
+  </div>
+
+  <div class="aj-tabs" id="aj-tabs">
+    <button class="aj-tab active" data-tab="all">All</button>
+    <button class="aj-tab" data-tab="active">Active</button>
+    <button class="aj-tab" data-tab="pending">Pending</button>
+    <button class="aj-tab" data-tab="closed">Closed</button>
+  </div>
+
   <div class="aj-toolbar">
     <div class="aj-search-wrap">
       <span class="aj-search-icon">S</span>
-      <input type="text" class="aj-input aj-search-input" id="aj-search" placeholder="Search by title or company...">
+      <input type="text" class="aj-input aj-search-input" id="aj-search" placeholder="Search by title, company or email...">
     </div>
     <select class="aj-input aj-select" id="aj-status-filter">
       <option value="">All Status</option>
       <option value="active">Active</option>
-      <option value="closed">Closed</option>
       <option value="pending">Pending</option>
-      <option value="draft">Draft</option>
+      <option value="closed">Closed</option>
+    </select>
+    <select class="aj-input aj-select" id="aj-type-filter">
+      <option value="">All Types</option>
+      <option value="full-time">Full-Time</option>
+      <option value="part-time">Part-Time</option>
+      <option value="contract">Contract</option>
+      <option value="internship">Internship</option>
+      <option value="freelance">Freelance</option>
+      <option value="temporary">Temporary</option>
+    </select>
+    <select class="aj-input aj-select" id="aj-exp-filter">
+      <option value="">All Levels</option>
+      <option value="entry">Entry</option>
+      <option value="junior">Junior</option>
+      <option value="mid">Mid</option>
+      <option value="senior">Senior</option>
+      <option value="lead">Lead</option>
     </select>
     <button class="aj-btn aj-btn-primary" id="aj-apply-filter">Apply</button>
-  </div>
-
-  <div class="aj-stats">
-    <div class="aj-stat-card">
-      <span class="aj-stat-value">{{.Stats.TotalJobs}}</span>
-      <span class="aj-stat-label">Total Jobs</span>
-    </div>
-    <div class="aj-stat-card">
-      <span class="aj-stat-value">{{.Stats.ActiveJobs}}</span>
-      <span class="aj-stat-label">Active</span>
-    </div>
-    <div class="aj-stat-card">
-      <span class="aj-stat-value">{{.Stats.PendingJobs}}</span>
-      <span class="aj-stat-label">Pending</span>
-    </div>
-    <div class="aj-stat-card">
-      <span class="aj-stat-value">{{.Stats.ClosedJobs}}</span>
-      <span class="aj-stat-label">Closed</span>
-    </div>
   </div>
 
   <div class="aj-bulk" id="aj-bulk" style="display:none;">
@@ -63,13 +88,13 @@
   </div>
 
   <div class="aj-empty" id="aj-empty" style="display:none;">
-    <p class="aj-empty-text">No jobs found.</p>
+    <p class="aj-empty-text">No jobs found matching your criteria.</p>
   </div>
 
   <section class="aj-section">
     <div class="aj-section-head">
-      <h2 class="aj-section-title">All Job Listings</h2>
-      <span class="aj-section-count" id="aj-total-count">{{.TotalJobs}}</span>
+      <h2 class="aj-section-title">Job Listings</h2>
+      <span class="aj-section-count" id="aj-total-count">0</span>
     </div>
     <div class="aj-table-wrap">
       <table class="aj-table" id="aj-table">
@@ -79,6 +104,7 @@
             <th>Job Title</th>
             <th>Company</th>
             <th>Status</th>
+            <th>Type</th>
             <th>Applications</th>
             <th>Views</th>
             <th>Posted Date</th>
@@ -86,51 +112,6 @@
           </tr>
         </thead>
         <tbody id="aj-table-body">
-          {{if .Jobs}}
-          {{range .Jobs}}
-          <tr data-job-id="{{.ID}}">
-            <td class="aj-th-check"><input type="checkbox" class="aj-row-check" data-job-id="{{.ID}}" /></td>
-            <td>
-              <a href="/admin/jobs/{{.ID}}" class="aj-table-link">
-                <span class="aj-table-title">{{.Title}}</span>
-              </a>
-            </td>
-            <td>
-              <a href="/admin/companies/{{.CompanyID}}" class="aj-table-company">
-                {{if .CompanyLogo}}
-                <img src="{{.CompanyLogo}}" alt="" class="aj-table-clogo">
-                {{else}}
-                <span class="aj-table-clogo-placeholder">{{.CompanyInitials}}</span>
-                {{end}}
-                <span>{{.CompanyName}}</span>
-              </a>
-            </td>
-            <td>
-              <span class="aj-status-badge {{.Status}}">{{.Status}}</span>
-            </td>
-            <td><span class="aj-table-number">{{.ApplicationsCount}}</span></td>
-            <td><span class="aj-table-number">{{.ViewsCount}}</span></td>
-            <td><span class="aj-table-muted">{{.PostedDate}}</span></td>
-            <td>
-              <div class="aj-row-actions">
-                {{if eq .Status "pending"}}
-                <button class="aj-btn-sm aj-btn-sm-accept" data-action="approve" data-job-id="{{.ID}}" data-bulk-action="approve">Approve</button>
-                <button class="aj-btn-sm aj-btn-sm-reject" data-action="reject" data-job-id="{{.ID}}" data-bulk-action="reject">Reject</button>
-                {{end}}
-                <a href="/admin/jobs/{{.ID}}" class="aj-btn-sm aj-btn-sm-ghost">View</a>
-              </div>
-            </td>
-          </tr>
-          {{end}}
-          {{else}}
-          <tr class="aj-no-data-row">
-            <td colspan="8">
-              <div class="aj-empty">
-                <p class="aj-empty-text">No jobs found.</p>
-              </div>
-            </td>
-          </tr>
-          {{end}}
         </tbody>
       </table>
     </div>

@@ -1,3 +1,5 @@
+{{define "title"}}Dashboard{{end}}
+{{define "activePage"}}dashboard{{end}}
 {{/* Admin Dashboard */}}
 
 <div class="ad-dash">
@@ -52,7 +54,7 @@
         <span class="ad-stat-value">{{printf "%.0f" .Stats.MRR}}</span>
         <span class="ad-stat-label">MRR</span>
       </div>
-      <div class="ad-stat-progress"><div class="ad-stat-progress-bar" style="width:80%"></div></div>
+      <div class="ad-stat-progress"><div class="ad-stat-progress-bar" style="width:{{.Stats.MRRProgress}}%"></div></div>
     </div>
     <div class="ad-stat-card" data-stat="active_users" data-value="{{.Stats.ActiveUsers30Days}}">
       <div class="ad-stat-icon">&gt;</div>

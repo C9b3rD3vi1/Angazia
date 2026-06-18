@@ -21,13 +21,13 @@
     if (errorEl) errorEl.style.display = 'none';
 
     var params = { page: currentPage, limit: 20 };
-    if (currentFilter !== 'all') params.filter = currentFilter;
+    if (currentFilter !== 'all') params.type = currentFilter;
     if (searchQuery) params.search = searchQuery;
     if (sortOrder) params.sort = sortOrder;
 
-    var endpoint = currentFilter === 'unread' ? '/notifications/unread' : '/notifications';
+    var notificationsApi = currentFilter === 'unread' ? AngaziaAPI.notifications.unread : AngaziaAPI.notifications.list;
 
-    AngaziaAPI.get(endpoint, params).then(function (data) {
+    notificationsApi(params).then(function (data) {
       if (loadingEl) loadingEl.style.display = 'none';
 
       var items = data && data.notifications ? data.notifications : (data && data.data ? data.data : []);
@@ -110,6 +110,7 @@
     if (t === 'message' || t === 'new_message') return 'M';
     if (t === 'alert' || t === 'system_alert') return '!';
     if (t === 'job_match') return 'J';
+    if (t === 'system') return 'S';
     return 'N';
   }
 
@@ -133,13 +134,13 @@
   }
 
   function markRead(id) {
-    AngaziaAPI.post('/notifications/' + id + '/read').then(function () {
+    AngaziaAPI.notifications.markRead(id).then(function () {
       render();
     }).catch(function () {});
   }
 
   function markAllRead() {
-    AngaziaAPI.post('/notifications/read-all').then(function () {
+    AngaziaAPI.notifications.markAllRead().then(function () {
       render();
     }).catch(function () {});
   }

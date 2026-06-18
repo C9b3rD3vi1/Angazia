@@ -149,11 +149,13 @@ type DailyStat struct {
 }
 
 type CompanyServiceImpl struct {
-	cfg          *config.Config
-	companyRepo  repository.CompanyRepository
-	employerRepo repository.UserRepository
-	jobRepo      repository.JobRepository
-	emailService EmailService
+	cfg             *config.Config
+	companyRepo     repository.CompanyRepository
+	employerRepo    repository.UserRepository
+	jobRepo         repository.JobRepository
+	emailService    EmailService
+	adminRepo       repository.AdminRepository
+	notificationSvc NotificationService
 }
 
 func NewCompanyService(
@@ -162,6 +164,7 @@ func NewCompanyService(
 	employerRepo repository.UserRepository,
 	jobRepo repository.JobRepository,
 	emailService EmailService,
+	adminRepo repository.AdminRepository,
 ) CompanyService {
 	return &CompanyServiceImpl{
 		cfg:          cfg,
@@ -169,7 +172,12 @@ func NewCompanyService(
 		employerRepo: employerRepo,
 		jobRepo:      jobRepo,
 		emailService: emailService,
+		adminRepo:    adminRepo,
 	}
+}
+
+func (s *CompanyServiceImpl) SetNotificationService(ns NotificationService) {
+	s.notificationSvc = ns
 }
 
 func (s *CompanyServiceImpl) GetCompanyProfile(ctx context.Context, companyID string) (*CompanyProfileResponse, error) {
@@ -347,6 +355,23 @@ func (s *CompanyServiceImpl) SubmitVerification(ctx context.Context, companyID s
 
 	// Send notification to admin using email service with template
 	go s.sendVerificationNotification(verification)
+
+	// Send in-app notification to all admin users
+	if s.notificationSvc != nil {
+		adminIDs, err := s.adminRepo.GetAdminUserIDs(ctx)
+		if err == nil {
+			companyName := ""
+			if profile, err := s.employerRepo.GetEmployerProfile(ctx, companyID); err == nil && profile != nil {
+				companyName = profile.CompanyName
+			}
+			if companyName == "" {
+				companyName = companyID
+			}
+			for _, adminID := range adminIDs {
+				s.notificationSvc.NotifyAdminNewVerificationRequest(ctx, adminID, companyName)
+			}
+		}
+	}
 
 	return verification, nil
 }

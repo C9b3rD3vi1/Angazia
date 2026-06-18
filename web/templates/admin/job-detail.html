@@ -1,20 +1,20 @@
 {{/* Admin Job Detail */}}
+{{define "title"}}Job Detail{{end}}
+{{define "activePage"}}jobs{{end}}
 
 {{if .JobDetail}}
 <div class="ajd-page">
-  {{/* ── Page Header with Back Navigation ── */}}
   <div class="ajd-header">
     <a href="/admin/jobs" class="ajd-back-link">&larr; Back to Jobs</a>
     <div class="ajd-header-actions">
       {{if eq .JobDetail.Status "pending"}}
-      <button class="ajd-btn ajd-btn-accept" data-action="approve" data-job-id="{{.JobDetail.ID}}">&#x2705; Approve Listing</button>
-      <button class="ajd-btn ajd-btn-reject" data-action="reject" data-job-id="{{.JobDetail.ID}}">&#x274C; Reject Listing</button>
+      <button class="ajd-btn ajd-btn-accept" data-action="approve" data-job-id="{{.JobDetail.ID}}">Approve Listing</button>
+      <button class="ajd-btn ajd-btn-reject" data-action="reject" data-job-id="{{.JobDetail.ID}}">Reject Listing</button>
       {{end}}
-      <a href="/jobs/{{.JobDetail.Slug}}" target="_blank" class="ajd-btn ajd-btn-ghost">&#x1F517; View Public</a>
+      <a href="/jobs/{{.JobDetail.Slug}}" target="_blank" class="ajd-btn ajd-btn-ghost">View Public</a>
     </div>
   </div>
 
-  {{/* ── Job Details Card ── */}}
   <div class="ajd-card">
     <div class="ajd-job-header">
       <div class="ajd-job-top">
@@ -99,7 +99,6 @@
     {{end}}
   </div>
 
-  {{/* ── Stats Row ── */}}
   <div class="ajd-stats">
     <div class="ajd-stat-card">
       <span class="ajd-stat-value">{{.JobDetail.ApplicationsCount}}</span>
@@ -119,48 +118,34 @@
     </div>
   </div>
 
-  {{/* ── Recent Applications ── */}}
-  <div class="ajd-card">
+  <div class="ajd-card" id="ajd-applications-card">
     <div class="ajd-card-head">
-      <h2 class="ajd-card-title">&#x1F4DD; Recent Applications</h2>
-      <a href="/admin/jobs/{{.JobDetail.ID}}/applications" class="ajd-card-link">View All</a>
+      <h2 class="ajd-card-title">Applications</h2>
+      <span class="ajd-card-badge" id="ajd-app-count">{{.JobDetail.ApplicationsCount}}</span>
     </div>
-    {{if .JobDetail.RecentApplications}}
-    <div class="ajd-app-list">
-      {{range .JobDetail.RecentApplications}}
-      <div class="ajd-app-item">
-        {{if .Avatar}}
-        <img src="{{.Avatar}}" alt="" class="ajd-app-avatar">
-        {{else}}
-        <span class="ajd-app-avatar ajd-app-avatar-text">{{.Initials}}</span>
-        {{end}}
-        <div class="ajd-app-info">
-          <a href="/admin/users/{{.UserID}}" class="ajd-app-name">{{.Name}}</a>
-          <span class="ajd-app-date">{{.AppliedDate}}</span>
-        </div>
-        <span class="ajd-app-status {{.Status}}">{{.Status}}</span>
-      </div>
-      {{end}}
+    <div class="ajd-loading" id="ajd-app-loading">
+      <div class="ajd-spinner"></div>
+      <p class="ajd-loading-text">Loading applications...</p>
     </div>
-    {{else}}
-    <div class="ajd-empty">
-      <span class="ajd-empty-icon">&#x1F4DD;</span>
+    <div class="ajd-error" id="ajd-app-error" style="display:none;">
+      <p class="ajd-empty-text" id="ajd-app-error-text">Failed to load applications.</p>
+      <button class="ajd-btn ajd-btn-primary" data-action="retry-apps">Retry</button>
+    </div>
+    <div class="ajd-app-list" id="ajd-app-list"></div>
+    <div class="ajd-empty" id="ajd-app-empty" style="display:none;">
       <p class="ajd-empty-text">No applications yet.</p>
     </div>
-    {{end}}
   </div>
 </div>
 {{else}}
 <div class="ajd-page">
   <div class="ajd-empty ajd-empty-page">
-    <span class="ajd-empty-icon">&#x1F4BC;</span>
     <p class="ajd-empty-text">Job not found or you do not have permission to view this page.</p>
     <a href="/admin/jobs" class="ajd-btn ajd-btn-primary">&larr; Back to Jobs</a>
   </div>
 </div>
 {{end}}
 
-{{/* ── Reject Reason Modal ── */}}
 <div class="ajd-modal-overlay" id="ajd-reject-modal" style="display:none">
   <div class="ajd-modal">
     <div class="ajd-modal-head">

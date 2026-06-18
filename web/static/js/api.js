@@ -169,6 +169,7 @@ var AngaziaAPI = (function () {
     auth: {
       register: function (data) { return apiPost('/auth/register', data); },
       login: function (data) { return apiPost('/auth/login', data); },
+      adminLogin: function (data) { return apiPost('/auth/admin/login', data); },
       refresh: function (token) { return apiPost('/auth/refresh', { refresh_token: token }); },
       logout: function () { return apiPost('/auth/logout'); },
       forgotPassword: function (data) { return apiPost('/auth/forgot-password', data); },
@@ -276,14 +277,22 @@ var AngaziaAPI = (function () {
       // Moderation
       moderation: function (params) { return apiGet('/admin/moderation', params); },
       approveContent: function (id) { return apiPost('/admin/moderation/' + id + '/approve'); },
-      rejectContent: function (id) { return apiPost('/admin/moderation/' + id + '/reject'); },
+      rejectContent: function (id, data) { return apiPost('/admin/moderation/' + id + '/reject', data); },
       
       // Settings
       settings: function () { return apiGet('/admin/settings'); },
+      createSetting: function (data) { return apiPost('/admin/settings', data); },
       updateSetting: function (key, data) { return apiPut('/admin/settings/' + key, data); },
       reportReasons: function () { return apiGet('/admin/report-reasons'); },
+      createReportReason: function (data) { return apiPost('/admin/report-reasons', data); },
+      updateReportReason: function (id, data) { return apiPut('/admin/report-reasons/' + id, data); },
+      deleteReportReason: function (id) { return apiDelete('/admin/report-reasons/' + id); },
       auditLogs: function (params) { return apiGet('/admin/audit-logs', params); },
       report: function (data) { return apiPost('/report', data); },
+
+      // Jobs
+      jobs: function (params) { return apiGet('/admin/jobs', params); },
+      chartData: function (params) { return apiGet('/admin/stats/chart-data', params); },
 
       // Subscription Management
       listSubscriptions: function (params) { return apiGet('/admin/subscriptions', params); },
@@ -301,7 +310,7 @@ var AngaziaAPI = (function () {
       get: function (id) { return apiGet('/notifications/' + id); },
       markRead: function (id) { return apiPost('/notifications/' + id + '/read'); },
       markAllRead: function () { return apiPost('/notifications/read-all'); },
-      markMultipleRead: function (ids) { return apiPost('/notifications/read-multiple', { ids: ids }); },
+      markMultipleRead: function (ids) { return apiPost('/notifications/read-multiple', { notification_ids: ids }); },
       archive: function (id) { return apiPost('/notifications/' + id + '/archive'); },
       delete: function (id) { return apiDelete('/notifications/' + id); },
       deleteAll: function () { return apiDelete('/notifications'); },
@@ -452,6 +461,21 @@ var AngaziaAPI = (function () {
     preferences: {
       get: function () { return apiGet('/preferences'); },
       update: function (data) { return apiPut('/preferences', data); },
+    },
+
+    testimonials: {
+      mine: function (params) { return apiGet('/testimonials/mine', params); },
+      create: function (data) { return apiPost('/testimonials', data); },
+      update: function (id, data) { return apiPut('/testimonials/' + id, data); },
+      delete: function (id) { return apiDel('/testimonials/' + id); },
+      approved: function (params) { return apiGet('/testimonials', params); },
+      admin: {
+        list: function (params) { return apiGet('/admin/testimonials', params); },
+        approve: function (id) { return apiPost('/admin/testimonials/' + id + '/approve'); },
+        reject: function (id) { return apiPost('/admin/testimonials/' + id + '/reject'); },
+        feature: function (id) { return apiPost('/admin/testimonials/' + id + '/feature'); },
+        del: function (id) { return apiDel('/admin/testimonials/' + id); },
+      },
     },
   };
 })();

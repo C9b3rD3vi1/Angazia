@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v2"
 
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
@@ -102,7 +102,7 @@ func (h *AdminSubscriptionHandler) CancelSubscription(c *fiber.Ctx) error {
 
 	var req adminCancelReq
 	if err := c.BodyParser(&req); err != nil {
-		req.Reason = "Cancelled by admin"
+		return utils.BadRequest(c, "Invalid request body")
 	}
 
 	if err := h.subscriptionService.CancelSubscription(c.Context(), sub.UserID, id, req.Reason); err != nil {

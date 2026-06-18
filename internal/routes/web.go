@@ -27,6 +27,7 @@ func SetupWebRoutes(
 	app.Get("/companies/:id", webHandler.CompanyPage)
 	app.Get("/about", webHandler.AboutPage)
 	app.Get("/contact", webHandler.ContactPage)
+	app.Post("/contact", webHandler.ContactSubmit)
 	app.Get("/pricing", webHandler.PricingPage)
 
 	// Auth pages (GET - show form; POST - handled via JS API /api/v1/auth/*)
@@ -56,6 +57,7 @@ func SetupWebRoutes(
 	employee.Get("/matches", dashboardHandler.EmployeeMatchesPage)
 	employee.Get("/notifications", webHandler.NotificationsPage)
 	employee.Get("/messages", messageHandler.MessagesPage)
+	employee.Get("/testimonials", webHandler.EmployeeTestimonialsPage)
 
 	// Employer pages
 	employer := app.Group("/employer",
@@ -84,6 +86,7 @@ func SetupWebRoutes(
 	employer.Get("/settings", webHandler.EmployerSettingsPage)
 	employer.Get("/notifications", webHandler.NotificationsPage)
 	employer.Get("/messages", messageHandler.MessagesPage)
+	employer.Get("/testimonials", webHandler.EmployerTestimonialsPage)
 
 	// Role-aware notifications redirect (works with notification-bell partial shared by both roles)
 	app.Get("/notifications", middleware.WebAuthMiddleware(), func(c *fiber.Ctx) error {
@@ -129,6 +132,7 @@ func SetupAdminWebRoutes(app *fiber.App, h *handlers.AdminWebHandler) {
 	admin.Get("/jobs/:id", h.JobDetailPage)
 
 	// Moderation & reports
+	admin.Get("/moderation", h.ModerationPage)
 	admin.Get("/reports", h.ReportsPage)
 	admin.Get("/audit", h.AuditLogsPage)
 
@@ -137,6 +141,12 @@ func SetupAdminWebRoutes(app *fiber.App, h *handlers.AdminWebHandler) {
 
 	// Notifications
 	admin.Get("/notifications", h.NotificationsPage)
+
+	// Testimonials
+	admin.Get("/testimonials", h.TestimonialsPage)
+
+	// Contact submissions
+	admin.Get("/contacts", h.ContactsPage)
 
 	// Profile & settings
 	admin.Get("/profile", h.ProfilePage)

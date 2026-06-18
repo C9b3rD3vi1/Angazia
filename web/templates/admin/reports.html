@@ -3,7 +3,6 @@
 {{define "activePage"}}reports{{end}}
 
 <div class="ar-page">
-  {{/* ── Page Header ── */}}
   <div class="ar-header">
     <div class="ar-header-text">
       <h1 class="ar-title">Reports</h1>
@@ -14,7 +13,6 @@
     </div>
   </div>
 
-  {{/* ── Stats Row ── */}}
   <div class="ar-stats" id="ar-stats">
     <div class="ar-stat-card" id="ar-stat-total">
       <span class="ar-stat-value">0</span>
@@ -22,25 +20,40 @@
     </div>
     <div class="ar-stat-card ar-stat-card-reported" id="ar-stat-reported">
       <span class="ar-stat-value">0</span>
-      <span class="ar-stat-label">Reported</span>
+      <span class="ar-stat-label">Pending</span>
     </div>
     <div class="ar-stat-card ar-stat-card-resolved" id="ar-stat-resolved">
       <span class="ar-stat-value">0</span>
-      <span class="ar-stat-label">Resolved</span>
+      <span class="ar-stat-label">Approved</span>
     </div>
     <div class="ar-stat-card ar-stat-card-dismissed" id="ar-stat-dismissed">
       <span class="ar-stat-value">0</span>
-      <span class="ar-stat-label">Dismissed</span>
+      <span class="ar-stat-label">Rejected</span>
     </div>
   </div>
 
-  {{/* ── Tabs ── */}}
-  <div class="ar-tabs">
-    <button class="ar-tab active" data-tab="reported">All Reports</button>
-    <button class="ar-tab" data-tab="resolved">Resolved</button>
+  <div class="ar-charts" id="ar-charts" style="display:none">
+    <div class="ar-chart-card">
+      <span class="ar-chart-title">Reports by Entity Type</span>
+      <div class="ar-chart-wrap">
+        <canvas id="ar-entity-chart"></canvas>
+      </div>
+    </div>
+    <div class="ar-chart-card">
+      <span class="ar-chart-title">Status Distribution</span>
+      <div class="ar-chart-wrap">
+        <canvas id="ar-status-chart"></canvas>
+      </div>
+    </div>
   </div>
 
-  {{/* ── Toolbar ── */}}
+  <div class="ar-tabs">
+    <button class="ar-tab active" data-tab="">All Reports</button>
+    <button class="ar-tab" data-tab="reported">Pending</button>
+    <button class="ar-tab" data-tab="resolved">Approved</button>
+    <button class="ar-tab" data-tab="dismissed">Rejected</button>
+  </div>
+
   <div class="ar-toolbar">
     <select class="ar-select" id="ar-entity-filter">
       <option value="">All Entity Types</option>
@@ -56,28 +69,53 @@
     <select class="ar-select" id="ar-reason-filter">
       <option value="">All Reasons</option>
     </select>
+    <div class="ar-date-range">
+      <input type="date" class="ar-input ar-date-input" id="ar-date-from">
+      <span class="ar-date-sep">to</span>
+      <input type="date" class="ar-input ar-date-input" id="ar-date-to">
+    </div>
+    <button class="ar-btn ar-btn-primary" data-action="apply-filters">Apply</button>
   </div>
 
-  {{/* ── Loading State ── */}}
-  <div class="ar-loading" id="ar-loading">
+  <div class="ar-loading active" id="ar-loading">
     <div class="ar-loading-spinner"></div>
     <span class="ar-loading-text">Loading reports...</span>
   </div>
 
-  {{/* ── Report List ── */}}
+  <div class="ar-error" id="ar-error" style="display:none">
+    <span class="ar-error-icon">&#x26A0;&#xFE0F;</span>
+    <p class="ar-error-text" id="ar-error-text">Failed to load reports</p>
+    <button class="ar-btn ar-btn-primary" data-action="retry">Retry</button>
+  </div>
+
   <div class="ar-list-wrap" id="ar-list-wrap">
     <div class="ar-empty" id="ar-empty" style="display:none">
       <span class="ar-empty-icon">&#x1F4AD;</span>
-      <p class="ar-empty-text">No reports found.</p>
+      <p class="ar-empty-text" id="ar-empty-text">No reports found.</p>
     </div>
     <div class="ar-list" id="ar-list"></div>
   </div>
 
-  {{/* ── Pagination ── */}}
   <div class="ar-pagination" id="ar-pagination"></div>
+
+  <section class="ar-reasons-section">
+    <div class="ar-reasons-head" data-action="toggle-reasons">
+      <h2 class="ar-reasons-title">Report Reasons</h2>
+      <span class="ar-reasons-toggle" id="ar-reasons-toggle">&#x25BC;</span>
+    </div>
+    <div class="ar-reasons-body" id="ar-reasons-body" style="display:none">
+      <div class="ar-reasons-toolbar">
+        <button class="ar-btn ar-btn-primary" data-action="add-reason">+ Add Reason</button>
+      </div>
+      <div class="ar-loading" id="ar-reasons-loading">
+        <div class="ar-loading-spinner"></div>
+        <span class="ar-loading-text">Loading reasons...</span>
+      </div>
+      <div class="ar-reasons-list" id="ar-reasons-list"></div>
+    </div>
+  </section>
 </div>
 
-{{/* ── Resolve Details Modal ── */}}
 <div class="ar-modal-overlay" id="ar-resolve-modal" style="display:none">
   <div class="ar-modal">
     <div class="ar-modal-head">
@@ -95,7 +133,6 @@
   </div>
 </div>
 
-{{/* ── Dismiss Confirmation Modal ── */}}
 <div class="ar-modal-overlay" id="ar-dismiss-modal" style="display:none">
   <div class="ar-modal">
     <div class="ar-modal-head">
@@ -113,7 +150,6 @@
   </div>
 </div>
 
-{{/* ── Report Detail Modal ── */}}
 <div class="ar-modal-overlay" id="ar-detail-modal" style="display:none">
   <div class="ar-modal ar-modal-lg">
     <div class="ar-modal-head">
@@ -166,4 +202,42 @@
   </div>
 </div>
 
+<div class="ar-modal-overlay" id="ar-reason-modal" style="display:none">
+  <div class="ar-modal">
+    <div class="ar-modal-head">
+      <h3 class="ar-modal-title" id="ar-reason-modal-title">Add Report Reason</h3>
+      <button class="ar-modal-close" id="ar-reason-modal-close">&times;</button>
+    </div>
+    <div class="ar-modal-body">
+      <div class="ar-form-group">
+        <label class="ar-form-label">Name *</label>
+        <input type="text" class="ar-input" id="ar-reason-name" placeholder="e.g. Spam">
+      </div>
+      <div class="ar-form-group">
+        <label class="ar-form-label">Description</label>
+        <textarea class="ar-input ar-textarea" id="ar-reason-desc" rows="2" placeholder="Optional description"></textarea>
+      </div>
+      <div class="ar-form-group">
+        <label class="ar-form-label">Entity Type</label>
+        <select class="ar-select" id="ar-reason-entity">
+          <option value="">All Types</option>
+          <option value="job">Job</option>
+          <option value="review">Review</option>
+          <option value="company">Company</option>
+          <option value="user">User</option>
+        </select>
+      </div>
+      <div class="ar-form-group">
+        <label class="ar-form-label">Sort Order</label>
+        <input type="number" class="ar-input" id="ar-reason-sort" value="0" min="0" style="width:80px">
+      </div>
+    </div>
+    <div class="ar-modal-foot">
+      <button class="ar-btn ar-btn-ghost" id="ar-reason-modal-cancel">Cancel</button>
+      <button class="ar-btn ar-btn-resolve" id="ar-reason-modal-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="/static/js/pages/admin/reports.js"></script>

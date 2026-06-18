@@ -53,11 +53,12 @@
     els.modalClose = document.getElementById('aud-modal-close');
 
     els.modalConfirm.addEventListener('click', function () {
-      hideModal();
       if (typeof modalCallback === 'function') {
-        modalCallback();
+        var cb = modalCallback;
         modalCallback = null;
+        cb();
       }
+      hideModal();
     });
     els.modalCancel.addEventListener('click', hideModal);
     els.modalClose.addEventListener('click', hideModal);
@@ -70,7 +71,7 @@
 
   function audLoad() {
     showLoading();
-    AngaziaAPI.get('/admin/users/' + userId)
+    AngaziaAPI.admin.userDetail(userId)
       .then(function (data) {
         if (!data) {
           showError('Failed to load user details');
@@ -117,7 +118,11 @@
     var lastLogin = u.last_login_at ? formatDateTime(u.last_login_at) : 'Never';
 
     els.title.textContent = u.full_name || u.email || 'User Details';
-    els.avatar.textContent = initials;
+    if (u.avatar_url) {
+      els.avatar.innerHTML = '<img src="' + escapeHtml(u.avatar_url) + '" alt="" class="aud-avatar-img">';
+    } else {
+      els.avatar.textContent = initials;
+    }
     els.name.textContent = u.full_name || '-';
     els.email.textContent = u.email || '-';
     els.role.textContent = u.role || '-';
@@ -228,7 +233,7 @@
 
   function audSuspend() {
     showModal('Suspend User', 'Are you sure you want to suspend this user? They will be unable to access the platform.', function () {
-      AngaziaAPI.post('/admin/users/' + userId + '/suspend')
+      AngaziaAPI.admin.suspendUser(userId)
         .then(function () {
           showToast('User suspended successfully', 'success');
           audLoad();
@@ -241,7 +246,7 @@
 
   function audActivate() {
     showModal('Activate User', 'Are you sure you want to activate this user?', function () {
-      AngaziaAPI.post('/admin/users/' + userId + '/activate')
+      AngaziaAPI.admin.activateUser(userId)
         .then(function () {
           showToast('User activated successfully', 'success');
           audLoad();
@@ -254,7 +259,7 @@
 
   function audVerify() {
     showModal('Verify User', 'Are you sure you want to verify this user?', function () {
-      AngaziaAPI.post('/admin/users/' + userId + '/verify')
+      AngaziaAPI.admin.verifyUser(userId)
         .then(function () {
           showToast('User verified successfully', 'success');
           audLoad();
@@ -267,7 +272,7 @@
 
   function audDelete() {
     showModal('Delete User', 'Are you sure you want to delete this user? This action cannot be undone.', function () {
-      AngaziaAPI.del('/admin/users/' + userId)
+      AngaziaAPI.admin.deleteUser(userId)
         .then(function () {
           showToast('User deleted successfully', 'success');
           window.location.href = '/admin/users';

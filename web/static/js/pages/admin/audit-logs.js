@@ -1,5 +1,38 @@
 (function () {
   'use strict';
+
+  var state = {
+    page: 1,
+    totalPages: 1,
+    limit: 20,
+    total: 0,
+    logs: [],
+    autoRefreshInterval: null,
+    autoRefreshMs: 30000,
+    allExpanded: false
+  };
+
+  function $(id) { return document.getElementById(id); }
+  function qs(sel, ctx) { return (ctx || document).querySelector(sel); }
+  function qsa(sel, ctx) { return (ctx || document).querySelectorAll(sel); }
+
+  function escapeHtml(str) {
+    if (!str && str !== 0) return '';
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(String(str)));
+    return div.innerHTML;
+  }
+
+  function formatDateTime(str) {
+    if (!str) return '-';
+    var d = new Date(str);
+    if (isNaN(d.getTime())) return str;
+    return d.toLocaleDateString('en-US', {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+
   function showToast(msg, type) {
     if (window.AngaziaApp && AngaziaApp.showToast) {
       AngaziaApp.showToast(msg, type);
@@ -8,92 +41,162 @@
     }
   }
 
-  var pageEl = document.querySelector('.aal-page');
-  var currentPage = parseInt(pageEl ? pageEl.getAttribute('data-page') : '1', 10) || 1;
-  var currentTotalPages = parseInt(pageEl ? pageEl.getAttribute('data-total') : '1', 10) || 1;
-  var currentLimit = parseInt(pageEl ? pageEl.getAttribute('data-limit') : '20', 10) || 20;
-  var autoRefreshInterval = null;
-  var autoRefreshMs = 30000;
-
-  function aalShowLoading() {
-    var el = document.getElementById('aal-loading');
+  function showLoading() {
+    var el = $('aal-loading');
     if (el) el.style.display = 'flex';
   }
 
-  function aalHideLoading() {
-    var el = document.getElementById('aal-loading');
+  function hideLoading() {
+    var el = $('aal-loading');
     if (el) el.style.display = 'none';
   }
 
-  function aalBuildParams(page) {
-    var params = [];
-    var action = document.getElementById('aal-filter-action').value;
-    var entity = document.getElementById('aal-filter-entity').value;
-    var dateFrom = document.getElementById('aal-filter-date-from').value;
-    var dateTo = document.getElementById('aal-filter-date-to').value;
-    if (action) params.push('action=' + encodeURIComponent(action));
-    if (entity) params.push('entity_type=' + encodeURIComponent(entity));
-    if (dateFrom) params.push('date_from=' + encodeURIComponent(dateFrom));
-    if (dateTo) params.push('date_to=' + encodeURIComponent(dateTo));
-    if (page && page > 1) params.push('page=' + page);
-    if (currentLimit) params.push('limit=' + currentLimit);
-    return params.join('&');
+  function showError(msg) {
+    var el = $('aal-error');
+    var txt = $('aal-error-text');
+    if (txt) txt.textContent = msg;
+    if (el) el.style.display = 'flex';
+    var tw = $('aal-table-wrap');
+    if (tw) tw.style.display = 'none';
+    var em = $('aal-empty');
+    if (em) em.style.display = 'none';
+    var sm = $('aal-summary');
+    if (sm) sm.style.display = 'none';
   }
 
-  function aalFetchLogs(page) {
-    aalShowLoading();
-    var qs = aalBuildParams(page || 1);
-    var url = '/admin/audit-logs?' + qs;
-
-    AngaziaAPI.get(url).then(function (data) {
-      aalHideLoading();
-      aalRenderLogs(data);
-    }).catch(function (err) {
-      aalHideLoading();
-      showToast(err.message || 'Failed to load audit logs', 'error');
-    });
+  function hideError() {
+    var el = $('aal-error');
+    if (el) el.style.display = 'none';
   }
 
-  function aalRenderLogs(data) {
-    currentPage = data.page || 1;
-    currentTotalPages = data.total_pages || 1;
-    currentLimit = data.limit || 20;
+  function getActiveFilterCount() {
+    var count = 0;
+    var actionEl = $('aal-filter-action');
+    var entityEl = $('aal-filter-entity');
+    var dateFromEl = $('aal-filter-date-from');
+    var dateToEl = $('aal-filter-date-to');
+    if (actionEl && actionEl.value) count++;
+    if (entityEl && entityEl.value) count++;
+    if (dateFromEl && dateFromEl.value) count++;
+    if (dateToEl && dateToEl.value) count++;
+    return count;
+  }
 
-    var tbody = document.getElementById('aal-tbody');
-    var container = document.querySelector('.aal-table-wrap');
-    var empty = document.querySelector('.aal-empty');
-    var pagination = document.querySelector('.aal-pagination');
-    var pageContainer = document.querySelector('.aal-page');
-
-    if (!data.logs || data.logs.length === 0) {
-      if (container) container.style.display = 'none';
-      if (pagination) pagination.style.display = 'none';
-      if (empty) {
-        empty.style.display = 'block';
+  function updateFilterUI() {
+    var count = getActiveFilterCount();
+    var badge = $('aal-filter-badge');
+    var clearBtn = $('aal-clear-filters');
+    if (badge) {
+      if (count > 0) {
+        badge.style.display = 'inline-flex';
+        badge.textContent = count + ' filter' + (count !== 1 ? 's' : '') + ' active';
       } else {
-        var ref = container || document.querySelector('.aal-filters');
-        if (ref) {
-          ref.insertAdjacentHTML('afterend',
-            '<div class="aal-empty">' +
-            '<span class="aal-empty-icon">&#x1F50D;</span>' +
-            '<p class="aal-empty-text">No audit log entries found.</p>' +
-            '</div>');
-        }
+        badge.style.display = 'none';
       }
+    }
+    if (clearBtn) {
+      clearBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+    }
+  }
+
+  function resolveAdminName(log) {
+    if (!log || !log.admin) return 'System';
+    var admin = log.admin;
+    if (admin.name) return admin.name;
+    if (admin.email) {
+      var parts = admin.email.split('@');
+      return parts[0];
+    }
+    return 'System';
+  }
+
+  function fetchLogs(page) {
+    showLoading();
+    hideError();
+
+    var p = page || 1;
+    state.page = p;
+
+    var params = { page: p, limit: state.limit };
+    var actionEl = $('aal-filter-action');
+    var entityEl = $('aal-filter-entity');
+    var dateFromEl = $('aal-filter-date-from');
+    var dateToEl = $('aal-filter-date-to');
+
+    var action = actionEl ? actionEl.value : '';
+    var entity = entityEl ? entityEl.value : '';
+    var dateFrom = dateFromEl ? dateFromEl.value : '';
+    var dateTo = dateToEl ? dateToEl.value : '';
+
+    if (dateFrom && dateTo && dateFrom > dateTo) {
+      hideLoading();
+      showToast('"From" date cannot be after "To" date', 'error');
       return;
     }
 
-    if (empty) empty.style.display = 'none';
+    if (action) params.action = action;
+    if (entity) params.entity_type = entity;
+    if (dateFrom) params.date_from = dateFrom;
+    if (dateTo) params.date_to = dateTo;
+
+    updateFilterUI();
+
+    AngaziaAPI.admin.auditLogs(params).then(function (data) {
+      hideLoading();
+      state.logs = data.logs || [];
+      state.total = data.total || 0;
+      state.page = data.page || 1;
+      state.totalPages = data.total_pages || 1;
+      state.limit = data.limit || 20;
+      state.allExpanded = false;
+      renderLogs();
+      renderPagination();
+      renderSummary();
+    }).catch(function (err) {
+      hideLoading();
+      var msg = err.message || 'Failed to load audit logs';
+      showError(msg);
+      showToast(msg, 'error');
+    });
+  }
+
+  function renderLogs() {
+    var tbody = $('aal-tbody');
+    var container = $('aal-table-wrap');
+    var empty = $('aal-empty');
+
+    if (!state.logs || state.logs.length === 0) {
+      if (container) container.style.display = 'none';
+      if (empty) {
+        var count = getActiveFilterCount();
+        var emptyText = empty.querySelector('.aal-empty-text') || $('aal-empty-text');
+        if (emptyText) {
+          emptyText.textContent = count > 0
+            ? 'No audit log entries match your filters.'
+            : 'No audit log entries found.';
+        }
+        empty.style.display = 'flex';
+      }
+      var expandBtn = $('aal-expand-all');
+      if (expandBtn) expandBtn.style.display = 'none';
+      return;
+    }
+
+    empty.style.display = 'none';
     if (container) container.style.display = 'block';
+    var expandBtn = $('aal-expand-all');
+    if (expandBtn) expandBtn.style.display = 'inline-flex';
 
     var html = '';
-    for (var i = 0; i < data.logs.length; i++) {
-      var log = data.logs[i];
-      var adminName = (log.admin && log.admin.name) ? escapeHtml(log.admin.name) : 'System';
-      var adminAvatar = (log.admin && log.admin.avatar) ? log.admin.avatar : '';
+    for (var i = 0; i < state.logs.length; i++) {
+      var log = state.logs[i];
+      var adminName = resolveAdminName(log);
+      var admin = log.admin || {};
+      var adminAvatar = admin.avatar_url || '';
+      var adminInitial = adminName ? adminName.charAt(0).toUpperCase() : '?';
       var adminAvatarHtml = adminAvatar
         ? '<img src="' + escapeHtml(adminAvatar) + '" alt="" class="aal-admin-avatar">'
-        : '<span class="aal-admin-avatar aal-admin-avatar-text">' + escapeHtml(adminName.charAt(0).toUpperCase()) + '</span>';
+        : '<span class="aal-admin-avatar aal-admin-avatar-text">' + escapeHtml(adminInitial) + '</span>';
 
       var oldVal = log.old_value;
       var newVal = log.new_value;
@@ -108,7 +211,7 @@
         '<td><span class="aal-action-badge aal-action-' + escapeHtml(log.action || '') + '">' + escapeHtml(log.action || '') + '</span></td>' +
         '<td><span class="aal-entity-badge aal-entity-' + escapeHtml(log.entity_type || '') + '">' + escapeHtml(log.entity_type || '') + '</span></td>' +
         '<td><code class="aal-entity-id">' + escapeHtml(String(log.entity_id || '')) + '</code></td>' +
-        '<td class="aal-timestamp">' + escapeHtml(log.created_at || '') + '</td>' +
+        '<td class="aal-timestamp">' + formatDateTime(log.created_at) + '</td>' +
         '<td><code class="aal-ip">' + escapeHtml(log.ip_address || '') + '</code></td>' +
         '</tr>' +
         '<tr class="aal-detail-row" data-detail-id="' + log.id + '" style="display:none">' +
@@ -121,120 +224,251 @@
     if (tbody) {
       tbody.innerHTML = html;
     } else if (container) {
-      container.querySelector('table tbody').innerHTML = html;
-    }
-
-    aalRenderPagination(data);
-  }
-
-  function aalRenderPagination(data) {
-    var container = document.querySelector('.aal-page');
-    if (!container) return;
-    var oldPag = container.querySelector('.aal-pagination');
-    if (oldPag) oldPag.remove();
-
-    if (data.total_pages && data.total_pages > 1) {
-      var pagHtml = '<div class="aal-pagination" data-page="' + data.page + '" data-total="' + data.total_pages + '" data-limit="' + (data.limit || 20) + '">';
-      if (data.page > 1) {
-        pagHtml += '<button class="aal-page-btn" data-page="prev">&larr; Previous</button>';
-      }
-      pagHtml += '<span class="aal-page-info">Page ' + data.page + ' of ' + data.total_pages + '</span>';
-      if (data.page < data.total_pages) {
-        pagHtml += '<button class="aal-page-btn" data-page="next">Next &rarr;</button>';
-      }
-      pagHtml += '</div>';
-      var insertAfter = container.querySelector('.aal-table-wrap') || container.querySelector('.aal-empty');
-      if (insertAfter) {
-        insertAfter.insertAdjacentHTML('afterend', pagHtml);
-      } else {
-        container.insertAdjacentHTML('beforeend', pagHtml);
+      var tbl = container.querySelector('table');
+      if (tbl) {
+        var tb = tbl.querySelector('tbody');
+        if (tb) tb.innerHTML = html;
       }
     }
   }
 
-  function escapeHtml(str) {
-    if (!str) return '';
-    var div = document.createElement('div');
-    div.appendChild(document.createTextNode(str));
-    return div.innerHTML;
+  function renderPagination() {
+    var pag = $('aal-pagination');
+    if (!pag) return;
+
+    if (!state.totalPages || state.totalPages <= 1) {
+      pag.innerHTML = '';
+      return;
+    }
+
+    var html = '';
+
+    if (state.page > 1) {
+      html += '<button class="aal-page-btn" data-page="prev">&larr; Previous</button>';
+    }
+
+    var startPage = Math.max(1, state.page - 2);
+    var endPage = Math.min(state.totalPages, state.page + 2);
+
+    if (startPage > 1) {
+      html += '<button class="aal-page-btn" data-page="1">1</button>';
+      if (startPage > 2) html += '<span class="aal-page-info">...</span>';
+    }
+
+    for (var p = startPage; p <= endPage; p++) {
+      var active = p === state.page ? ' active' : '';
+      html += '<button class="aal-page-btn' + active + '" data-page="' + p + '">' + p + '</button>';
+    }
+
+    if (endPage < state.totalPages) {
+      if (endPage < state.totalPages - 1) html += '<span class="aal-page-info">...</span>';
+      html += '<button class="aal-page-btn" data-page="' + state.totalPages + '">' + state.totalPages + '</button>';
+    }
+
+    if (state.page < state.totalPages) {
+      html += '<button class="aal-page-btn" data-page="next">Next &rarr;</button>';
+    }
+
+    html += '<span class="aal-page-info">Page ' + state.page + ' of ' + state.totalPages + '</span>';
+
+    html += '<input type="number" class="aal-page-input" id="aal-page-input" min="1" max="' + state.totalPages + '" placeholder="Go">';
+    html += '<button class="aal-page-btn" id="aal-page-go" data-page="go">Go</button>';
+
+    pag.innerHTML = html;
   }
 
-  window.aalRefresh = function () {
-    aalFetchLogs(currentPage);
-  };
+  function renderSummary() {
+    var summary = $('aal-summary');
+    var totalText = $('aal-total-text');
+    if (!summary || !totalText) return;
 
-  window.aalGoToPage = function (page) {
-    if (page < 1 || page > currentTotalPages) return;
-    aalFetchLogs(page);
-  };
+    var count = state.logs.length;
+    var total = state.total;
+    var showing = count > 0
+      ? 'Showing ' + count + ' of ' + total + ' entr' + (total !== 1 ? 'ies' : 'y')
+      : '0 entries';
 
-  function aalStartAutoRefresh() {
-    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-    autoRefreshInterval = setInterval(function () {
-      aalFetchLogs(currentPage);
-    }, autoRefreshMs);
+    var filtersActive = getActiveFilterCount() > 0;
+    if (filtersActive) {
+      var actionEl = $('aal-filter-action');
+      var entityEl = $('aal-filter-entity');
+      var labels = [];
+      if (actionEl && actionEl.value) labels.push('action: ' + actionEl.value);
+      if (entityEl && entityEl.value) labels.push('type: ' + entityEl.value);
+      if (labels.length) showing += ' (' + labels.join(', ') + ')';
+    }
+
+    totalText.textContent = showing;
+    summary.style.display = 'flex';
   }
 
-  function aalStopAutoRefresh() {
-    if (autoRefreshInterval) {
-      clearInterval(autoRefreshInterval);
-      autoRefreshInterval = null;
+  function toggleAllDetails(expand) {
+    state.allExpanded = expand;
+    var rows = qsa('.aal-detail-row');
+    var btns = qsa('.aal-expand-btn');
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].style.display = expand ? 'table-row' : 'none';
+    }
+    for (var j = 0; j < btns.length; j++) {
+      btns[j].classList.toggle('expanded', expand);
+    }
+    var expandBtn = $('aal-expand-all');
+    if (expandBtn) {
+      expandBtn.innerHTML = expand ? '&#x25B2; Collapse All' : '&#x25BC; Expand All';
+    }
+  }
+
+  function clearFilters() {
+    var actionEl = $('aal-filter-action');
+    var entityEl = $('aal-filter-entity');
+    var dateFromEl = $('aal-filter-date-from');
+    var dateToEl = $('aal-filter-date-to');
+    if (actionEl) actionEl.value = '';
+    if (entityEl) entityEl.value = '';
+    if (dateFromEl) dateFromEl.value = '';
+    if (dateToEl) dateToEl.value = '';
+    updateFilterUI();
+    fetchLogs(1);
+  }
+
+  function startAutoRefresh() {
+    if (state.autoRefreshInterval) clearInterval(state.autoRefreshInterval);
+    state.autoRefreshInterval = setInterval(function () {
+      fetchLogs(state.page);
+    }, state.autoRefreshMs);
+  }
+
+  function stopAutoRefresh() {
+    if (state.autoRefreshInterval) {
+      clearInterval(state.autoRefreshInterval);
+      state.autoRefreshInterval = null;
     }
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    var refreshBtn = document.querySelector('[data-action="refresh"]');
+    var pageEl = qs('.aal-page');
+    if (pageEl) {
+      state.page = parseInt(pageEl.getAttribute('data-page'), 10) || 1;
+      state.totalPages = parseInt(pageEl.getAttribute('data-total'), 10) || 1;
+      state.limit = parseInt(pageEl.getAttribute('data-limit'), 10) || 20;
+    }
+
+    updateFilterUI();
+    fetchLogs(state.page);
+
+    /* Refresh button */
+    var refreshBtn = qs('[data-action="refresh"]');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', function (e) {
         e.preventDefault();
-        aalRefresh();
+        fetchLogs(state.page);
       });
     }
 
+    /* Clear filters */
+    var clearBtn = $('aal-clear-filters');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', clearFilters);
+    }
+
+    /* Expand all / collapse all */
+    var expandAllBtn = $('aal-expand-all');
+    if (expandAllBtn) {
+      expandAllBtn.addEventListener('click', function () {
+        toggleAllDetails(!state.allExpanded);
+      });
+    }
+
+    /* Retry on error */
+    var retryBtn = $('aal-error-retry');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', function () {
+        fetchLogs(1);
+      });
+    }
+
+    /* Global click delegation */
     document.addEventListener('click', function (e) {
+      /* Expand button */
       var expandBtn = e.target.closest('.aal-expand-btn');
       if (expandBtn) {
         var logId = expandBtn.getAttribute('data-expand');
-        var detailRow = document.querySelector('.aal-detail-row[data-detail-id="' + logId + '"]');
+        var detailRow = qs('.aal-detail-row[data-detail-id="' + logId + '"]');
         if (detailRow) {
           var isHidden = detailRow.style.display === 'none' || !detailRow.style.display;
           detailRow.style.display = isHidden ? 'table-row' : 'none';
           expandBtn.classList.toggle('expanded', isHidden);
         }
+        return;
       }
 
+      /* Pagination buttons */
       var pageBtn = e.target.closest('.aal-page-btn');
       if (pageBtn && !pageBtn.disabled) {
         var dir = pageBtn.getAttribute('data-page');
-        if (dir === 'prev') { aalGoToPage(currentPage - 1); }
-        else if (dir === 'next') { aalGoToPage(currentPage + 1); }
+        if (dir === 'prev') { fetchLogs(state.page - 1); }
+        else if (dir === 'next') { fetchLogs(state.page + 1); }
+        else if (dir === 'go') { doGoToPage(); }
+        else if (dir !== 'prev' && dir !== 'next' && dir !== 'go') {
+          var pNum = parseInt(dir, 10);
+          if (!isNaN(pNum) && pNum >= 1 && pNum <= state.totalPages) {
+            fetchLogs(pNum);
+          }
+        }
+        return;
       }
     });
 
-    var filterBtn = document.getElementById('aal-filter-btn');
+    function doGoToPage() {
+      var input = $('aal-page-input');
+      if (!input) return;
+      var val = parseInt(input.value, 10);
+      if (isNaN(val) || val < 1 || val > state.totalPages) {
+        showToast('Enter a valid page number (1-' + state.totalPages + ')', 'error');
+        return;
+      }
+      fetchLogs(val);
+    }
+
+    /* Enter key on page input */
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        var pageInput = e.target.closest('#aal-page-input');
+        if (pageInput) {
+          e.preventDefault();
+          doGoToPage();
+          return;
+        }
+      }
+    });
+
+    /* Apply filter button */
+    var filterBtn = $('aal-filter-btn');
     if (filterBtn) {
       filterBtn.addEventListener('click', function () {
-        aalFetchLogs(1);
+        fetchLogs(1);
       });
     }
 
-    var toggle = document.getElementById('aal-auto-refresh');
-    if (toggle) {
-      toggle.addEventListener('change', function () {
-        if (this.checked) {
-          aalStartAutoRefresh();
-        } else {
-          aalStopAutoRefresh();
-        }
-      });
-    }
-
-    var dateInputs = document.querySelectorAll('#aal-filter-date-from, #aal-filter-date-to');
+    /* Enter key on date inputs */
+    var dateInputs = qsa('#aal-filter-date-from, #aal-filter-date-to');
     for (var i = 0; i < dateInputs.length; i++) {
       dateInputs[i].addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {
           e.preventDefault();
-          aalFetchLogs(1);
+          fetchLogs(1);
+        }
+      });
+    }
+
+    /* Auto-refresh toggle */
+    var autoRefreshToggle = $('aal-auto-refresh');
+    if (autoRefreshToggle) {
+      autoRefreshToggle.addEventListener('change', function () {
+        if (this.checked) {
+          startAutoRefresh();
+        } else {
+          stopAutoRefresh();
         }
       });
     }
