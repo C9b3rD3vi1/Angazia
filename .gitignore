@@ -33,6 +33,9 @@ api
 # Uploaded files (avatars, etc.)
 web/uploads/
 
+# Fiber template cache
+*.fiber.gz
+
 # Editor/IDE
 # .idea/
 # .vscode/
