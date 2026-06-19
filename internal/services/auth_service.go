@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	
+
 	"github.com/C9b3rD3vi1/Angazia/internal/config"
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
 	"github.com/C9b3rD3vi1/Angazia/internal/repository"
@@ -26,20 +27,20 @@ type AuthService interface {
 	Register(ctx context.Context, req *RegisterRequest) (*AuthResponse, error)
 	Login(ctx context.Context, email, password, ipAddress, userAgent string) (*AuthResponse, error)
 	Logout(ctx context.Context, userID, token string) error
-	
+
 	// Token management
 	RefreshToken(ctx context.Context, refreshToken string, ipAddress string) (*AuthResponse, error)
 	ValidateToken(tokenString string) (*TokenClaims, error)
-	
+
 	// Password management
 	ForgotPassword(ctx context.Context, email string, ipAddress string) error
 	ResetPassword(ctx context.Context, token, newPassword string) error
 	ChangePassword(ctx context.Context, userID, oldPassword, newPassword string) error
-	
+
 	// Email verification
 	VerifyEmail(ctx context.Context, token string) error
 	ResendVerificationEmail(ctx context.Context, userID string, ipAddress string) error
-	
+
 	// Profile management
 	GetProfile(ctx context.Context, userID string) (*ProfileResponse, error)
 	UpdateProfile(ctx context.Context, userID string, req *UpdateProfileRequest) error
@@ -56,8 +57,6 @@ type AuthService interface {
 	GetOrCreateAdmin(ctx context.Context, email string) (*models.User, error)
 	GenerateTokens(ctx context.Context, userID string, role models.UserRole, email, ipAddress, userAgent string) (*AuthResponse, error)
 }
-
-
 
 type RegisterRequest struct {
 	Email     string          `json:"email" validate:"required,email"`
@@ -94,9 +93,9 @@ type TokenClaims struct {
 }
 
 type ProfileResponse struct {
-	User            *UserResponse               `json:"user"`
-	EmployeeProfile *models.EmployeeProfile     `json:"employee_profile,omitempty"`
-	EmployerProfile *models.EmployerProfile     `json:"employer_profile,omitempty"`
+	User            *UserResponse           `json:"user"`
+	EmployeeProfile *models.EmployeeProfile `json:"employee_profile,omitempty"`
+	EmployerProfile *models.EmployerProfile `json:"employer_profile,omitempty"`
 }
 
 type UpdateProfileRequest struct {
@@ -115,7 +114,7 @@ type UpdateProfileRequest struct {
 	LinkedInURL       string                      `json:"linkedin_url"`
 	IsVisible         bool                        `json:"is_visible"`
 	IsAvailable       bool                        `json:"is_available"`
-	
+
 	// Employer specific
 	CompanyName        string `json:"company_name"`
 	CompanyWebsite     string `json:"company_website"`
@@ -165,7 +164,7 @@ type AuthServiceImpl struct {
 func NewAuthService(cfg *config.Config, userRepo repository.UserRepository, db *gorm.DB, emailSvc EmailService, redisClient *redis.Client) AuthService {
 	// Auto-migrate token tables
 	db.AutoMigrate(&StoredToken{}, &BlacklistedToken{})
-	
+
 	return &AuthServiceImpl{
 		cfg:         cfg,
 		userRepo:    userRepo,
@@ -183,7 +182,7 @@ func (s *AuthServiceImpl) Register(ctx context.Context, req *RegisterRequest) (*
 	if err := s.validatePassword(req.Password); err != nil {
 		return nil, err
 	}
-	
+
 	// Check if user already exists
 	exists, err := s.userRepo.ExistsByEmail(ctx, req.Email)
 	if err != nil {
@@ -192,13 +191,13 @@ func (s *AuthServiceImpl) Register(ctx context.Context, req *RegisterRequest) (*
 	if exists {
 		return nil, errors.New("user already exists with this email")
 	}
-	
+
 	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
-	
+
 	// Start transaction
 	tx := s.db.Begin()
 	defer func() {
@@ -206,7 +205,7 @@ func (s *AuthServiceImpl) Register(ctx context.Context, req *RegisterRequest) (*
 			tx.Rollback()
 		}
 	}()
-	
+
 	// Create user
 	user := &models.User{
 		ID:           uuid.New().String(),
@@ -218,12 +217,12 @@ func (s *AuthServiceImpl) Register(ctx context.Context, req *RegisterRequest) (*
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
-	
+
 	if err := tx.WithContext(ctx).Create(user).Error; err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
-	
+
 	// Create role-specific profile
 	if req.Role == models.RoleEmployee {
 		displayName := req.FullName
@@ -272,37 +271,37 @@ func (s *AuthServiceImpl) Register(ctx context.Context, req *RegisterRequest) (*
 		now := time.Now()
 		trialEnd := now.AddDate(0, 0, plan.TrialDays)
 		sub := &models.Subscription{
-			ID:                uuid.New().String(),
-			UserID:            user.ID,
-			PlanID:            plan.PlanID,
-			PlanName:          plan.Name,
-			Amount:            plan.Price,
-			Currency:          plan.Currency,
-			Interval:          plan.Interval,
-			Status:            "trialing",
-			StartDate:         now,
-			EndDate:           trialEnd,
-			AutoRenew:         false,
-			JobPostLimit:      plan.JobPostLimit,
-			Features:          plan.Features,
-			FeatureFlags:      plan.FeatureFlags,
+			ID:                 uuid.New().String(),
+			UserID:             user.ID,
+			PlanID:             plan.PlanID,
+			PlanName:           plan.Name,
+			Amount:             plan.Price,
+			Currency:           plan.Currency,
+			Interval:           plan.Interval,
+			Status:             "trialing",
+			StartDate:          now,
+			EndDate:            trialEnd,
+			AutoRenew:          false,
+			JobPostLimit:       plan.JobPostLimit,
+			Features:           plan.Features,
+			FeatureFlags:       plan.FeatureFlags,
 			CurrentPeriodStart: now,
-			CurrentPeriodEnd:  trialEnd,
-			TrialEndsAt:       &trialEnd,
-			CreatedAt:         now,
-			UpdatedAt:         now,
+			CurrentPeriodEnd:   trialEnd,
+			TrialEndsAt:        &trialEnd,
+			CreatedAt:          now,
+			UpdatedAt:          now,
 		}
 		if err := tx.WithContext(ctx).Create(sub).Error; err != nil {
 			tx.Rollback()
 			return nil, fmt.Errorf("failed to create trial subscription: %w", err)
 		}
 	}
-	
+
 	// Commit transaction
 	if err := tx.Commit().Error; err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
-	
+
 	// Generate email verification token
 	verificationToken, err := s.createToken(user.ID, "email_verification", 24*time.Hour, req.IPAddress)
 	if err != nil {
@@ -312,7 +311,7 @@ func (s *AuthServiceImpl) Register(ctx context.Context, req *RegisterRequest) (*
 		// Send verification email (async)
 		go s.emailSvc.SendVerificationEmail(user.Email, verificationToken, user.ID, user.Email)
 	}
-	
+
 	// Generate auth response
 	return s.generateAuthResponse(ctx, user)
 }
@@ -326,32 +325,32 @@ func (s *AuthServiceImpl) Login(ctx context.Context, email, password, ipAddress,
 	if user == nil {
 		return nil, errors.New("invalid email or password")
 	}
-	
+
 	// Check if user is active
 	if !user.IsActive {
 		return nil, errors.New("account is deactivated. Please contact support")
 	}
-	
+
 	// Check if email is verified
 	if s.cfg.RequireEmailVerification && !user.IsVerified {
 		return nil, errors.New("email not verified. Please check your inbox for verification link")
 	}
-	
+
 	// Verify password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		// Log failed login attempt
 		s.logFailedLoginAttempt(ctx, user.ID, ipAddress, userAgent)
 		return nil, errors.New("invalid email or password")
 	}
-	
+
 	// Update last login
 	if err := s.userRepo.UpdateLastLogin(ctx, user.ID); err != nil {
 		fmt.Printf("Failed to update last login: %v\n", err)
 	}
-	
+
 	// Log successful login
 	s.logSuccessfulLogin(ctx, user.ID, ipAddress, userAgent)
-	
+
 	// Generate auth response
 	resp, err := s.generateAuthResponse(ctx, user)
 	if err == nil {
@@ -367,7 +366,7 @@ func (s *AuthServiceImpl) Logout(ctx context.Context, userID, token string) erro
 		// If token is already invalid, still consider logout successful
 		return nil
 	}
-	
+
 	// Add token to blacklist
 	blacklistedToken := &BlacklistedToken{
 		ID:        uuid.New().String(),
@@ -376,11 +375,11 @@ func (s *AuthServiceImpl) Logout(ctx context.Context, userID, token string) erro
 		ExpiresAt: claims.ExpiresAt.Time,
 		CreatedAt: time.Now(),
 	}
-	
+
 	if err := s.db.WithContext(ctx).Create(blacklistedToken).Error; err != nil {
 		return fmt.Errorf("failed to blacklist token: %w", err)
 	}
-	
+
 	// Also store in Redis for faster lookups
 	if s.redisClient != nil {
 		ttl := time.Until(claims.ExpiresAt.Time)
@@ -388,7 +387,7 @@ func (s *AuthServiceImpl) Logout(ctx context.Context, userID, token string) erro
 			s.redisClient.Set(ctx, "blacklist:"+token, userID, ttl)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -398,13 +397,13 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, refreshToken string,
 	if err := s.db.WithContext(ctx).Where("token = ?", refreshToken).First(&blacklisted).Error; err == nil {
 		return nil, errors.New("token has been revoked")
 	}
-	
+
 	// Validate refresh token
 	claims, err := s.ValidateToken(refreshToken)
 	if err != nil {
 		return nil, errors.New("invalid refresh token")
 	}
-	
+
 	// Get user
 	user, err := s.userRepo.GetByID(ctx, claims.UserID)
 	if err != nil {
@@ -413,11 +412,11 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, refreshToken string,
 	if user == nil {
 		return nil, errors.New("user not found")
 	}
-	
+
 	if !user.IsActive {
 		return nil, errors.New("account is deactivated")
 	}
-	
+
 	// Blacklist the old refresh token
 	go func() {
 		blacklistedToken := &BlacklistedToken{
@@ -429,7 +428,7 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, refreshToken string,
 		}
 		s.db.Create(blacklistedToken)
 	}()
-	
+
 	// Generate new tokens
 	return s.generateAuthResponse(ctx, user)
 }
@@ -442,7 +441,7 @@ func (s *AuthServiceImpl) ValidateToken(tokenString string) (*TokenClaims, error
 			return nil, errors.New("token has been revoked")
 		}
 	}
-	
+
 	// Parse and validate token
 	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -450,15 +449,15 @@ func (s *AuthServiceImpl) ValidateToken(tokenString string) (*TokenClaims, error
 		}
 		return []byte(s.cfg.JWTSecret), nil
 	})
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if claims, ok := token.Claims.(*TokenClaims); ok && token.Valid {
 		return claims, nil
 	}
-	
+
 	return nil, errors.New("invalid token")
 }
 
@@ -469,26 +468,26 @@ func (s *AuthServiceImpl) ForgotPassword(ctx context.Context, email, ipAddress s
 		// Return success even if user doesn't exist to prevent email enumeration
 		return nil
 	}
-	
+
 	// Check for existing recent tokens (prevent spam)
 	var existingToken StoredToken
 	err = s.db.WithContext(ctx).
 		Where("user_id = ? AND type = ? AND used_at IS NULL AND created_at > ?", user.ID, "password_reset", time.Now().Add(-5*time.Minute)).
 		First(&existingToken).Error
-	
+
 	if err == nil {
 		return errors.New("password reset email already sent. Please wait 5 minutes")
 	}
-	
+
 	// Generate password reset token (expires in 1 hour)
 	resetToken, err := s.createToken(user.ID, "password_reset", 1*time.Hour, ipAddress)
 	if err != nil {
 		return fmt.Errorf("failed to create reset token: %w", err)
 	}
-	
+
 	// Send reset email (async)
 	go s.emailSvc.SendPasswordResetEmail(user.Email, resetToken, user.ID, user.Email)
-	
+
 	return nil
 }
 
@@ -497,7 +496,7 @@ func (s *AuthServiceImpl) ResetPassword(ctx context.Context, token, newPassword 
 	if err := s.validatePassword(newPassword); err != nil {
 		return err
 	}
-	
+
 	// Get token from database
 	var storedToken StoredToken
 	err := s.db.WithContext(ctx).
@@ -509,31 +508,31 @@ func (s *AuthServiceImpl) ResetPassword(ctx context.Context, token, newPassword 
 		}
 		return fmt.Errorf("failed to validate token: %w", err)
 	}
-	
+
 	// Mark token as used
 	now := time.Now()
 	storedToken.UsedAt = &now
 	if err := s.db.WithContext(ctx).Save(&storedToken).Error; err != nil {
 		return fmt.Errorf("failed to mark token as used: %w", err)
 	}
-	
+
 	// Hash new password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
-	
+
 	// Update user password
 	if err := s.userRepo.UpdatePassword(ctx, storedToken.UserID, string(hashedPassword)); err != nil {
 		return fmt.Errorf("failed to update password: %w", err)
 	}
-	
+
 	// Send confirmation email
 	user, _ := s.userRepo.GetByID(ctx, storedToken.UserID)
 	if user != nil {
 		go s.emailSvc.SendPasswordChangedEmail(user.Email, user.Email)
 	}
-	
+
 	return nil
 }
 
@@ -542,7 +541,7 @@ func (s *AuthServiceImpl) ChangePassword(ctx context.Context, userID, oldPasswor
 	if err := s.validatePassword(newPassword); err != nil {
 		return err
 	}
-	
+
 	// Get user
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
@@ -551,29 +550,29 @@ func (s *AuthServiceImpl) ChangePassword(ctx context.Context, userID, oldPasswor
 	if user == nil {
 		return errors.New("user not found")
 	}
-	
+
 	// Verify old password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(oldPassword)); err != nil {
 		return errors.New("invalid current password")
 	}
-	
+
 	// Hash new password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
-	
+
 	// Update password
 	if err := s.userRepo.UpdatePassword(ctx, userID, string(hashedPassword)); err != nil {
 		return fmt.Errorf("failed to update password: %w", err)
 	}
-	
+
 	// Blacklist all active tokens for this user
 	go s.blacklistAllUserTokens(ctx, userID)
-	
+
 	// Send confirmation email
 	go s.emailSvc.SendPasswordChangedEmail(user.Email, user.Email)
-	
+
 	return nil
 }
 
@@ -589,19 +588,19 @@ func (s *AuthServiceImpl) VerifyEmail(ctx context.Context, token string) error {
 		}
 		return fmt.Errorf("failed to validate token: %w", err)
 	}
-	
+
 	// Mark token as used
 	now := time.Now()
 	storedToken.UsedAt = &now
 	if err := s.db.WithContext(ctx).Save(&storedToken).Error; err != nil {
 		return fmt.Errorf("failed to mark token as used: %w", err)
 	}
-	
+
 	// Verify user email
 	if err := s.userRepo.VerifyEmail(ctx, storedToken.UserID); err != nil {
 		return fmt.Errorf("failed to verify email: %w", err)
 	}
-	
+
 	// Send welcome email
 	user, _ := s.userRepo.GetByID(ctx, storedToken.UserID)
 	if user != nil {
@@ -615,7 +614,7 @@ func (s *AuthServiceImpl) VerifyEmail(ctx context.Context, token string) error {
 		}
 		go s.emailSvc.SendWelcomeEmail(user.Email, fullName, user.Email)
 	}
-	
+
 	return nil
 }
 
@@ -628,30 +627,30 @@ func (s *AuthServiceImpl) ResendVerificationEmail(ctx context.Context, userID, i
 	if user == nil {
 		return errors.New("user not found")
 	}
-	
+
 	if user.IsVerified {
 		return errors.New("email already verified")
 	}
-	
+
 	// Check for recent token (prevent spam)
 	var existingToken StoredToken
 	err = s.db.WithContext(ctx).
 		Where("user_id = ? AND type = ? AND used_at IS NULL AND created_at > ?", userID, "email_verification", time.Now().Add(-5*time.Minute)).
 		First(&existingToken).Error
-	
+
 	if err == nil {
 		return errors.New("verification email already sent recently. Please wait 5 minutes")
 	}
-	
+
 	// Generate new verification token
 	verificationToken, err := s.createToken(user.ID, "email_verification", 24*time.Hour, ipAddress)
 	if err != nil {
 		return fmt.Errorf("failed to create verification token: %w", err)
 	}
-	
+
 	// Send verification email (async)
 	go s.emailSvc.SendVerificationEmail(user.Email, verificationToken, user.ID, user.Email)
-	
+
 	return nil
 }
 
@@ -664,7 +663,7 @@ func (s *AuthServiceImpl) GetProfile(ctx context.Context, userID string) (*Profi
 	if user == nil {
 		return nil, errors.New("user not found")
 	}
-	
+
 	response := &ProfileResponse{
 		User: &UserResponse{
 			ID:         user.ID,
@@ -675,7 +674,7 @@ func (s *AuthServiceImpl) GetProfile(ctx context.Context, userID string) (*Profi
 			CreatedAt:  user.CreatedAt,
 		},
 	}
-	
+
 	// Get role-specific profile
 	if user.Role == models.RoleEmployee {
 		profile, err := s.userRepo.GetEmployeeProfile(ctx, userID)
@@ -697,7 +696,7 @@ func (s *AuthServiceImpl) GetProfile(ctx context.Context, userID string) (*Profi
 			response.User.CompanyName = profile.CompanyName
 		}
 	}
-	
+
 	return response, nil
 }
 
@@ -776,7 +775,7 @@ func (s *AuthServiceImpl) UpdateProfile(ctx context.Context, userID string, req 
 	if user == nil {
 		return errors.New("user not found")
 	}
-	
+
 	// Update role-specific profile
 	if user.Role == models.RoleEmployee {
 		profile := models.EmployeeProfile{
@@ -812,7 +811,7 @@ func (s *AuthServiceImpl) UpdateProfile(ctx context.Context, userID string, req 
 		}
 		return s.userRepo.UpdateEmployerProfile(ctx, userID, updates)
 	}
-	
+
 	return errors.New("invalid user role")
 }
 
@@ -900,7 +899,7 @@ func (s *AuthServiceImpl) GenerateTokens(ctx context.Context, userID string, rol
 func (s *AuthServiceImpl) generateAuthResponse(ctx context.Context, user *models.User) (*AuthResponse, error) {
 	// Get profile for additional info
 	var fullName, companyName string
-	
+
 	if user.Role == models.RoleEmployee {
 		profile, _ := s.userRepo.GetEmployeeProfile(ctx, user.ID)
 		if profile != nil {
@@ -912,21 +911,21 @@ func (s *AuthServiceImpl) generateAuthResponse(ctx context.Context, user *models
 			companyName = profile.CompanyName
 		}
 	}
-	
+
 	// Generate access token (short-lived)
 	accessExpiration := time.Duration(s.cfg.JWTExpiryHours) * time.Hour
 	accessToken, err := s.generateToken(user, accessExpiration)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
-	
+
 	// Generate refresh token (long-lived, 7 days)
 	refreshExpiration := 7 * 24 * time.Hour
 	refreshToken, err := s.generateToken(user, refreshExpiration)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
-	
+
 	return &AuthResponse{
 		User: &UserResponse{
 			ID:          user.ID,
@@ -948,15 +947,15 @@ func (s *AuthServiceImpl) generateAuthResponse(ctx context.Context, user *models
 func (s *AuthServiceImpl) createSession(ctx context.Context, userID, token, userAgent, ipAddress string) {
 	device, browser, os := parseUserAgent(userAgent)
 	session := &models.UserSession{
-		ID:        uuid.New().String(),
-		UserID:    userID,
-		Token:     token,
-		Device:    device,
-		Browser:   browser,
-		OS:        os,
-		IPAddress: ipAddress,
+		ID:         uuid.New().String(),
+		UserID:     userID,
+		Token:      token,
+		Device:     device,
+		Browser:    browser,
+		OS:         os,
+		IPAddress:  ipAddress,
 		LastActive: time.Now(),
-		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+		ExpiresAt:  time.Now().Add(7 * 24 * time.Hour),
 	}
 	s.db.WithContext(ctx).Create(session)
 }
@@ -1041,7 +1040,7 @@ func (s *AuthServiceImpl) generateToken(user *models.User, expiration time.Durat
 			ID:        uuid.New().String(),
 		},
 	}
-	
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.cfg.JWTSecret))
 }
@@ -1053,7 +1052,7 @@ func (s *AuthServiceImpl) createToken(userID, tokenType string, expiration time.
 		return "", err
 	}
 	token := base64.URLEncoding.EncodeToString(tokenBytes)
-	
+
 	// Store in database
 	storedToken := &StoredToken{
 		ID:        uuid.New().String(),
@@ -1064,17 +1063,37 @@ func (s *AuthServiceImpl) createToken(userID, tokenType string, expiration time.
 		IPAddress: ipAddress,
 		CreatedAt: time.Now(),
 	}
-	
+
 	if err := s.db.Create(storedToken).Error; err != nil {
 		return "", err
 	}
-	
+
 	return token, nil
 }
 
 func (s *AuthServiceImpl) blacklistAllUserTokens(ctx context.Context, userID string) {
-	// In production, you would blacklist all active tokens for this user
-	// This requires storing token IDs in Redis or a separate table
+	var sessions []models.UserSession
+	if err := s.db.WithContext(ctx).Where("user_id = ?", userID).Find(&sessions).Error; err != nil {
+		log.Printf("Failed to query sessions for blacklisting user %s: %v", userID, err)
+		return
+	}
+
+	for _, session := range sessions {
+		bt := &BlacklistedToken{
+			ID:        uuid.New().String(),
+			Token:     session.Token,
+			UserID:    userID,
+			ExpiresAt: session.ExpiresAt,
+			CreatedAt: time.Now(),
+		}
+		if err := s.db.WithContext(ctx).Create(bt).Error; err != nil {
+			log.Printf("Failed to blacklist token for session %s: %v", session.ID, err)
+		}
+	}
+
+	if err := s.db.WithContext(ctx).Where("user_id = ?", userID).Delete(&models.UserSession{}).Error; err != nil {
+		log.Printf("Failed to delete sessions for user %s: %v", userID, err)
+	}
 }
 
 func (s *AuthServiceImpl) logFailedLoginAttempt(ctx context.Context, userID, ipAddress, userAgent string) {

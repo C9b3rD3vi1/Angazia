@@ -390,6 +390,70 @@ func getAllMigrations() []Migration {
 			},
 		},
 		{
+			ID:   "20250101000011",
+			Name: "Create testimonials table",
+			Up: func(tx *gorm.DB) error {
+				queries := []string{
+					`CREATE EXTENSION IF NOT EXISTS pgcrypto`,
+					`CREATE TABLE IF NOT EXISTS testimonials (
+						id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+						user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+						user_name VARCHAR(255) NOT NULL,
+						user_title VARCHAR(255),
+						company_name VARCHAR(255),
+						content TEXT NOT NULL,
+						rating INT DEFAULT 0,
+						is_approved BOOLEAN DEFAULT FALSE,
+						is_featured BOOLEAN DEFAULT FALSE,
+						role VARCHAR(20) DEFAULT 'employee',
+						created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+						updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+					)`,
+					`CREATE INDEX IF NOT EXISTS idx_testimonials_user_id ON testimonials(user_id)`,
+					`CREATE INDEX IF NOT EXISTS idx_testimonials_is_approved ON testimonials(is_approved)`,
+					`CREATE INDEX IF NOT EXISTS idx_testimonials_role ON testimonials(role)`,
+					`CREATE INDEX IF NOT EXISTS idx_testimonials_is_featured ON testimonials(is_featured)`,
+				}
+				for _, q := range queries {
+					if err := tx.Exec(q).Error; err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+			Down: func(tx *gorm.DB) error {
+				return tx.Exec(`DROP TABLE IF EXISTS testimonials CASCADE`).Error
+			},
+		},
+		{
+			ID:   "20250101000012",
+			Name: "Create contact_submissions table",
+			Up: func(tx *gorm.DB) error {
+				queries := []string{
+					`CREATE TABLE IF NOT EXISTS contact_submissions (
+						id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+						name VARCHAR(255) NOT NULL,
+						email VARCHAR(255) NOT NULL,
+						subject VARCHAR(255) DEFAULT '',
+						message TEXT NOT NULL,
+						is_read BOOLEAN DEFAULT false,
+						created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+					)`,
+					`CREATE INDEX IF NOT EXISTS idx_contact_submissions_is_read ON contact_submissions(is_read)`,
+					`CREATE INDEX IF NOT EXISTS idx_contact_submissions_created_at ON contact_submissions(created_at DESC)`,
+				}
+				for _, q := range queries {
+					if err := tx.Exec(q).Error; err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+			Down: func(tx *gorm.DB) error {
+				return tx.Exec(`DROP TABLE IF EXISTS contact_submissions CASCADE`).Error
+			},
+		},
+		{
 			ID:   "20250101000010",
 			Name: "Create github_tokens table",
 			Up: func(tx *gorm.DB) error {

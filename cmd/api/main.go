@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -230,12 +231,13 @@ func main() {
 	messageHandler := handlers.NewMessageHandler(messageSvc)
 	testimonialHandler := handlers.NewTestimonialHandler(testimonialSvc)
 	contactHandler := handlers.NewContactHandler(contactSvc)
-	websocketHandler := handlers.NewWebSocketHandler()
+	websocketHandler := handlers.NewWebSocketHandler(strings.Split(cfg.CORSAllowOrigins, ",")...)
 
 	// Create Fiber app with Go html/template engine
 	engine := html.New(cfg.TemplateDir, ".html")
 	engine.Reload(cfg.IsDevelopment())
 	engine.AddFunc("unescape", func(s string) template.HTML {
+		// WARNING: bypasses html/template auto-escaping. Only use with trusted content.
 		return template.HTML(s)
 	})
 	engine.AddFunc("formatNumber", func(n interface{}) string {
@@ -449,6 +451,11 @@ func main() {
 	if redisWrapped != nil {
 		redisWrapped.Close()
 	}
+
+	// Close database connection
+	if err := database.CloseDB(); err != nil {
+		log.Printf("Error closing database: %v", err)
+	}
 }
 
 func initializeDatabase(cfg *config.Config, db *gorm.DB) error {
@@ -503,6 +510,8 @@ func setupMiddleware(app *fiber.App, cfg *config.Config) {
 		AllowCredentials: allowOrigins != "*",
 		MaxAge:           86400,
 	}))
+
+	app.Use(middleware.SecurityHeaders(cfg))
 }
 
 func setupHealthEndpoints(app *fiber.App, cfg *config.Config, db *gorm.DB) {

@@ -253,13 +253,13 @@
 </div>
 
 {{/* ── 2FA Setup Modal ── */}}
-<div id="tfa-modal-overlay" class="emp-modal-overlay" style="display:none">
-  <div class="emp-modal">
-    <div class="emp-modal-header">
-      <h3 class="emp-modal-title">Setup Two-Factor Authentication</h3>
-      <button class="emp-modal-close" id="tfa-modal-close">&times;</button>
+<div id="tfa-modal-overlay" class="angazia-modal-overlay" style="display:none">
+  <div class="angazia-modal">
+    <div class="angazia-modal-header">
+      <h3>Setup Two-Factor Authentication</h3>
+      <button class="angazia-modal-close" id="tfa-modal-close">&times;</button>
     </div>
-    <div class="emp-modal-body">
+    <div class="angazia-modal-body">
 
       <div id="tfa-modal-error" class="emp-toast emp-toast-error" style="display:none;margin-bottom:12px"></div>
 
@@ -508,55 +508,7 @@
   color: var(--danger);
 }
 
-/* ── Modal ── */
-.emp-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-.emp-modal {
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  width: 100%;
-  max-width: 480px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-}
-.emp-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px 0;
-}
-.emp-modal-title {
-  font-family: var(--fh);
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0;
-}
-.emp-modal-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  color: var(--muted);
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-}
-.emp-modal-close:hover { color: var(--text); }
-.emp-modal-body {
-  padding: 20px 24px 24px;
-}
+
 
 /* ── 2FA shared styles ── */
 .tfa-step-indicator {
@@ -832,7 +784,7 @@ document.addEventListener('DOMContentLoaded', function () {
           revokeBtn.className = 'emp-btn emp-btn-danger emp-btn-xs';
           revokeBtn.textContent = 'Revoke';
           revokeBtn.addEventListener('click', function () {
-            if (!confirm('Revoke this session?')) return;
+            AngaziaModal.confirm('Revoke this session?').then(function (ok) { if (!ok) return;
             revokeBtn.disabled = true;
             revokeBtn.textContent = 'Revoking...';
             AngaziaAPI.auth.revokeSession({ session_id: s.id }).then(function () {
@@ -857,18 +809,23 @@ document.addEventListener('DOMContentLoaded', function () {
   var deleteBtn = document.getElementById('delete-account-btn');
   if (deleteBtn) {
     deleteBtn.addEventListener('click', function () {
-      if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) return;
-      if (!confirm('This will permanently delete all your data including applications, messages, and profile. Continue?')) return;
-      var pw = prompt('Please enter your password to confirm:');
-      if (!pw) return;
-      deleteBtn.disabled = true;
-      deleteBtn.textContent = 'Deleting...';
-      AngaziaAPI.auth.deleteAccount({ password: pw }).then(function () {
-        window.location.href = '/logout';
-      }).catch(function (err) {
-        toast(err.message || 'Failed to delete account', 'error');
-        deleteBtn.disabled = false;
-        deleteBtn.textContent = 'Delete Account';
+      AngaziaModal.confirm('Are you sure you want to delete your account? This action cannot be undone.').then(function (ok) {
+        if (!ok) return;
+        AngaziaModal.confirm('This will permanently delete all your data including applications, messages, and profile. Continue?').then(function (ok2) {
+          if (!ok2) return;
+          AngaziaModal.prompt('Please enter your password to confirm:', '', 'Password').then(function (pw) {
+            if (!pw) return;
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = 'Deleting...';
+            AngaziaAPI.auth.deleteAccount({ password: pw }).then(function () {
+              window.location.href = '/logout';
+            }).catch(function (err) {
+              toast(err.message || 'Failed to delete account', 'error');
+              deleteBtn.disabled = false;
+              deleteBtn.textContent = 'Delete Account';
+            });
+          });
+        });
       });
     });
   }
@@ -1043,10 +1000,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var disableBtn = document.getElementById('tfa-disable-btn');
     if (disableBtn) {
       disableBtn.addEventListener('click', function () {
-        if (!confirm('Are you sure you want to disable two-factor authentication?')) return;
-        var code = prompt('Enter your current TOTP code (or a backup code):');
+        AngaziaModal.confirm('Are you sure you want to disable two-factor authentication?').then(function (ok) {
+        if (!ok) return;
+        AngaziaModal.prompt('Enter your current TOTP code (or a backup code):').then(function (code) {
         if (!code) return;
-        var password = prompt('Confirm your password:');
+        AngaziaModal.prompt('Confirm your password:', '', 'Password').then(function (password) {
         if (!password) return;
         hideTfaError();
         disableBtn.disabled = true;
@@ -1057,7 +1015,7 @@ document.addEventListener('DOMContentLoaded', function () {
           disableBtn.disabled = false;
           disableBtn.textContent = 'Disable 2FA';
           showTfaError((err.body && err.body.message) || err.message || 'Failed to disable 2FA');
-        });
+        });});});});
       });
     }
 
@@ -1066,15 +1024,15 @@ document.addEventListener('DOMContentLoaded', function () {
     if (viewBackupBtn) {
       viewBackupBtn.addEventListener('click', function () {
         hideTfaError();
-        if (!confirm('Generate new backup codes? Your existing codes will be invalidated.')) return;
+        AngaziaModal.confirm('Generate new backup codes? Your existing codes will be invalidated.').then(function (ok) {
+        if (!ok) return;
         viewBackupBtn.disabled = true;
         viewBackupBtn.textContent = 'Generating\u2026';
         AngaziaAPI.auth.twoFA.generateBackupCodes().then(function (data) {
           viewBackupBtn.disabled = false;
           viewBackupBtn.textContent = 'Generate New Backup Codes';
           if (data && data.backup_codes && data.backup_codes.length) {
-            var msg = 'Your New Backup Codes:\n\n' + data.backup_codes.join('\n') + '\n\nStore these securely! You will not be able to view them again.';
-            alert(msg);
+            AngaziaModal.alert('Your New Backup Codes:\n\n' + data.backup_codes.join('\n') + '\n\nStore these securely! You will not be able to view them again.', 'Backup Codes');
           } else {
             showTfaError('Failed to generate backup codes');
           }

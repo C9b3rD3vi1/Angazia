@@ -8,18 +8,15 @@ var AngaziaModal = (function () {
     opts = opts || {};
     overlay = document.createElement('div');
     overlay.className = 'angazia-modal-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity 0.2s ease;';
 
     modalEl = document.createElement('div');
     modalEl.className = 'angazia-modal';
-    modalEl.style.cssText = 'background:var(--s1,#fff);border:1px solid var(--border,#e5e7eb);border-radius:var(--radius,12px);width:100%;max-width:' + (opts.maxWidth || '520px') + ';max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);transform:scale(0.95) translateY(10px);transition:transform 0.2s ease;';
 
     if (opts.title) {
       var hdr = document.createElement('div');
       hdr.className = 'angazia-modal-header';
-      hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:20px 24px 0;';
-      hdr.innerHTML = '<h3 style="font-family:var(--fh,\'Inter\',sans-serif);font-size:18px;font-weight:600;color:var(--text,#111);margin:0;">' + escapeHtml(opts.title) + '</h3>'
-        + (opts.closable !== false ? '<button class="angazia-modal-close" style="background:none;border:none;color:var(--muted,#6b7280);font-size:24px;cursor:pointer;padding:0;line-height:1;">&times;</button>' : '');
+      hdr.innerHTML = '<h3>' + escapeHtml(opts.title) + '</h3>'
+        + (opts.closable !== false ? '<button class="angazia-modal-close">&times;</button>' : '');
       modalEl.appendChild(hdr);
       var closeBtn = hdr.querySelector('.angazia-modal-close');
       if (closeBtn) closeBtn.addEventListener('click', close);
@@ -27,7 +24,6 @@ var AngaziaModal = (function () {
 
     var body = document.createElement('div');
     body.className = 'angazia-modal-body';
-    body.style.cssText = 'padding:' + (opts.title ? '16px 24px 24px' : '24px') + ';';
     if (typeof content === 'string') body.innerHTML = content;
     else body.appendChild(content);
     modalEl.appendChild(body);
@@ -35,7 +31,6 @@ var AngaziaModal = (function () {
     if (opts.footer) {
       var ft = document.createElement('div');
       ft.className = 'angazia-modal-footer';
-      ft.style.cssText = 'display:flex;justify-content:flex-end;gap:12px;padding:0 24px 20px;';
       if (typeof opts.footer === 'string') ft.innerHTML = opts.footer;
       else opts.footer.forEach(function (btn) { ft.appendChild(createFooterBtn(btn)); });
       modalEl.appendChild(ft);
@@ -46,8 +41,7 @@ var AngaziaModal = (function () {
     document.body.style.overflow = 'hidden';
 
     requestAnimationFrame(function () {
-      overlay.style.opacity = '1';
-      modalEl.style.transform = 'scale(1) translateY(0)';
+      overlay.classList.add('active');
     });
 
     overlay.addEventListener('click', function (e) {
@@ -62,8 +56,7 @@ var AngaziaModal = (function () {
   function close(result) {
     document.removeEventListener('keydown', onKeyDown);
     if (overlay) {
-      overlay.style.opacity = '0';
-      modalEl.style.transform = 'scale(0.95) translateY(10px)';
+      overlay.classList.remove('active');
       setTimeout(function () {
         if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
         overlay = null;
@@ -81,11 +74,13 @@ var AngaziaModal = (function () {
   function createFooterBtn(cfg) {
     var b = document.createElement('button');
     b.textContent = cfg.text || '';
-    b.className = cfg.className || '';
-    b.style.cssText = 'padding:10px 20px;border-radius:var(--radius,10px);font-family:var(--fm,\'Inter\',sans-serif);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;border:' + (cfg.variant === 'primary' ? 'none' : '1px solid var(--border,#e5e7eb)') + ';background:' + (cfg.variant === 'primary' ? 'var(--accent,#00e5a0)' : 'var(--s2,#f3f4f6)') + ';color:' + (cfg.variant === 'primary' ? '#050a0a' : 'var(--text,#111)') + ';';
-    if (cfg.variant === 'danger') { b.style.background = 'var(--danger,#ef4444)'; b.style.color = '#fff'; b.style.border = 'none'; }
-    if (cfg.variant === 'ghost') { b.style.background = 'transparent'; b.style.color = 'var(--muted,#6b7280)'; b.style.border = 'none'; }
-    if (cfg.disabled) { b.style.opacity = '0.5'; b.style.cursor = 'not-allowed'; }
+    var cls = 'angazia-modal-btn';
+    if (cfg.variant === 'primary') cls += ' primary';
+    else if (cfg.variant === 'danger') cls += ' danger';
+    else if (cfg.variant === 'ghost') cls += ' ghost';
+    if (cfg.className) cls += ' ' + cfg.className;
+    b.className = cls;
+    if (cfg.disabled) { b.disabled = true; b.classList.add('disabled'); }
     b.addEventListener('click', function (e) {
       if (cfg.disabled) return;
       if (cfg.action) cfg.action(e, close);
@@ -96,7 +91,7 @@ var AngaziaModal = (function () {
 
   function alert(msg, title) {
     return new Promise(function (resolve) {
-      open('<p style="color:var(--text,#111);font-size:14px;line-height:1.6;margin:0;">' + escapeHtml(msg) + '</p>', {
+      open('<p class="angazia-modal-msg">' + escapeHtml(msg) + '</p>', {
         title: title || 'Notice',
         footer: [{ text: 'OK', variant: 'primary', action: function (e, c) { c(); resolve(); } }],
       });
@@ -105,7 +100,7 @@ var AngaziaModal = (function () {
 
   function confirm(msg, title) {
     return new Promise(function (resolve) {
-      open('<p style="color:var(--text,#111);font-size:14px;line-height:1.6;margin:0;">' + escapeHtml(msg) + '</p>', {
+      open('<p class="angazia-modal-msg">' + escapeHtml(msg) + '</p>', {
         title: title || 'Confirm',
         footer: [
           { text: 'Cancel', variant: 'ghost', action: function (e, c) { c(); resolve(false); } },
@@ -118,11 +113,11 @@ var AngaziaModal = (function () {
   function prompt(msg, defaultValue, title) {
     return new Promise(function (resolve) {
       var container = document.createElement('div');
-      container.innerHTML = '<p style="color:var(--text,#111);font-size:14px;line-height:1.6;margin:0 0 12px;">' + escapeHtml(msg) + '</p>';
+      container.innerHTML = '<p class="angazia-modal-msg" style="margin-bottom:12px;">' + escapeHtml(msg) + '</p>';
       var input = document.createElement('input');
       input.type = 'text';
       input.value = defaultValue || '';
-      input.style.cssText = 'width:100%;padding:10px 14px;background:var(--s2,#f3f4f6);border:1px solid var(--border,#e5e7eb);border-radius:var(--radius,10px);color:var(--text,#111);font-size:14px;outline:none;box-sizing:border-box;';
+      input.className = 'angazia-modal-input';
       input.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') { e.preventDefault(); confirmBtn.click(); }
       });
@@ -143,13 +138,11 @@ var AngaziaModal = (function () {
     var btns = modalEl.querySelectorAll('.angazia-modal-footer button');
     btns.forEach(function (b) {
       b.disabled = loading;
-      b.style.opacity = loading ? '0.6' : '1';
-      b.style.cursor = loading ? 'not-allowed' : 'pointer';
+      b.classList.toggle('disabled', loading);
     });
     if (loading) {
       var spinner = document.createElement('span');
       spinner.className = 'angazia-modal-spinner';
-      spinner.style.cssText = 'display:block;width:24px;height:24px;border:3px solid var(--border,#e5e7eb);border-top-color:var(--accent,#00e5a0);border-radius:50%;animation:angazia-spin 0.6s linear infinite;margin:12px auto;';
       modalEl.querySelector('.angazia-modal-body').appendChild(spinner);
     } else {
       var s = modalEl.querySelector('.angazia-modal-spinner');

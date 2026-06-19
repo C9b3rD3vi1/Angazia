@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/fasthttp/websocket"
@@ -11,24 +12,40 @@ import (
 	"github.com/valyala/fasthttp"
 
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
-	"github.com/C9b3rD3vi1/Angazia/internal/services"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
+	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
 
-var upgrader = websocket.FastHTTPUpgrader{
-	CheckOrigin: func(ctx *fasthttp.RequestCtx) bool {
-		return true
-	},
-}
-
 type WebSocketHandler struct {
-	hub *services.WebSocketHub
+	hub            *services.WebSocketHub
+	allowedOrigins []string
 }
 
-func NewWebSocketHandler() *WebSocketHandler {
-	return &WebSocketHandler{
-		hub: services.GetHub(),
+func NewWebSocketHandler(allowedOrigins ...string) *WebSocketHandler {
+	origins := allowedOrigins
+	if len(origins) == 0 || (len(origins) == 1 && origins[0] == "*") {
+		origins = nil
 	}
+	return &WebSocketHandler{
+		hub:            services.GetHub(),
+		allowedOrigins: origins,
+	}
+}
+
+func (h *WebSocketHandler) checkOrigin(ctx *fasthttp.RequestCtx) bool {
+	if len(h.allowedOrigins) == 0 {
+		return false
+	}
+	origin := string(ctx.Request.Header.Peek("Origin"))
+	if origin == "" {
+		return true
+	}
+	for _, allowed := range h.allowedOrigins {
+		if strings.EqualFold(origin, allowed) {
+			return true
+		}
+	}
+	return false
 }
 
 // UpgradeWebSocket upgrades HTTP connection to WebSocket
@@ -54,6 +71,9 @@ func (h *WebSocketHandler) UpgradeWebSocket(c *fiber.Ctx) error {
 	userAgent := string(c.Request().Header.Peek("User-Agent"))
 	ip := c.IP()
 
+	var upgrader = websocket.FastHTTPUpgrader{
+		CheckOrigin: h.checkOrigin,
+	}
 	err = upgrader.Upgrade(c.Context(), func(conn *websocket.Conn) {
 		// Defer recover to prevent panic
 		defer func() {

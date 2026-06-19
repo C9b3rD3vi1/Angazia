@@ -348,6 +348,7 @@ func ResetDatabase(cfg *config.Config) error {
 	tables := []string{
 		"match_feedback", "match_settings", "matches",
 		"applications", "job_views", "saved_jobs", "jobs",
+		"testimonials", "contact_submissions",
 		"github_tokens", "github_sync_logs", "github_repositories", "github_contributions", "github_profiles",
 		"employee_profiles", "employer_profiles",
 		"users",

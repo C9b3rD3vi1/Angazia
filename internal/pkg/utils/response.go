@@ -3,6 +3,7 @@ package utils
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -10,7 +11,7 @@ import (
 
 // FlashMessage represents a one-time server-rendered banner message
 type FlashMessage struct {
-	Type    string `json:"type"`    // success, error, warning, info
+	Type    string `json:"type"` // success, error, warning, info
 	Message string `json:"message"`
 }
 
@@ -73,11 +74,11 @@ type PaginatedResponse struct {
 
 // ResponseBuilder provides a fluent interface for building responses
 type ResponseBuilder struct {
-	success   bool
-	message   string
-	data      interface{}
-	err       string
-	meta      *MetaData
+	success    bool
+	message    string
+	data       interface{}
+	err        string
+	meta       *MetaData
 	statusCode int
 }
 
@@ -120,7 +121,7 @@ func (rb *ResponseBuilder) SetMeta(page, limit int, total int64) *ResponseBuilde
 	if int(total)%limit > 0 {
 		totalPages++
 	}
-	
+
 	rb.meta = &MetaData{
 		Page:       page,
 		Limit:      limit,
@@ -190,7 +191,7 @@ func SuccessPaginated(c *fiber.Ctx, data interface{}, page, limit int, total int
 	if int(total)%limit > 0 {
 		totalPages++
 	}
-	
+
 	return c.Status(http.StatusOK).JSON(PaginatedResponse{
 		Success: true,
 		Data:    data,
@@ -299,7 +300,7 @@ func ValidationErrors(c *fiber.Ctx, errors []ValidationError) error {
 
 // RateLimitExceeded sends a 429 Too Many Requests error
 func RateLimitExceeded(c *fiber.Ctx, retryAfter int) error {
-	c.Set("Retry-After", string(rune(retryAfter)))
+	c.Set("Retry-After", strconv.Itoa(retryAfter))
 	return c.Status(http.StatusTooManyRequests).JSON(APIResponse{
 		Success:   false,
 		Error:     "Rate limit exceeded. Please try again later.",
@@ -313,7 +314,7 @@ func RateLimitExceeded(c *fiber.Ctx, retryAfter int) error {
 func ParsePagination(c *fiber.Ctx) (page, limit int) {
 	page = c.QueryInt("page", 1)
 	limit = c.QueryInt("limit", 20)
-	
+
 	if page < 1 {
 		page = 1
 	}
@@ -323,7 +324,7 @@ func ParsePagination(c *fiber.Ctx) (page, limit int) {
 	if limit > 100 {
 		limit = 100
 	}
-	
+
 	return page, limit
 }
 
@@ -357,7 +358,7 @@ func SendFile(c *fiber.Ctx, filePath, filename string) error {
 func SendCSV(c *fiber.Ctx, data [][]string, filename string) error {
 	c.Set("Content-Type", "text/csv")
 	c.Set("Content-Disposition", "attachment; filename="+filename)
-	
+
 	// Convert data to CSV format
 	var csvData string
 	for _, row := range data {
@@ -369,7 +370,7 @@ func SendCSV(c *fiber.Ctx, data [][]string, filename string) error {
 		}
 		csvData += "\n"
 	}
-	
+
 	return c.SendString(csvData)
 }
 

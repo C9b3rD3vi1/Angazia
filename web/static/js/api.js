@@ -110,6 +110,8 @@ var AngaziaAPI = (function () {
       var xhr = new XMLHttpRequest();
       xhr.open('POST', url);
       if (token) xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+      var csrf = document.querySelector('meta[name="csrf-token"]');
+      if (csrf) xhr.setRequestHeader('X-CSRF-Token', csrf.getAttribute('content'));
       if (onProgress && xhr.upload) {
         xhr.upload.addEventListener('progress', function (e) {
           if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));

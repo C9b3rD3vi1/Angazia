@@ -40,23 +40,23 @@
 </div>
 
 {{/* - Create/Edit Modal - */}}
-<div class="emp-modal-overlay" id="et-modal" style="display:none">
-  <div class="emp-modal emp-modal-md">
-    <div class="emp-modal-head">
-      <h3 class="emp-modal-title" id="et-modal-title">New Testimonial</h3>
-      <button class="emp-modal-close" id="et-modal-close">&times;</button>
+<div class="angazia-modal-overlay" id="et-modal" style="display:none">
+  <div class="angazia-modal angazia-modal-md">
+    <div class="angazia-modal-header">
+      <h3 id="et-modal-title">New Testimonial</h3>
+      <button class="angazia-modal-close" id="et-modal-close">&times;</button>
     </div>
-    <div class="emp-modal-body">
-      <div class="emp-form-group">
-        <label class="emp-form-label">Your Title <span class="emp-form-hint">(optional)</span></label>
-        <input type="text" class="emp-form-input" id="et-form-title" placeholder="e.g. Senior Software Engineer" maxlength="255">
+    <div class="angazia-modal-body">
+      <div class="emp-field">
+        <label class="emp-label">Your Title <span class="emp-hint">(optional)</span></label>
+        <input type="text" class="emp-input" id="et-form-title" placeholder="e.g. Senior Software Engineer" maxlength="255">
       </div>
-      <div class="emp-form-group">
-        <label class="emp-form-label">Company <span class="emp-form-hint">(optional)</span></label>
-        <input type="text" class="emp-form-input" id="et-form-company" placeholder="e.g. Safaricom" maxlength="255">
+      <div class="emp-field">
+        <label class="emp-label">Company <span class="emp-hint">(optional)</span></label>
+        <input type="text" class="emp-input" id="et-form-company" placeholder="e.g. Safaricom" maxlength="255">
       </div>
-      <div class="emp-form-group">
-        <label class="emp-form-label">Rating</label>
+      <div class="emp-field">
+        <label class="emp-label">Rating</label>
         <div class="et-star-rating" id="et-star-rating">
           <span class="et-star" data-value="1">&#x2606;</span>
           <span class="et-star" data-value="2">&#x2606;</span>
@@ -65,13 +65,13 @@
           <span class="et-star" data-value="5">&#x2606;</span>
         </div>
       </div>
-      <div class="emp-form-group">
-        <label class="emp-form-label">Your Experience <span class="emp-form-required">*</span></label>
-        <textarea class="emp-form-textarea" id="et-form-content" rows="5" placeholder="Describe your experience working with Angazia... What did you like? How did it help your career?" minlength="20" maxlength="1000"></textarea>
+      <div class="emp-field">
+        <label class="emp-label">Your Experience <span class="emp-req">*</span></label>
+        <textarea class="emp-textarea" id="et-form-content" rows="5" placeholder="Describe your experience working with Angazia... What did you like? How did it help your career?" minlength="20" maxlength="1000"></textarea>
         <div class="emp-form-counter"><span id="et-form-count">0</span>/1000</div>
       </div>
     </div>
-    <div class="emp-modal-foot">
+    <div class="angazia-modal-footer">
       <button class="emp-btn emp-btn-ghost" id="et-modal-cancel">Cancel</button>
       <button class="emp-btn emp-btn-primary" id="et-modal-submit">Submit for Review</button>
     </div>
@@ -79,16 +79,16 @@
 </div>
 
 {{/* - Delete Confirm Modal - */}}
-<div class="emp-modal-overlay" id="et-del-modal" style="display:none">
-  <div class="emp-modal emp-modal-sm">
-    <div class="emp-modal-head">
-      <h3 class="emp-modal-title emp-modal-title-danger">Delete Testimonial</h3>
-      <button class="emp-modal-close" id="et-del-close">&times;</button>
+<div class="angazia-modal-overlay" id="et-del-modal" style="display:none">
+  <div class="angazia-modal angazia-modal-sm">
+    <div class="angazia-modal-header">
+      <h3 style="color:var(--danger,#ef4444)">Delete Testimonial</h3>
+      <button class="angazia-modal-close" id="et-del-close">&times;</button>
     </div>
-    <div class="emp-modal-body">
+    <div class="angazia-modal-body">
       <p>Are you sure you want to delete this testimonial? This action cannot be undone.</p>
     </div>
-    <div class="emp-modal-foot">
+    <div class="angazia-modal-footer">
       <button class="emp-btn emp-btn-ghost" id="et-del-cancel">Cancel</button>
       <button class="emp-btn emp-btn-danger" id="et-del-confirm">Delete</button>
     </div>
@@ -118,9 +118,8 @@
 .et-star { font-size:28px; cursor:pointer; color:#d1d5db; transition:color 0.15s; }
 .et-star.active, .et-star:hover, .et-star:hover ~ .et-star { color:#f59e0b; }
 .et-star-rating .et-star.active { color:#f59e0b; }
-.emp-modal-md { max-width:540px; }
-.emp-modal-sm { max-width:400px; }
-.emp-modal-title-danger { color:#ef4444; }
+.angazia-modal-md { max-width:540px; }
+.angazia-modal-sm { max-width:400px; }
 .emp-form-counter { text-align:right; font-size:12px; color:var(--text-muted,#6b7280); margin-top:4px; }
 .et-view-stars { display:inline-flex; gap:2px; font-size:16px; }
 .et-view-stars .et-star-filled { color:#f59e0b; }

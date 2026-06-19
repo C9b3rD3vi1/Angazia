@@ -220,56 +220,221 @@
       });
     }
 
-    var enableBtn = $('tfa-enable-btn');
-    if (enableBtn) {
-      enableBtn.addEventListener('click', function () {
-        window.open('/auth/2fa/setup', '_blank');
-      });
+    /* ── 2FA Modal Setup ── */
+    var tfaEnableBtn = $('tfa-enable-btn');
+    var tfaModalOverlay = $('tfa-modal-overlay');
+    var tfaModalClose = $('tfa-modal-close');
+
+    function openTfaModal() { if (tfaModalOverlay) tfaModalOverlay.style.display = 'flex'; }
+    function closeTfaModal() { if (tfaModalOverlay) tfaModalOverlay.style.display = 'none'; resetTfaModal(); }
+
+    if (tfaEnableBtn) tfaEnableBtn.addEventListener('click', openTfaModal);
+    if (tfaModalClose) tfaModalClose.addEventListener('click', closeTfaModal);
+    if (tfaModalOverlay) tfaModalOverlay.addEventListener('click', function (e) {
+      if (e.target === tfaModalOverlay) closeTfaModal();
+    });
+
+    var tfaModalError = $('tfa-modal-error');
+    var tfaStepInit = $('tfa-modal-step-init');
+    var tfaStepQr = $('tfa-modal-step-qr');
+    var tfaStepBackup = $('tfa-modal-step-backup');
+
+    function showTfaModalError(m) {
+      if (tfaModalError) { tfaModalError.textContent = m; tfaModalError.style.display = ''; }
+    }
+    function hideTfaModalError() {
+      if (tfaModalError) tfaModalError.style.display = 'none';
+    }
+    function resetTfaModal() {
+      hideTfaModalError();
+      if (tfaStepInit) tfaStepInit.style.display = '';
+      if (tfaStepQr) tfaStepQr.style.display = 'none';
+      if (tfaStepBackup) tfaStepBackup.style.display = 'none';
+      var startBtn = $('tfa-modal-start-btn');
+      if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Start Setup'; }
+      var verifyBtn = $('tfa-modal-verify-btn');
+      if (verifyBtn) { verifyBtn.disabled = false; verifyBtn.textContent = 'Verify & Enable'; }
+      var codeInput = $('tfa-modal-verify-code');
+      if (codeInput) codeInput.value = '';
     }
 
-    var disableBtn = $('tfa-disable-btn');
-    if (disableBtn) {
-      disableBtn.addEventListener('click', function () {
-        if (!confirm('Are you sure you want to disable two-factor authentication?')) return;
-        var code = prompt('Enter your current TOTP code (or a backup code):');
-        if (!code) return;
-        var password = prompt('Confirm your password:');
-        if (!password) return;
-        var tfaError = $('tfa-error');
-        hideTfaError(tfaError);
-        disableBtn.disabled = true;
-        disableBtn.textContent = 'Disabling\u2026';
-        AngaziaAPI.auth.twoFA.disable({ code: code, password: password }).then(function () {
-          window.location.reload();
+    var startBtn = $('tfa-modal-start-btn');
+    if (startBtn) {
+      startBtn.addEventListener('click', function () {
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Setting up...';
+        hideTfaModalError();
+        AngaziaAPI.auth.twoFA.setup().then(function (data) {
+          if (data && data.qr_code && data.secret) {
+            var qrImg = $('tfa-modal-qr-img');
+            var secretKey = $('tfa-modal-secret-key');
+            if (qrImg) qrImg.src = data.qr_code;
+            if (secretKey) secretKey.textContent = data.secret;
+            if (tfaStepInit) tfaStepInit.style.display = 'none';
+            if (tfaStepQr) tfaStepQr.style.display = '';
+          } else {
+            showTfaModalError('Invalid response from server');
+            btn.disabled = false;
+            btn.textContent = 'Start Setup';
+          }
         }).catch(function (err) {
-          disableBtn.disabled = false;
-          disableBtn.textContent = 'Disable 2FA';
-          showTfaError(tfaError, (err.body && err.body.message) || err.message || 'Failed to disable 2FA');
+          showTfaModalError((err.body && err.body.message) || err.message || 'Failed to setup 2FA');
+          btn.disabled = false;
+          btn.textContent = 'Start Setup';
         });
       });
     }
 
+    var tfaVerifyBtn = $('tfa-modal-verify-btn');
+    if (tfaVerifyBtn) {
+      tfaVerifyBtn.addEventListener('click', function () {
+        var btn = this;
+        var codeInput = $('tfa-modal-verify-code');
+        var secretKey = $('tfa-modal-secret-key');
+        var code = codeInput ? codeInput.value.trim() : '';
+        var secret = secretKey ? secretKey.textContent.trim() : '';
+        if (!code || code.length !== 6) {
+          showTfaModalError('Please enter a valid 6-digit code');
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = 'Verifying...';
+        hideTfaModalError();
+        AngaziaAPI.auth.twoFA.verify({ code: code, secret: secret }).then(function (data) {
+          if (data && data.backup_codes) {
+            var grid = $('tfa-modal-backup-codes');
+            if (grid) {
+              grid.innerHTML = '';
+              data.backup_codes.forEach(function (c) {
+                var el = document.createElement('div');
+                el.style.cssText = 'font-family:var(--fm);font-size:12px;letter-spacing:1px;background:var(--s2);padding:8px;border-radius:4px;text-align:center;border:1px solid var(--border);color:var(--text)';
+                el.textContent = c;
+                grid.appendChild(el);
+              });
+            }
+            if (tfaStepQr) tfaStepQr.style.display = 'none';
+            if (tfaStepBackup) tfaStepBackup.style.display = '';
+          } else {
+            showTfaModalError('Invalid response from server');
+            btn.disabled = false;
+            btn.textContent = 'Verify & Enable';
+          }
+        }).catch(function (err) {
+          showTfaModalError((err.body && err.body.message) || err.message || 'Verification failed. Please check the code and try again.');
+          btn.disabled = false;
+          btn.textContent = 'Verify & Enable';
+        });
+      });
+    }
+
+    var tfaDoneBtn = $('tfa-modal-done-btn');
+    if (tfaDoneBtn) {
+      tfaDoneBtn.addEventListener('click', function () { closeTfaModal(); window.location.reload(); });
+    }
+
+    var copySecretBtn = $('tfa-modal-copy-secret-btn');
+    if (copySecretBtn) {
+      copySecretBtn.addEventListener('click', function () {
+        var secretKey = $('tfa-modal-secret-key');
+        if (secretKey) {
+          navigator.clipboard.writeText(secretKey.textContent).then(function () {
+            copySecretBtn.textContent = 'Copied!';
+            setTimeout(function () { copySecretBtn.textContent = 'Copy'; }, 2000);
+          });
+        }
+      });
+    }
+
+    var copyCodesBtn = $('tfa-modal-copy-codes-btn');
+    if (copyCodesBtn) {
+      copyCodesBtn.addEventListener('click', function () {
+        var codes = [];
+        var grid = $('tfa-modal-backup-codes');
+        if (grid) {
+          grid.querySelectorAll('div').forEach(function (el) { codes.push(el.textContent); });
+          navigator.clipboard.writeText(codes.join('\n')).then(function () {
+            copyCodesBtn.textContent = 'Copied!';
+            setTimeout(function () { copyCodesBtn.textContent = '\u{1F4CB} Copy Codes'; }, 2000);
+          });
+        }
+      });
+    }
+
+    var downloadCodesBtn = $('tfa-modal-download-codes-btn');
+    if (downloadCodesBtn) {
+      downloadCodesBtn.addEventListener('click', function () {
+        var codes = [];
+        var grid = $('tfa-modal-backup-codes');
+        if (grid) {
+          grid.querySelectorAll('div').forEach(function (el) { codes.push(el.textContent); });
+          var blob = new Blob(['Angazia 2FA Backup Codes\n' + '='.repeat(30) + '\n\n' + codes.join('\n')], { type: 'text/plain' });
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'angazia-2fa-backup-codes.txt';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(a.href);
+        }
+      });
+    }
+
+    var codeInput = $('tfa-modal-verify-code');
+    if (codeInput) {
+      codeInput.addEventListener('input', function () { this.value = this.value.replace(/\D/g, ''); });
+    }
+
+    /* ── Disable 2FA ── */
+    var disableBtn = $('tfa-disable-btn');
+    if (disableBtn) {
+      disableBtn.addEventListener('click', function () {
+        AngaziaModal.confirm('Are you sure you want to disable two-factor authentication?').then(function (ok) {
+          if (!ok) return;
+          AngaziaModal.prompt('Enter your current TOTP code (or a backup code):').then(function (code) {
+            if (!code) return;
+            AngaziaModal.prompt('Confirm your password:', '', 'Password').then(function (password) {
+              if (!password) return;
+              var tfaError = $('tfa-error');
+              hideTfaError(tfaError);
+              disableBtn.disabled = true;
+              disableBtn.textContent = 'Disabling\u2026';
+              AngaziaAPI.auth.twoFA.disable({ code: code, password: password }).then(function () {
+                window.location.reload();
+              }).catch(function (err) {
+                disableBtn.disabled = false;
+                disableBtn.textContent = 'Disable 2FA';
+                showTfaError(tfaError, (err.body && err.body.message) || err.message || 'Failed to disable 2FA');
+              });
+            });
+          });
+        });
+      });
+    }
+
+    /* ── View backup codes ── */
     var viewBackupBtn = $('tfa-view-backup-btn');
     if (viewBackupBtn) {
       viewBackupBtn.addEventListener('click', function () {
         var tfaError = $('tfa-error');
         hideTfaError(tfaError);
-        if (!confirm('Generate new backup codes? Your existing codes will be invalidated.')) return;
-        viewBackupBtn.disabled = true;
-        viewBackupBtn.textContent = 'Generating\u2026';
-        AngaziaAPI.auth.twoFA.generateBackupCodes().then(function (data) {
-          viewBackupBtn.disabled = false;
-          viewBackupBtn.textContent = 'Generate New Backup Codes';
-          if (data && data.backup_codes && data.backup_codes.length) {
-            var msg = 'Your New Backup Codes:\n\n' + data.backup_codes.join('\n') + '\n\nStore these securely! You will not be able to view them again.';
-            alert(msg);
-          } else {
-            showTfaError(tfaError, 'Failed to generate backup codes');
-          }
-        }).catch(function (err) {
-          viewBackupBtn.disabled = false;
-          viewBackupBtn.textContent = 'Generate New Backup Codes';
-          showTfaError(tfaError, (err.body && err.body.message) || err.message || 'Failed to generate backup codes');
+        AngaziaModal.confirm('Generate new backup codes? Your existing codes will be invalidated.').then(function (ok) {
+          if (!ok) return;
+          viewBackupBtn.disabled = true;
+          viewBackupBtn.textContent = 'Generating\u2026';
+          AngaziaAPI.auth.twoFA.generateBackupCodes().then(function (data) {
+            viewBackupBtn.disabled = false;
+            viewBackupBtn.textContent = 'Generate New Backup Codes';
+            if (data && data.backup_codes && data.backup_codes.length) {
+              AngaziaModal.alert('Your New Backup Codes:\n\n' + data.backup_codes.join('\n') + '\n\nStore these securely! You will not be able to view them again.', 'Backup Codes');
+            } else {
+              showTfaError(tfaError, 'Failed to generate backup codes');
+            }
+          }).catch(function (err) {
+            viewBackupBtn.disabled = false;
+            viewBackupBtn.textContent = 'Generate New Backup Codes';
+            showTfaError(tfaError, (err.body && err.body.message) || err.message || 'Failed to generate backup codes');
+          });
         });
       });
     }

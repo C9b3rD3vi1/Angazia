@@ -46,7 +46,7 @@ func (h *AdminWebHandler) LoginPage(c *fiber.Ctx) error {
 			Message: flash,
 		}
 	}
-	return c.Render("admin/login", data, "layouts/admin")
+	return c.Render("admin/login", data, "layouts/admin-login")
 }
 
 func (h *AdminWebHandler) render(c *fiber.Ctx, tmpl string, data fiber.Map) error {

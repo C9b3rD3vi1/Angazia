@@ -566,6 +566,7 @@ function initHamburger(){var h=document.getElementById('hamburger');if(h){h.addE
 function initAvatarDropdown(){var a=document.getElementById('avatar-btn'),d=document.getElementById('avatar-dropdown');if(a&&d){a.addEventListener('click',function(e){e.stopPropagation();d.classList.toggle('open');});document.addEventListener('click',function(){d.classList.remove('open');});}}
 function initFlashMessages(){var f=document.querySelector('#flash-message');if(f){setTimeout(function(){f.classList.add('flash-fade');setTimeout(function(){if(f.parentNode)f.parentNode.removeChild(f);},400);},5000);}}
 </script>
+<script src="/static/js/components/modal.js"></script>
 {{if .Scripts}}<script>{{.Scripts}}</script>{{end}}
 </body>
 </html>

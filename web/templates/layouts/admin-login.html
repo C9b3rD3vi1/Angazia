@@ -1,0 +1,8 @@
+{{template "partials/head" .}}
+<link rel="stylesheet" href="/static/css/admin.css">
+<body style="display:grid;place-items:center;min-height:100vh;background:var(--bg);padding:24px;">
+{{if .Flash}}<div id="flash-message" class="flash flash-{{.Flash.Type}}" style="position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999">{{.Flash.Message}}<button class="flash-close" onclick="this.parentElement.remove()">&times;</button></div>{{end}}
+{{embed}}
+{{if .Scripts}}<script>{{.Scripts}}</script>{{end}}
+</body>
+</html>

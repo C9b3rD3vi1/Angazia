@@ -1,6 +1,4 @@
-<link rel="stylesheet" href="/static/css/admin.css">
-{{if .Flash}}<div id="flash-message" class="flash flash-{{.Flash.Type}}">{{.Flash.Message}}<button class="flash-close" onclick="this.parentElement.remove()">&times;</button></div>{{end}}
-{{if .Success}}<div class="alert alert-success">{{.Success}}</div>{{end}}
+{{if .Success}}<div class="alert alert-success" style="margin-bottom:12px">{{.Success}}</div>{{end}}
 {{if .Error}}<div class="alert alert-error">{{.Error}}</div>{{end}}
 <div class="al-wrap">
   <div class="al-card">

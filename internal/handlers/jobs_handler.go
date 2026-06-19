@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -362,7 +363,7 @@ func (h *JobHandler) GetJob(c *fiber.Ctx) error {
 		return utils.BadRequest(c, "Job ID is required")
 	}
 
-	go h.jobService.IncrementJobViews(c.Context(), jobID)
+	go h.jobService.IncrementJobViews(context.Background(), jobID)
 
 	job, err := h.jobService.GetJob(c.Context(), jobID)
 	if err != nil {

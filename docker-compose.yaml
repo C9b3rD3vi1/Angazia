@@ -4,7 +4,7 @@ x-common-env: &common-env
   TZ: Africa/Nairobi
   ENVIRONMENT: "${ENVIRONMENT:-development}"
   PORT: "3000"
-  CORS_ALLOW_ORIGINS: "${CORS_ALLOW_ORIGINS:-*}"
+  CORS_ALLOW_ORIGINS: "${CORS_ALLOW_ORIGINS:-http://localhost:3000}"
   VERSION: "${VERSION:-1.0.0}"
 
   DB_HOST: postgres

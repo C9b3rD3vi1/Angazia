@@ -224,12 +224,14 @@
 
     if (els.ghDisconnectBtn) {
       els.ghDisconnectBtn.addEventListener('click', function () {
-        if (!confirm('Disconnect your GitHub account? This will remove your GitHub data from your profile.')) return;
-        AngaziaAPI.github.disconnect().then(function () {
-          state.profile.github_connected = false;
-          state.profile.github_username = '';
-          showGitHubState(false);
-        }).catch(function (err) {
+        AngaziaModal.confirm('Disconnect your GitHub account? This will remove your GitHub data from your profile.').then(function (ok) {
+          if (!ok) return;
+          AngaziaAPI.github.disconnect().then(function () {
+            state.profile.github_connected = false;
+            state.profile.github_username = '';
+            showGitHubState(false);
+          }).catch(function (err) {
+          });
         });
       });
     }

@@ -396,14 +396,16 @@
     if (window.AngaziaApp && window.AngaziaApp.confirmDialog) {
       return window.AngaziaApp.confirmDialog(message);
     }
-    return Promise.resolve(confirm(message));
+    return AngaziaModal.confirm(message);
   }
 
   function showToast(message, type) {
     if (window.AngaziaApp && window.AngaziaApp.showToast) {
       window.AngaziaApp.showToast(message, type);
+    } else if (type) {
+      AngaziaModal.alert(message, type === 'error' ? 'Error' : 'Success');
     } else {
-      alert(message);
+      AngaziaModal.alert(message);
     }
   }
 

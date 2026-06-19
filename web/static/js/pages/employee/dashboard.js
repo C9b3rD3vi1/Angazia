@@ -181,12 +181,14 @@
 
   function handleConfirmInterview(interviewId) {
     if (!interviewId) return;
-    if (!confirm('Confirm your attendance for this interview?')) return;
-    AngaziaAPI.applications.interview(interviewId, { status: 'confirmed' })
-      .then(function () { })
-      .catch(function (err) {
-        console.error('Confirm error:', err);
-      });
+    AngaziaModal.confirm('Confirm your attendance for this interview?').then(function (ok) {
+      if (!ok) return;
+      AngaziaAPI.applications.interview(interviewId, { status: 'confirmed' })
+        .then(function () { })
+        .catch(function (err) {
+          console.error('Confirm error:', err);
+        });
+    });
   }
 
   function handleRescheduleInterview(interviewId) {

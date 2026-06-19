@@ -290,9 +290,9 @@
 
   function escapeHtml(text) { if (!text) return ''; var d = document.createElement('div'); d.appendChild(document.createTextNode(text)); return d.innerHTML; }
 
-  function confirmDialog(message) { return window.AngaziaApp && window.AngaziaApp.confirmDialog ? window.AngaziaApp.confirmDialog(message) : Promise.resolve(confirm(message)); }
+  function confirmDialog(message) { return window.AngaziaApp && window.AngaziaApp.confirmDialog ? window.AngaziaApp.confirmDialog(message) : AngaziaModal.confirm(message); }
 
-  function showToast(message, type) { if (window.AngaziaApp && window.AngaziaApp.showToast) { window.AngaziaApp.showToast(message, type); } else { alert(message); } }
+  function showToast(message, type) { if (window.AngaziaApp && window.AngaziaApp.showToast) { window.AngaziaApp.showToast(message, type); } else { AngaziaModal.alert(message, type === 'error' ? 'Error' : 'Success'); } }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

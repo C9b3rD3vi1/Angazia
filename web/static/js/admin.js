@@ -106,6 +106,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     aInitNavbar();
+    aInitFlashFromQuery();
     aFetchNotifCount();
     setInterval(aFetchNotifCount, 30000);
 
@@ -118,5 +119,32 @@
         }
       });
     }
+
+    initFlashMessages();
   });
+
+  function initFlashMessages() {
+    var f = document.querySelector('#flash-message');
+    if (f) {
+      setTimeout(function () {
+        f.classList.add('flash-fade');
+        setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 400);
+      }, 5000);
+    }
+  }
+
+  function aInitFlashFromQuery() {
+    var params = new URLSearchParams(window.location.search);
+    var msg = params.get('flash');
+    var type = params.get('type') || 'success';
+    if (msg) {
+      if (window.AngaziaApp && AngaziaApp.showToast) {
+        AngaziaApp.showToast(decodeURIComponent(msg), type);
+      }
+      var url = new URL(window.location);
+      url.searchParams.delete('flash');
+      url.searchParams.delete('type');
+      window.history.replaceState({}, '', url);
+    }
+  }
 })();

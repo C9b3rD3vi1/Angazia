@@ -52,6 +52,7 @@
     </div>
 </nav>
 <main class="main-content-wide">
+{{if .Flash}}<div id="flash-message" class="flash flash-{{.Flash.Type}}">{{.Flash.Message}}<button class="flash-close" onclick="this.parentElement.remove()">&times;</button></div>{{end}}
 <div class="dash-layout">
     <aside class="dash-sidebar">
         <div class="dash-profile">
@@ -106,6 +107,7 @@
 </div>
 </main>
 {{if .Scripts}}<script>{{.Scripts}}</script>{{end}}
+<script src="/static/js/components/modal.js"></script>
 <script src="/static/js/admin.js"></script>
 </body>
 </html>

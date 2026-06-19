@@ -94,15 +94,17 @@
       if (!sub.is_read) {
         AngaziaAPI.post('/admin/contacts/' + id + '/read').then(function () {
           loadContacts();
-        });
+        }).catch(function () {});
       }
+    }).catch(function (err) {
+      if (AngaziaApp && AngaziaApp.showToast) AngaziaApp.showToast('Failed to load contact details', 'error');
     });
   };
 
   window._markRead = function (id) {
     AngaziaAPI.post('/admin/contacts/' + id + '/read').then(function () {
       loadContacts();
-    });
+    }).catch(function () {});
   };
 
   window._deleteContact = function (id) {
@@ -126,7 +128,7 @@
     AngaziaAPI.del('/admin/contacts/' + deleteId).then(function () {
       closeDeleteModal();
       loadContacts();
-    });
+    }).catch(function () {});
   });
 
   document.getElementById('search-input').addEventListener('input', function () {

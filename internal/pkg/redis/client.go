@@ -7,8 +7,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/go-redis/redis/v8"
-	
+	"github.com/redis/go-redis/v9"
+
 	"github.com/C9b3rD3vi1/Angazia/internal/config"
 )
 
@@ -28,15 +28,15 @@ func NewRedisClient(cfg *config.Config) (*RedisClient, error) {
 		ReadTimeout:  3 * time.Second,
 		WriteTimeout: 3 * time.Second,
 	})
-	
+
 	// Test connection
 	ctx := context.Background()
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
 	}
-	
+
 	log.Println("✅ Redis connected successfully")
-	
+
 	return &RedisClient{
 		client: client,
 		cfg:    cfg,
@@ -54,7 +54,7 @@ func (r *RedisClient) Set(ctx context.Context, key string, value interface{}, tt
 	if err != nil {
 		return err
 	}
-	
+
 	return r.client.Set(ctx, key, data, ttl).Err()
 }
 
@@ -63,7 +63,7 @@ func (r *RedisClient) Get(ctx context.Context, key string, dest interface{}) err
 	if err != nil {
 		return err
 	}
-	
+
 	return json.Unmarshal(data, dest)
 }
 
@@ -90,7 +90,7 @@ func (r *RedisClient) HSet(ctx context.Context, key string, field string, value 
 	if err != nil {
 		return err
 	}
-	
+
 	return r.client.HSet(ctx, key, field, data).Err()
 }
 
@@ -99,7 +99,7 @@ func (r *RedisClient) HGet(ctx context.Context, key string, field string, dest i
 	if err != nil {
 		return err
 	}
-	
+
 	return json.Unmarshal(data, dest)
 }
 
@@ -124,7 +124,7 @@ func (r *RedisClient) SRem(ctx context.Context, key string, members ...interface
 // Sorted Set operations (for rankings/leaderboards)
 
 func (r *RedisClient) ZAdd(ctx context.Context, key string, score float64, member interface{}) error {
-	return r.client.ZAdd(ctx, key, &redis.Z{
+	return r.client.ZAdd(ctx, key, redis.Z{
 		Score:  score,
 		Member: member,
 	}).Err()
@@ -181,18 +181,18 @@ func (r *RedisClient) CacheGetOrSet(ctx context.Context, key string, ttl time.Du
 	if err == nil {
 		return nil
 	}
-	
+
 	// Execute function
 	data, err := fn()
 	if err != nil {
 		return err
 	}
-	
+
 	// Store in cache
 	if err := r.Set(ctx, key, data, ttl); err != nil {
 		log.Printf("Failed to cache data: %v", err)
 	}
-	
+
 	// Copy to destination
 	jsonData, _ := json.Marshal(data)
 	return json.Unmarshal(jsonData, dest)

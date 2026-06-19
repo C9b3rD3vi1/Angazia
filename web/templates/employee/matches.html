@@ -129,17 +129,17 @@
 </div>
 
 {{/* ── Analysis Modal ── */}}
-<div id="mm-modal-overlay" class="mm-modal-overlay" style="display:none">
-  <div class="mm-modal">
-    <div class="mm-modal-head">
-      <h3 class="mm-modal-title" id="mm-modal-title">Match Analysis</h3>
-      <button class="mm-modal-close" id="mm-modal-close">&times;</button>
+<div id="mm-modal-overlay" class="angazia-modal-overlay" style="display:none">
+  <div class="angazia-modal">
+    <div class="angazia-modal-header">
+      <h3 id="mm-modal-title">Match Analysis</h3>
+      <button class="angazia-modal-close" id="mm-modal-close">&times;</button>
     </div>
     <div class="mm-modal-loading" id="mm-modal-loading" style="display:none">
       <div class="mm-loading-spinner"></div>
       <span>Loading...</span>
     </div>
-    <div class="mm-modal-body" id="mm-modal-body"></div>
+    <div class="angazia-modal-body" id="mm-modal-body"></div>
   </div>
 </div>
 
@@ -161,33 +161,7 @@
   animation: mm-spin 0.8s linear infinite;
 }
 @keyframes mm-spin { to { transform: rotate(360deg); } }
-.mm-modal-overlay {
-  position: fixed; inset: 0; z-index: 9999;
-  background: rgba(0,0,0,0.5);
-  display: flex; align-items: center; justify-content: center;
-  padding: 24px;
-}
-.mm-modal {
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  max-width: 640px; width: 100%;
-  max-height: 80vh;
-  display: flex; flex-direction: column;
-  box-shadow: 0 16px 48px rgba(0,0,0,0.2);
-}
-.mm-modal-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 24px;
-  border-bottom: 1px solid var(--border);
-}
-.mm-modal-title { font-family: var(--fh); font-size: 16px; font-weight: 600; color: var(--text); }
-.mm-modal-close {
-  background: none; border: none; font-size: 24px;
-  color: var(--muted); cursor: pointer;
-}
-.mm-modal-close:hover { color: var(--text); }
-.mm-modal-body { padding: 24px; overflow-y: auto; flex: 1; font-size: 13px; line-height: 1.6; color: var(--text); }
+
 .mm-modal-loading {
   padding: 40px 24px;
   display: flex; flex-direction: column; align-items: center; gap: 12px;

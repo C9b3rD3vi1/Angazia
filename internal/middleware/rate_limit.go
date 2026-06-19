@@ -4,9 +4,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 )
 
 // RateLimitConfig holds rate limiting configuration
@@ -156,23 +156,23 @@ func websocketRateLimit(max int) fiber.Handler {
 		ip := c.IP()
 
 		mu.Lock()
-		defer mu.Unlock()
-
 		if connections[ip] >= max {
+			mu.Unlock()
 			return utils.Error(c, fiber.StatusTooManyRequests, "Too many WebSocket connections from this IP")
 		}
 
 		connections[ip]++
+		mu.Unlock()
 
-		// Clean up on disconnect
-		c.Context().SetUserValue("cleanup", func() {
+		// Defer cleanup runs after WebSocket handler returns (connection closes)
+		defer func() {
 			mu.Lock()
-			defer mu.Unlock()
 			connections[ip]--
 			if connections[ip] <= 0 {
 				delete(connections, ip)
 			}
-		})
+			mu.Unlock()
+		}()
 
 		return c.Next()
 	}

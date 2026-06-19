@@ -112,7 +112,7 @@
 
   function showError(show, message) { if (elements.error) { elements.error.style.display = show ? 'flex' : 'none'; if (elements.errorMsg && message) elements.errorMsg.textContent = message; } if (elements.content && show) elements.content.style.display = 'none'; }
 
-  function showToast(message, type) { if (window.AngaziaApp && window.AngaziaApp.showToast) { window.AngaziaApp.showToast(message, type); } else { alert(message); } }
+  function showToast(message, type) { if (window.AngaziaApp && window.AngaziaApp.showToast) { window.AngaziaApp.showToast(message, type); } else { AngaziaModal.alert(message, type === 'error' ? 'Error' : 'Success'); } }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

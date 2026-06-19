@@ -155,10 +155,16 @@
     // Logo
     const logoUrl = jobData.employer?.company_logo;
     if (logoUrl) {
-      elements.jobLogo.innerHTML = `<img src="${logoUrl}" alt="${jobData.employer?.company_name}" class="job-logo">`;
+      const img = document.createElement('img');
+      img.src = logoUrl;
+      img.alt = escapeHtml(jobData.employer?.company_name || '');
+      img.className = 'job-logo';
+      elements.jobLogo.innerHTML = '';
+      elements.jobLogo.appendChild(img);
     } else {
       const initials = getInitials(jobData.employer?.company_name || jobData.company_name || 'C');
-      elements.jobLogo.innerHTML = `<div class="job-logo-placeholder">${initials}</div>`;
+      elements.jobLogo.textContent = initials;
+      elements.jobLogo.className = 'job-logo-placeholder';
     }
     
     // Quick info
@@ -274,7 +280,8 @@
         
         // Show application status
         if (elements.applicationStatus && application) {
-          const status = application.status || 'pending';
+          const knownStatuses = ['pending', 'viewed', 'shortlisted', 'interview', 'hired', 'rejected'];
+          const status = knownStatuses.includes(application.status) ? application.status : 'pending';
           const statusMap = {
             'pending': 'Your application is pending review',
             'viewed': 'Your application has been viewed',
@@ -283,9 +290,10 @@
             'hired': 'Congratulations! You got the job!',
             'rejected': 'Application not selected'
           };
+          const statusText = escapeHtml(statusMap[status] || status);
           elements.applicationStatus.innerHTML = `
             <div class="application-status-card">
-              <p><strong>Application Status:</strong> <span class="application-status-${status}">${statusMap[status] || status}</span></p>
+              <p><strong>Application Status:</strong> <span class="application-status-${status}">${statusText}</span></p>
               ${application.interview_date ? `<p><strong>Interview Date:</strong> ${new Date(application.interview_date).toLocaleDateString()}</p>` : ''}
               ${application.employer_notes ? `<p><strong>Employer Note:</strong> ${escapeHtml(application.employer_notes)}</p>` : ''}
             </div>
@@ -554,7 +562,7 @@
     if (window.AngaziaApp && window.AngaziaApp.showToast) {
       window.AngaziaApp.showToast(message, type);
     } else {
-      alert(message);
+      AngaziaModal.alert(message, type === 'error' ? 'Error' : 'Success');
     }
   }
 
