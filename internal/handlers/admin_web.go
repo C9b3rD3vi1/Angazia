@@ -40,12 +40,6 @@ func (h *AdminWebHandler) LoginPage(c *fiber.Ctx) error {
 	data := fiber.Map{
 		"Title": "Admin Login - Angazia",
 	}
-	if flash := c.Query("flash"); flash != "" {
-		data["Flash"] = utils.FlashMessage{
-			Type:    c.Query("type", "info"),
-			Message: flash,
-		}
-	}
 	return c.Render("admin/login", data, "layouts/admin-login")
 }
 
