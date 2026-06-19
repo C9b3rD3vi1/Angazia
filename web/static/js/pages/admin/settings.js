@@ -225,8 +225,8 @@
     var tfaModalOverlay = $('tfa-modal-overlay');
     var tfaModalClose = $('tfa-modal-close');
 
-    function openTfaModal() { if (tfaModalOverlay) tfaModalOverlay.style.display = 'flex'; }
-    function closeTfaModal() { if (tfaModalOverlay) tfaModalOverlay.style.display = 'none'; resetTfaModal(); }
+    function openTfaModal() { if (tfaModalOverlay) tfaModalOverlay.classList.add('active'); }
+    function closeTfaModal() { if (tfaModalOverlay) tfaModalOverlay.classList.remove('active'); resetTfaModal(); }
 
     if (tfaEnableBtn) tfaEnableBtn.addEventListener('click', openTfaModal);
     if (tfaModalClose) tfaModalClose.addEventListener('click', closeTfaModal);
