@@ -166,12 +166,14 @@ var AngaziaNotifications = (function () {
   }
 
   function updateBellBadge(count) {
-    var badges = document.querySelectorAll('.notification-badge, .notif-badge');
+    var badges = document.querySelectorAll('.notification-badge, .notif-badge, .nav-notif-badge');
     badges.forEach(function (el) {
       if (count > 0) {
         el.textContent = count > 99 ? '99+' : count;
+        el.style.display = '';
         el.classList.remove('hidden');
       } else {
+        el.style.display = 'none';
         el.classList.add('hidden');
       }
     });
