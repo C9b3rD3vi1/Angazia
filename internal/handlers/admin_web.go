@@ -105,7 +105,11 @@ func (h *AdminWebHandler) sidebarData(ctx *fiber.Ctx) fiber.Map {
 	adminInitials := "A"
 	adminName := ""
 	if uid, ok := ctx.Locals("user_id").(string); ok && uid != "" {
-		if p, err := h.authService.GetProfile(ctx.Context(), uid); err == nil && p != nil && p.User != nil {
+		p, err := h.authService.GetProfile(ctx.Context(), uid)
+		if err != nil {
+			log.Printf("sidebar: GetProfile error: %v", err)
+		}
+		if err == nil && p != nil && p.User != nil {
 			adminAvatar = p.User.AvatarURL
 			adminName = p.User.FullName
 			if name := p.User.FullName; name != "" {
@@ -136,6 +140,7 @@ func (h *AdminWebHandler) sidebarData(ctx *fiber.Ctx) fiber.Map {
 		"PendingVerifications": pendingVerifications,
 		"PendingJobs":          pendingJobs,
 		"PendingReports":       pendingReportsCount,
+		"UnreadCount":          0,
 		"CompanyCount":         companyCount,
 		"Env":                  h.cfg.Environment,
 		"Admin": fiber.Map{

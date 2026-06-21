@@ -197,7 +197,7 @@
     els['et-form-content'].value = '';
     els['et-form-count'].textContent = '0';
     setRating(0);
-    show(els['et-modal']);
+    openModal(els['et-modal']);
     els['et-form-content'].focus();
   }
 
@@ -213,11 +213,11 @@
     els['et-form-content'].value = t.content || '';
     els['et-form-count'].textContent = (t.content || '').length;
     setRating(t.rating || 0);
-    show(els['et-modal']);
+    openModal(els['et-modal']);
   }
 
   function closeModal() {
-    hide(els['et-modal']);
+    closeModalEl(els['et-modal']);
   }
 
   function submitTestimonial() {
@@ -257,12 +257,12 @@
 
   function openDeleteModal(id) {
     state.deletingId = id;
-    show(els['et-del-modal']);
+    openModal(els['et-del-modal']);
   }
 
   function closeDelModal() {
     state.deletingId = null;
-    hide(els['et-del-modal']);
+    closeModalEl(els['et-del-modal']);
   }
 
   function confirmDelete() {
@@ -285,6 +285,18 @@
       if (state.testimonials[i].id === id) return state.testimonials[i];
     }
     return null;
+  }
+
+  function openModal(el) {
+    if (!el) return;
+    el.style.display = '';
+    el.classList.add('active');
+  }
+
+  function closeModalEl(el) {
+    if (!el) return;
+    el.classList.remove('active');
+    el.style.display = 'none';
   }
 
   function showToast(msg, type) {

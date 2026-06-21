@@ -210,7 +210,7 @@
         '<td><div class="aal-admin-cell">' + adminAvatarHtml + '<span class="aal-admin-name">' + escapeHtml(adminName) + '</span></div></td>' +
         '<td><span class="aal-action-badge aal-action-' + escapeHtml(log.action || '') + '">' + escapeHtml(log.action || '') + '</span></td>' +
         '<td><span class="aal-entity-badge aal-entity-' + escapeHtml(log.entity_type || '') + '">' + escapeHtml(log.entity_type || '') + '</span></td>' +
-        '<td><code class="aal-entity-id">' + escapeHtml(String(log.entity_id || '')) + '</code></td>' +
+        '<td><code class="aal-entity-id">' + escapeHtml(String(log.entity_name || log.entity_id || '')) + '</code></td>' +
         '<td class="aal-timestamp">' + formatDateTime(log.created_at) + '</td>' +
         '<td><code class="aal-ip">' + escapeHtml(log.ip_address || '') + '</code></td>' +
         '</tr>' +

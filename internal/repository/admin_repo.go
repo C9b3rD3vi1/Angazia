@@ -72,6 +72,10 @@ type AdminRepository interface {
 	// Batch user fetch
 	GetUsersByIDs(ctx context.Context, ids []string) (map[string]*models.User, error)
 	GetAdminUserIDs(ctx context.Context) ([]string, error)
+	GetEntityNames(ctx context.Context, entityType string, ids []string) (map[string]string, error)
+
+	// Moderation enforcement
+	SetEntityActive(ctx context.Context, entityType, entityID string, active bool) error
 }
 
 type AdminRepositoryImpl struct {
@@ -766,6 +770,111 @@ func (r *AdminRepositoryImpl) GetJobApplications(ctx context.Context, jobID, sta
 		Find(&apps).Error
 
 	return apps, total, err
+}
+
+func (r *AdminRepositoryImpl) SetEntityActive(ctx context.Context, entityType, entityID string, active bool) error {
+	switch entityType {
+	case "job":
+		return r.db.WithContext(ctx).Model(&models.Job{}).
+			Where("id = ?", entityID).
+			Update("is_active", active).Error
+	case "user":
+		return r.db.WithContext(ctx).Model(&models.User{}).
+			Where("id = ?", entityID).
+			Update("is_active", active).Error
+	case "review":
+		return r.db.WithContext(ctx).Model(&models.CompanyReview{}).
+			Where("id = ?", entityID).
+			Update("is_active", active).Error
+	case "company":
+		status := "active"
+		if !active {
+			status = "suspended"
+		}
+		return r.db.WithContext(ctx).Model(&models.EmployerProfile{}).
+			Where("user_id = ?", entityID).
+			Update("verification_status", status).Error
+	default:
+		return fmt.Errorf("unsupported entity type: %s", entityType)
+	}
+}
+
+func (r *AdminRepositoryImpl) GetEntityNames(ctx context.Context, entityType string, ids []string) (map[string]string, error) {
+	result := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+
+	switch entityType {
+	case "user":
+		rows := []struct {
+			ID       string
+			FullName string
+			Email    string
+		}{}
+		r.db.WithContext(ctx).Table("users").
+			Select("id, COALESCE(full_name, '') as full_name, email").
+			Where("id IN ?", ids).
+			Scan(&rows)
+		for _, row := range rows {
+			name := row.FullName
+			if name == "" {
+				name = row.Email
+			}
+			result[row.ID] = name
+		}
+	case "job":
+		rows := []struct {
+			ID    string
+			Title string
+		}{}
+		r.db.WithContext(ctx).Model(&models.Job{}).
+			Select("id, title").
+			Where("id IN ?", ids).
+			Scan(&rows)
+		for _, row := range rows {
+			result[row.ID] = row.Title
+		}
+	case "company":
+		rows := []struct {
+			UserID      string `gorm:"column:user_id"`
+			CompanyName string `gorm:"column:company_name"`
+		}{}
+		r.db.WithContext(ctx).Table("employer_profiles").
+			Select("user_id, company_name").
+			Where("user_id IN ?", ids).
+			Scan(&rows)
+		for _, row := range rows {
+			result[row.UserID] = row.CompanyName
+		}
+	case "plan":
+		rows := []struct {
+			ID   string
+			Name string
+		}{}
+		r.db.WithContext(ctx).Table("subscription_plans").
+			Select("id, name").
+			Where("id IN ?", ids).
+			Scan(&rows)
+		for _, row := range rows {
+			result[row.ID] = row.Name
+		}
+	case "subscription":
+		rows := []struct {
+			ID       string
+			PlanName string `gorm:"column:plan_name"`
+		}{}
+		r.db.WithContext(ctx).Table("subscriptions").
+			Select("subscriptions.id, COALESCE(sp.name, '') as plan_name").
+			Joins("LEFT JOIN subscription_plans sp ON sp.id = subscriptions.plan_id").
+			Where("subscriptions.id IN ?", ids).
+			Scan(&rows)
+		for _, row := range rows {
+			result[row.ID] = row.PlanName
+		}
+	}
+
+	return result, nil
 }
 
 func (r *AdminRepositoryImpl) GetAdminJobs(ctx context.Context, filters map[string]interface{}, page, limit int) ([]*models.AdminJobReport, int64, error) {

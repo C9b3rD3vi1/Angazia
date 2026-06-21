@@ -48,6 +48,24 @@
     }
   });
 
+  function updateModerationBadge() {
+    if (!window.AngaziaAPI) return;
+    AngaziaAPI.admin.moderationPendingCount()
+      .then(function (data) {
+        var count = data.count || 0;
+        var badge = document.getElementById('sidebar-moderation-badge');
+        if (badge) {
+          if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'inline-flex';
+          } else {
+            badge.style.display = 'none';
+          }
+        }
+      })
+      .catch(function () {});
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     aInitNavbar();
     aInitFlashFromQuery();
@@ -67,6 +85,9 @@
     }
 
     initFlashMessages();
+
+    setInterval(updateModerationBadge, 30000);
+    setTimeout(updateModerationBadge, 5000);
   });
 
   function initFlashMessages() {

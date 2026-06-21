@@ -66,14 +66,20 @@
       companyLink: document.getElementById('company-link'),
       
       // Action elements
-      applyForm: document.getElementById('apply-form'),
+      applyNowBtn: document.getElementById('apply-now-btn'),
       alreadyApplied: document.getElementById('already-applied'),
       loginToApply: document.getElementById('login-to-apply'),
       applicationStatus: document.getElementById('application-status'),
-      coverLetter: document.getElementById('cover-letter'),
-      resumeUrl: document.getElementById('resume-url'),
-      submitBtn: document.getElementById('submit-application'),
       saveJobBtn: document.getElementById('save-job-btn'),
+      
+      // Modal elements
+      applyModal: document.getElementById('apply-modal'),
+      applyModalClose: document.getElementById('apply-modal-close'),
+      applyModalCancel: document.getElementById('apply-modal-cancel'),
+      applyModalSubmit: document.getElementById('apply-modal-submit'),
+      applyCoverLetter: document.getElementById('apply-cover-letter'),
+      applyResumeUrl: document.getElementById('apply-resume-url'),
+      applyModalJobTitle: document.getElementById('apply-modal-job-title'),
       
       // Skills match
       skillsMatch: document.getElementById('skills-match'),
@@ -85,8 +91,22 @@
 
   // Attach event listeners
   function attachEventListeners() {
-    if (elements.submitBtn) {
-      elements.submitBtn.addEventListener('click', submitApplication);
+    if (elements.applyNowBtn) {
+      elements.applyNowBtn.addEventListener('click', openApplyModal);
+    }
+    if (elements.applyModalClose) {
+      elements.applyModalClose.addEventListener('click', closeApplyModal);
+    }
+    if (elements.applyModalCancel) {
+      elements.applyModalCancel.addEventListener('click', closeApplyModal);
+    }
+    if (elements.applyModalSubmit) {
+      elements.applyModalSubmit.addEventListener('click', submitApplication);
+    }
+    if (elements.applyModal) {
+      elements.applyModal.addEventListener('click', function(e) {
+        if (e.target === elements.applyModal) closeApplyModal();
+      });
     }
     if (elements.saveJobBtn) {
       elements.saveJobBtn.addEventListener('click', toggleSaveJob);
@@ -263,7 +283,7 @@
   async function checkApplicationStatus() {
     if (!isLoggedIn || userRole !== 'employee') {
       if (elements.loginToApply) elements.loginToApply.style.display = 'block';
-      if (elements.applyForm) elements.applyForm.style.display = 'none';
+      if (elements.applyNowBtn) elements.applyNowBtn.style.display = 'none';
       return;
     }
     
@@ -276,7 +296,7 @@
       if (hasApplied) {
         const application = apps.find(app => app.job_id === jobId || app.job?.id === jobId);
         if (elements.alreadyApplied) elements.alreadyApplied.style.display = 'block';
-        if (elements.applyForm) elements.applyForm.style.display = 'none';
+        if (elements.applyNowBtn) elements.applyNowBtn.style.display = 'none';
         
         // Show application status
         if (elements.applicationStatus && application) {
@@ -300,12 +320,12 @@
           `;
         }
       } else {
-        if (elements.applyForm) elements.applyForm.style.display = 'block';
+        if (elements.applyNowBtn) elements.applyNowBtn.style.display = 'block';
         if (elements.alreadyApplied) elements.alreadyApplied.style.display = 'none';
       }
     } catch (error) {
       console.error('Failed to check application status:', error);
-      if (elements.applyForm) elements.applyForm.style.display = 'block';
+      if (elements.applyNowBtn) elements.applyNowBtn.style.display = 'block';
     }
   }
 
@@ -337,28 +357,42 @@
       var employee = profile.employee_profile || profile;
       if (employee.resume_url) {
         profileResumeUrl = employee.resume_url;
-        if (elements.resumeUrl && !elements.resumeUrl.value) {
-          elements.resumeUrl.value = employee.resume_url;
-        }
       }
     } catch (_) {}
   }
 
+  // Open apply modal
+  function openApplyModal() {
+    if (elements.applyModalJobTitle && jobData) {
+      elements.applyModalJobTitle.textContent = jobData.title || 'this position';
+    }
+    if (elements.applyResumeUrl && profileResumeUrl && !elements.applyResumeUrl.value) {
+      elements.applyResumeUrl.value = profileResumeUrl;
+    }
+    if (elements.applyCoverLetter) elements.applyCoverLetter.value = '';
+    if (elements.applyModal) elements.applyModal.style.display = 'flex';
+  }
+
+  // Close apply modal
+  function closeApplyModal() {
+    if (elements.applyModal) elements.applyModal.style.display = 'none';
+  }
+
   // Submit application
   async function submitApplication() {
-    const coverLetter = elements.coverLetter?.value.trim();
+    const coverLetter = elements.applyCoverLetter?.value.trim();
     
     if (!coverLetter || coverLetter.length < 50) {
       showToast('Please write a cover letter (minimum 50 characters)', 'warning');
       return;
     }
     
-    const submitBtn = elements.submitBtn;
+    const submitBtn = elements.applyModalSubmit;
     submitBtn.disabled = true;
     submitBtn.textContent = 'Submitting...';
     
     try {
-      var resumeUrl = elements.resumeUrl?.value.trim() || profileResumeUrl || '';
+      var resumeUrl = elements.applyResumeUrl?.value.trim() || profileResumeUrl || '';
       const applicationData = {
         job_id: jobId,
         cover_letter: coverLetter,
@@ -368,17 +402,19 @@
       await AngaziaAPI.applications.apply(applicationData);
       
       hasApplied = true;
+      closeApplyModal();
       
       // Update UI
       if (elements.alreadyApplied) elements.alreadyApplied.style.display = 'block';
-      if (elements.applyForm) elements.applyForm.style.display = 'none';
+      if (elements.applyNowBtn) elements.applyNowBtn.style.display = 'none';
       
       // Clear form
-      if (elements.coverLetter) elements.coverLetter.value = '';
-      if (elements.resumeUrl) elements.resumeUrl.value = '';
+      if (elements.applyCoverLetter) elements.applyCoverLetter.value = '';
+      if (elements.applyResumeUrl) elements.applyResumeUrl.value = '';
       
     } catch (error) {
       console.error('Application failed:', error);
+      showToast(error.message || 'Application failed. Please try again.', 'error');
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Submit Application';

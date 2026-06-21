@@ -231,7 +231,23 @@
     });
   };
 
-  // ========== SUBSCRIPTION MANAGEMENT (new) ==========
+  // ========== SUBSCRIPTION STATS ==========
+
+  function assubLoadStats() {
+    AngaziaAPI.admin.getSubscriptionStats().then(function (stats) {
+      if (!stats) return;
+      $('assub-stat-total').textContent = stats.total_subscriptions || 0;
+      $('assub-stat-active').textContent = stats.status_breakdown ? (stats.status_breakdown.active || 0) : '-';
+      $('assub-stat-pending').textContent = stats.status_breakdown ? (stats.status_breakdown.pending || 0) : '-';
+      $('assub-stat-cancelled').textContent = stats.status_breakdown ? (stats.status_breakdown.cancelled || 0) : '-';
+      $('assub-stat-revenue').textContent = stats.currency + ' ' + Number(stats.revenue_this_month || 0).toLocaleString();
+      $('assub-stat-stale').textContent = stats.stale_pending_count || 0;
+    }).catch(function (err) {
+      console.error('Failed to load subscription stats:', err);
+    });
+  }
+
+  // ========== SUBSCRIPTION MANAGEMENT ==========
 
   var assubPage = 1;
   var assubLimit = 20;
@@ -247,7 +263,14 @@
     var statusClass = 'assub-status-' + (sub.status || 'unknown');
     var actionsHtml = '';
 
-    actionsHtml += '<button class="asub-btn asub-btn-ghost" data-action="assubChangePlan" data-id="' + sub.id + '">Change Plan</button>';
+    actionsHtml += '<button class="asub-btn asub-btn-ghost" data-action="assubViewDetail" data-id="' + sub.id + '">View</button>';
+    actionsHtml += '<button class="asub-btn asub-btn-ghost" data-action="assubOpenEditSub" data-id="' + sub.id + '">Edit</button>';
+    actionsHtml += '<button class="asub-btn asub-btn-ghost" data-action="assubChangePlan" data-id="' + sub.id + '">Plan</button>';
+
+    if (sub.pending_plan_id) {
+      actionsHtml += '<button class="asub-btn asub-btn-primary" data-action="assubCompletePending" data-id="' + sub.id + '">Apply Pending</button>';
+      actionsHtml += '<button class="asub-btn asub-btn-danger" data-action="assubCancelPending" data-id="' + sub.id + '">Clear Pending</button>';
+    }
 
     if (sub.status === 'active') {
       actionsHtml += '<button class="asub-btn asub-btn-danger" data-action="assubCancelSub" data-id="' + sub.id + '">Cancel</button>';
@@ -324,7 +347,27 @@
 
   // Assign Subscription
   window.assubOpenAssign = function () {
-    setVal('assub-assign-user', '');
+    var sel = $('assub-assign-user');
+    sel.innerHTML = '<option value="">Loading users...</option>';
+    sel.disabled = true;
+
+    AngaziaAPI.admin.users({ limit: 500 })
+      .then(function (data) {
+        var users = data.users || [];
+        sel.innerHTML = '<option value="">Select a user...</option>';
+        users.forEach(function (u) {
+          var opt = document.createElement('option');
+          opt.value = u.id;
+          opt.textContent = u.email + (u.full_name ? ' (' + u.full_name + ')' : '');
+          sel.appendChild(opt);
+        });
+        sel.disabled = false;
+      })
+      .catch(function () {
+        sel.innerHTML = '<option value="">Failed to load users</option>';
+        sel.disabled = false;
+      });
+
     $('assub-assign-modal').style.display = 'flex';
   };
 
@@ -333,11 +376,11 @@
   };
 
   window.assubConfirmAssign = function () {
-    var userId = val('assub-assign-user').trim();
+    var userId = val('assub-assign-user');
     var planId = val('assub-assign-plan');
 
     if (!userId) {
-      showToast('Please enter a User ID', 'warning');
+      showToast('Please select a user', 'warning');
       return;
     }
 
@@ -442,6 +485,108 @@
       });
   };
 
+  // Reconcile Pending Subscriptions
+  window.assubReconcile = function () {
+    var btn = $('assub-reconcile-btn');
+    btn.disabled = true;
+    btn.textContent = 'Reconciling...';
+
+    AngaziaAPI.admin.reconcileSubscriptions().then(function (result) {
+      var msg = result ? 'Reconciled: ' + (result.reconciled || 0) + ' subscriptions' : 'Reconciliation complete';
+      showToast(msg, 'success');
+      assubLoadSubscriptions();
+      assubLoadStats();
+    }).catch(function (err) {
+      console.error('Failed to reconcile:', err);
+      showToast(err.message || 'Reconciliation failed', 'error');
+    }).then(function () {
+      btn.disabled = false;
+      btn.textContent = 'Reconcile Pending';
+    });
+  };
+
+  // ========== EDIT SUBSCRIPTION ==========
+
+  window.assubOpenEditSub = function (id) {
+    AngaziaAPI.admin.getSubscription(id).then(function (sub) {
+      setVal('assub-edit-id', sub.id || '');
+      setVal('assub-edit-status', sub.status || 'active');
+      setVal('assub-edit-plan-name', sub.plan_name || '');
+      setVal('assub-edit-plan-id', sub.plan_id || '');
+      setVal('assub-edit-amount', sub.amount || 0);
+      setVal('assub-edit-currency', sub.currency || 'KES');
+      setVal('assub-edit-interval', sub.interval || 'month');
+      setVal('assub-edit-job-limit', sub.job_post_limit || 0);
+      $('assub-edit-auto-renew').checked = sub.auto_renew !== false;
+      $('assub-edit-modal').style.display = 'flex';
+    }).catch(function (err) {
+      showToast(err.message || 'Failed to load subscription', 'error');
+    });
+  };
+
+  window.assubCloseEdit = function () {
+    $('assub-edit-modal').style.display = 'none';
+  };
+
+  window.assubConfirmEdit = function () {
+    var id = val('assub-edit-id');
+    var data = {};
+    var status = val('assub-edit-status');
+    var planName = val('assub-edit-plan-name').trim();
+    var planId = val('assub-edit-plan-id').trim();
+    var amount = parseFloat(val('assub-edit-amount'));
+    var currency = val('assub-edit-currency').trim();
+    var interval = val('assub-edit-interval');
+    var jobLimit = parseInt(val('assub-edit-job-limit'));
+    var autoRenew = $('assub-edit-auto-renew').checked;
+
+    if (status) data.status = status;
+    if (planName) data.plan_name = planName;
+    if (planId) data.plan_id = planId;
+    if (!isNaN(amount)) data.amount = amount;
+    if (currency) data.currency = currency;
+    if (interval) data.interval = interval;
+    if (!isNaN(jobLimit)) data.job_post_limit = jobLimit;
+    data.auto_renew = autoRenew;
+
+    var btn = $('assub-edit-save-btn');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    AngaziaAPI.admin.updateSubscription(id, data).then(function () {
+      showToast('Subscription updated', 'success');
+      assubCloseEdit();
+      assubLoadSubscriptions();
+    }).catch(function (err) {
+      showToast(err.message || 'Failed to update subscription', 'error');
+    }).then(function () {
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+    });
+  };
+
+  // ========== PENDING PLAN MANAGEMENT ==========
+
+  window.assubCompletePending = function (id) {
+    if (!confirm('Apply the pending plan change to this subscription?')) return;
+    AngaziaAPI.admin.completePendingUpgrade(id).then(function () {
+      showToast('Pending plan change applied', 'success');
+      assubLoadSubscriptions();
+    }).catch(function (err) {
+      showToast(err.message || 'Failed to apply pending change', 'error');
+    });
+  };
+
+  window.assubCancelPending = function (id) {
+    if (!confirm('Clear the pending plan change for this subscription?')) return;
+    AngaziaAPI.admin.cancelPendingUpgrade(id).then(function () {
+      showToast('Pending plan change cleared', 'success');
+      assubLoadSubscriptions();
+    }).catch(function (err) {
+      showToast(err.message || 'Failed to clear pending change', 'error');
+    });
+  };
+
   // Pagination
   window.assubPrevPage = function () {
     if (assubPage > 1) {
@@ -460,6 +605,149 @@
   window.assubApplyFilters = function () {
     assubPage = 1;
     assubLoadSubscriptions();
+  };
+
+  // ========== SUBSCRIPTION DETAIL VIEW ==========
+
+  var assubDetailData = null;
+
+  window.assubViewDetail = function (id) {
+    var modal = $('assub-detail-modal');
+    var loading = $('assub-detail-loading');
+    var content = $('assub-detail-content');
+
+    modal.style.display = 'flex';
+    loading.style.display = 'block';
+    content.style.display = 'none';
+
+    // Reset tabs to info
+    document.querySelectorAll('.assub-detail-tab').forEach(function (t) { t.classList.remove('active'); });
+    document.querySelector('.assub-detail-tab[data-tab="info"]').classList.add('active');
+    document.querySelectorAll('.assub-detail-panel').forEach(function (p) { p.classList.remove('active'); });
+    $('assub-detail-panel-info').classList.add('active');
+
+    AngaziaAPI.admin.getSubscriptionDetail(id).then(function (data) {
+      assubDetailData = data;
+      renderAssubDetail(data);
+      loading.style.display = 'none';
+      content.style.display = 'block';
+    }).catch(function (err) {
+      console.error('Failed to load subscription detail:', err);
+      loading.textContent = 'Failed to load details: ' + (err.message || 'Unknown error');
+      showToast(err.message || 'Failed to load subscription details', 'error');
+    });
+  };
+
+  function renderAssubDetail(data) {
+    var sub = data.subscription || {};
+    var user = sub.user || {};
+
+    $('assub-dd-user').innerHTML = '<span class="assub-user-email">' + escapeHtml(user.email || '') + '</span><span class="assub-user-id">' + escapeHtml(sub.user_id || '') + '</span>';
+    $('assub-dd-plan').textContent = sub.plan_name || '';
+    $('assub-dd-status').innerHTML = '<span class="assub-status-badge assub-status-' + (sub.status || 'unknown') + '">' + (sub.status || 'unknown') + '</span>';
+    $('assub-dd-amount').textContent = (sub.currency || '') + ' ' + Number(sub.amount || 0).toFixed(2);
+    $('assub-dd-interval').textContent = sub.interval || '';
+    $('assub-dd-autorenew').textContent = sub.auto_renew ? 'Yes' : 'No';
+    $('assub-dd-start').textContent = formatDate(sub.start_date);
+    $('assub-dd-end').textContent = formatDate(sub.end_date);
+    $('assub-dd-joblimit').textContent = sub.job_post_limit != null ? sub.job_post_limit : 'N/A';
+    $('assub-dd-pendingplan').textContent = sub.pending_plan_id || 'None';
+
+    // Usage
+    var usage = data.usage || [];
+    var usageBody = $('assub-dd-usage-body');
+    var usageTable = $('assub-dd-usage-table');
+    var usageEmpty = $('assub-dd-usage-empty');
+
+    if (usage.length) {
+      usageTable.style.display = '';
+      usageEmpty.style.display = 'none';
+      usageBody.innerHTML = usage.map(function (u) {
+        return '<tr>' +
+          '<td>' + escapeHtml(u.metric_key || '') + '</td>' +
+          '<td>' + (u.used || 0) + '</td>' +
+          '<td>' + (u.limit || 0) + '</td>' +
+          '<td>' + formatDate(u.period_start) + '</td>' +
+          '<td>' + formatDate(u.period_end) + '</td>' +
+        '</tr>';
+      }).join('');
+    } else {
+      usageTable.style.display = 'none';
+      usageEmpty.style.display = '';
+    }
+
+    // Payments
+    var payments = data.payments || [];
+    var paymentsBody = $('assub-dd-payments-body');
+    var paymentsTable = $('assub-dd-payments-table');
+    var paymentsEmpty = $('assub-dd-payments-empty');
+
+    if (payments.length) {
+      paymentsTable.style.display = '';
+      paymentsEmpty.style.display = 'none';
+      paymentsBody.innerHTML = payments.map(function (p) {
+        return '<tr>' +
+          '<td>' + escapeHtml(p.reference || p.id) + '</td>' +
+          '<td>' + escapeHtml(p.currency || '') + ' ' + Number(p.amount || 0).toFixed(2) + '</td>' +
+          '<td><span class="assub-status-badge assub-status-' + (p.status || 'unknown') + '">' + (p.status || 'unknown') + '</span></td>' +
+          '<td>' + escapeHtml(p.payment_method || '-') + '</td>' +
+          '<td>' + formatDate(p.created_at || p.paid_at) + '</td>' +
+        '</tr>';
+      }).join('');
+    } else {
+      paymentsTable.style.display = 'none';
+      paymentsEmpty.style.display = '';
+    }
+
+    // Timeline
+    var history = data.history || [];
+    var historyList = $('assub-dd-history-list');
+    var historyEmpty = $('assub-dd-history-empty');
+
+    if (history.length) {
+      historyList.style.display = '';
+      historyEmpty.style.display = 'none';
+      historyList.innerHTML = history.map(function (h) {
+        var label = h.action || 'unknown';
+        var detail = '';
+        if (h.old_plan_id && h.new_plan_id) {
+          detail = escapeHtml(h.old_plan_id) + ' \u2192 ' + escapeHtml(h.new_plan_id);
+        } else if (h.new_plan_id) {
+          detail = 'Plan: ' + escapeHtml(h.new_plan_id);
+        }
+        if (h.old_amount && h.new_amount) {
+          detail += (detail ? ' | ' : '') + Number(h.old_amount).toFixed(2) + ' \u2192 ' + Number(h.new_amount).toFixed(2);
+        }
+        return '<div class="assub-timeline-item">' +
+          '<div class="assub-timeline-dot assub-timeline-dot-' + label + '"></div>' +
+          '<div class="assub-timeline-body">' +
+            '<div class="assub-timeline-action">' + escapeHtml(label) + '</div>' +
+            (detail ? '<div class="assub-timeline-detail">' + detail + '</div>' : '') +
+            '<div class="assub-timeline-date">' + formatDate(h.created_at) + '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    } else {
+      historyList.style.display = 'none';
+      historyEmpty.style.display = '';
+    }
+  }
+
+  // Tab switching within detail modal
+  document.addEventListener('click', function (e) {
+    var tab = e.target.closest('.assub-detail-tab');
+    if (!tab) return;
+
+    var tabName = tab.getAttribute('data-tab');
+    document.querySelectorAll('.assub-detail-tab').forEach(function (t) { t.classList.remove('active'); });
+    tab.classList.add('active');
+    document.querySelectorAll('.assub-detail-panel').forEach(function (p) { p.classList.remove('active'); });
+    var panel = $('assub-detail-panel-' + tabName);
+    if (panel) panel.classList.add('active');
+  });
+
+  window.assubCloseDetail = function () {
+    $('assub-detail-modal').style.display = 'none';
   };
 
   // Event listeners
@@ -500,6 +788,14 @@
         break;
 
       // Subscription actions
+      case 'assubViewDetail':
+        e.preventDefault();
+        window.assubViewDetail(el.getAttribute('data-id'));
+        break;
+      case 'assubCloseDetail':
+        if (el.classList && el.classList.contains('asub-modal-overlay') && e.target !== el) break;
+        window.assubCloseDetail();
+        break;
       case 'assubOpenAssign':
         e.preventDefault();
         window.assubOpenAssign();
@@ -540,6 +836,30 @@
         e.preventDefault();
         window.assubReactivateSub(el.getAttribute('data-id'));
         break;
+      case 'assubReconcile':
+        e.preventDefault();
+        window.assubReconcile();
+        break;
+      case 'assubOpenEditSub':
+        e.preventDefault();
+        window.assubOpenEditSub(el.getAttribute('data-id'));
+        break;
+      case 'assubCloseEdit':
+        if (el.classList && el.classList.contains('asub-modal-overlay') && e.target !== el) break;
+        window.assubCloseEdit();
+        break;
+      case 'assubConfirmEdit':
+        e.preventDefault();
+        window.assubConfirmEdit();
+        break;
+      case 'assubCompletePending':
+        e.preventDefault();
+        window.assubCompletePending(el.getAttribute('data-id'));
+        break;
+      case 'assubCancelPending':
+        e.preventDefault();
+        window.assubCancelPending(el.getAttribute('data-id'));
+        break;
       case 'assubPrevPage':
         e.preventDefault();
         window.assubPrevPage();
@@ -569,5 +889,6 @@
   document.addEventListener('DOMContentLoaded', function () {
     reloadPlans();
     assubLoadSubscriptions();
+    assubLoadStats();
   });
 })();

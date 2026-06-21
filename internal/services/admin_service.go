@@ -492,6 +492,7 @@ type AdminService interface {
 	CreateReportReason(ctx context.Context, reason *models.ReportReason) error
 	UpdateReportReason(ctx context.Context, id string, updates map[string]interface{}) error
 	DeleteReportReason(ctx context.Context, id string) error
+	LogAdminAction(ctx context.Context, adminID, action, entityType, entityID, ipAddress, userAgent string, oldVal, newVal interface{}) error
 	GetAuditLogs(ctx context.Context, filters map[string]interface{}, page, limit int) ([]*models.AdminActionLog, int64, error)
 	ReportContent(ctx context.Context, submittedBy string, req ReportContentRequest) error
 	CheckHealth(ctx context.Context) (*SystemHealth, error)
@@ -502,6 +503,7 @@ type AdminService interface {
 	GetChartData(ctx context.Context, period int) (*models.ChartData, error)
 	GetUsersByIDs(ctx context.Context, ids []string) (map[string]*models.User, error)
 	GetAdminUserIDs(ctx context.Context) ([]string, error)
+	GetEntityNames(ctx context.Context, entityType string, ids []string) (map[string]string, error)
 }
 
 type ReportContentRequest struct {
@@ -539,6 +541,23 @@ func NewAdminService(cfg *config.Config, adminRepo repository.AdminRepository) A
 		cfg:       cfg,
 		adminRepo: adminRepo,
 	}
+}
+
+func toJSONMap(v interface{}) map[string]interface{} {
+	if v == nil {
+		return nil
+	}
+	if m, ok := v.(map[string]interface{}); ok {
+		return m
+	}
+	if m, ok := v.(map[string]string); ok {
+		jm := make(map[string]interface{}, len(m))
+		for k, val := range m {
+			jm[k] = val
+		}
+		return jm
+	}
+	return nil
 }
 
 func (s *AdminServiceImpl) SetNotificationService(ns NotificationService) {
@@ -616,18 +635,22 @@ func (s *AdminServiceImpl) GetModerationItem(ctx context.Context, id string) (*m
 }
 
 func (s *AdminServiceImpl) ApproveContent(ctx context.Context, id, reviewerID string) error {
-	// Fetch the item first to know entity type and submitter
-	item, fetchErr := s.adminRepo.GetModerationItem(ctx, id)
-	if fetchErr != nil {
-		fmt.Printf("Warning: Could not fetch moderation item %s for notification: %v\n", id, fetchErr)
+	item, err := s.adminRepo.GetModerationItem(ctx, id)
+	if err != nil {
+		return fmt.Errorf("moderation item not found: %w", err)
 	}
 
 	if err := s.adminRepo.ApproveModeration(ctx, id, reviewerID); err != nil {
 		return err
 	}
 
+	// Re-activate the entity if it was disabled
+	if item.EntityType == "job" || item.EntityType == "review" {
+		_ = s.adminRepo.SetEntityActive(ctx, item.EntityType, item.EntityID, true)
+	}
+
 	// Send notification to submitter
-	if item != nil && item.SubmittedBy != "" && s.notificationService != nil {
+	if item.SubmittedBy != "" && s.notificationService != nil {
 		s.notificationService.NotifyContentApproved(ctx, item.SubmittedBy, item.EntityType, item.EntityID)
 	}
 
@@ -635,18 +658,20 @@ func (s *AdminServiceImpl) ApproveContent(ctx context.Context, id, reviewerID st
 }
 
 func (s *AdminServiceImpl) RejectContent(ctx context.Context, id, reviewerID, reason string) error {
-	// Fetch the item first to know entity type and submitter
-	item, fetchErr := s.adminRepo.GetModerationItem(ctx, id)
-	if fetchErr != nil {
-		fmt.Printf("Warning: Could not fetch moderation item %s for notification: %v\n", id, fetchErr)
+	item, err := s.adminRepo.GetModerationItem(ctx, id)
+	if err != nil {
+		return fmt.Errorf("moderation item not found: %w", err)
 	}
 
 	if err := s.adminRepo.RejectModeration(ctx, id, reviewerID, reason); err != nil {
 		return err
 	}
 
+	// Enforce moderation: disable/hide the content
+	_ = s.adminRepo.SetEntityActive(ctx, item.EntityType, item.EntityID, false)
+
 	// Send notification to submitter
-	if item != nil && item.SubmittedBy != "" && s.notificationService != nil {
+	if item.SubmittedBy != "" && s.notificationService != nil {
 		s.notificationService.NotifyContentRejected(ctx, item.SubmittedBy, item.EntityType, item.EntityID, reason)
 	}
 
@@ -842,8 +867,26 @@ func (s *AdminServiceImpl) GetUsersByIDs(ctx context.Context, ids []string) (map
 	return s.adminRepo.GetUsersByIDs(ctx, ids)
 }
 
+func (s *AdminServiceImpl) GetEntityNames(ctx context.Context, entityType string, ids []string) (map[string]string, error) {
+	return s.adminRepo.GetEntityNames(ctx, entityType, ids)
+}
+
 func (s *AdminServiceImpl) GetAdminUserIDs(ctx context.Context) ([]string, error) {
 	return s.adminRepo.GetAdminUserIDs(ctx)
+}
+
+func (s *AdminServiceImpl) LogAdminAction(ctx context.Context, adminID, action, entityType, entityID, ipAddress, userAgent string, oldVal, newVal interface{}) error {
+	log := &models.AdminActionLog{
+		AdminID:    adminID,
+		Action:     action,
+		EntityType: entityType,
+		EntityID:   entityID,
+		OldValue:   toJSONMap(oldVal),
+		NewValue:   toJSONMap(newVal),
+		IPAddress:  ipAddress,
+		UserAgent:  userAgent,
+	}
+	return s.adminRepo.LogAction(ctx, log)
 }
 
 func (s *AdminServiceImpl) GetAuditLogs(ctx context.Context, filters map[string]interface{}, page, limit int) ([]*models.AdminActionLog, int64, error) {

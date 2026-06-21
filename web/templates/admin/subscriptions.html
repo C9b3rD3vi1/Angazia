@@ -71,6 +71,34 @@
     {{end}}
   </div>
 
+  {{/* ── Subscription Stats ── */}}
+  <div class="assub-stats" id="assub-stats">
+    <div class="assub-stat-card">
+      <span class="assub-stat-value" id="assub-stat-total">-</span>
+      <span class="assub-stat-label">Total Subscriptions</span>
+    </div>
+    <div class="assub-stat-card">
+      <span class="assub-stat-value" id="assub-stat-active">-</span>
+      <span class="assub-stat-label">Active</span>
+    </div>
+    <div class="assub-stat-card">
+      <span class="assub-stat-value" id="assub-stat-pending">-</span>
+      <span class="assub-stat-label">Pending</span>
+    </div>
+    <div class="assub-stat-card">
+      <span class="assub-stat-value" id="assub-stat-revenue">-</span>
+      <span class="assub-stat-label">Revenue This Month</span>
+    </div>
+    <div class="assub-stat-card">
+      <span class="assub-stat-value" id="assub-stat-stale">-</span>
+      <span class="assub-stat-label">Stale Pending</span>
+    </div>
+    <div class="assub-stat-card">
+      <span class="assub-stat-value" id="assub-stat-cancelled">-</span>
+      <span class="assub-stat-label">Cancelled</span>
+    </div>
+  </div>
+
   {{/* ── User Subscriptions Section ── */}}
   <div class="asub-section">
     <div class="asub-section-header">
@@ -79,6 +107,7 @@
         <p class="asub-section-sub">View and manage all user subscriptions</p>
       </div>
       <div class="asub-header-actions">
+        <button class="asub-btn asub-btn-outline" data-action="assubReconcile" id="assub-reconcile-btn">Reconcile Pending</button>
         <button class="asub-btn asub-btn-primary" data-action="assubOpenAssign">+ Assign Subscription</button>
       </div>
     </div>
@@ -94,8 +123,11 @@
       <select class="asub-input asub-select asub-filter-select" id="assub-filter-status">
         <option value="">All Statuses</option>
         <option value="active">Active</option>
+        <option value="pending">Pending</option>
+        <option value="past_due">Past Due</option>
         <option value="cancelled">Cancelled</option>
         <option value="expired">Expired</option>
+        <option value="failed">Failed</option>
         <option value="trial">Trial</option>
       </select>
       <button class="asub-btn asub-btn-primary" data-action="assubApplyFilters">Filter</button>
@@ -130,7 +162,13 @@
             <td>{{.EndDate.Format "Jan 02, 2006"}}</td>
             <td>{{if .AutoRenew}}Yes{{else}}No{{end}}</td>
             <td class="assub-cell-actions">
-              <button class="asub-btn asub-btn-ghost" data-action="assubChangePlan" data-id="{{.ID}}">Change Plan</button>
+              <button class="asub-btn asub-btn-ghost" data-action="assubViewDetail" data-id="{{.ID}}">View</button>
+              <button class="asub-btn asub-btn-ghost" data-action="assubOpenEditSub" data-id="{{.ID}}">Edit</button>
+              <button class="asub-btn asub-btn-ghost" data-action="assubChangePlan" data-id="{{.ID}}">Plan</button>
+              {{if .PendingPlanID}}
+              <button class="asub-btn asub-btn-primary" data-action="assubCompletePending" data-id="{{.ID}}">Apply Pending</button>
+              <button class="asub-btn asub-btn-danger" data-action="assubCancelPending" data-id="{{.ID}}">Clear Pending</button>
+              {{end}}
               {{if eq .Status "active"}}
               <button class="asub-btn asub-btn-danger" data-action="assubCancelSub" data-id="{{.ID}}">Cancel</button>
               {{end}}
@@ -167,8 +205,10 @@
     </div>
     <div class="asub-modal-body">
       <div class="asub-field">
-        <label class="asub-label">User ID</label>
-        <input class="asub-input" id="assub-assign-user" placeholder="Enter user UUID">
+        <label class="asub-label">User</label>
+        <select class="asub-input asub-select" id="assub-assign-user">
+          <option value="">Loading users...</option>
+        </select>
       </div>
       <div class="asub-field">
         <label class="asub-label">Plan</label>
@@ -228,6 +268,171 @@
     <div class="asub-modal-foot">
       <button class="asub-btn asub-btn-ghost" data-action="assubCloseCancel">Cancel</button>
       <button class="asub-btn asub-btn-danger" id="assub-cancel-btn" data-action="assubConfirmCancel">Confirm Cancel</button>
+    </div>
+  </div>
+</div>
+
+{{/* ── Edit Subscription Modal ── */}}
+<div class="asub-modal-overlay" id="assub-edit-modal" style="display:none" data-action="assubCloseEdit">
+  <div class="asub-modal">
+    <div class="asub-modal-head">
+      <h2 class="asub-modal-title">Edit Subscription</h2>
+      <button class="asub-modal-close" data-action="assubCloseEdit">&times;</button>
+    </div>
+    <div class="asub-modal-body">
+      <input type="hidden" id="assub-edit-id">
+      <div class="asub-form-row-3">
+        <div class="asub-field">
+          <label class="asub-label">Status</label>
+          <select class="asub-input asub-select" id="assub-edit-status">
+            <option value="active">Active</option>
+            <option value="pending">Pending</option>
+            <option value="past_due">Past Due</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="expired">Expired</option>
+            <option value="failed">Failed</option>
+            <option value="trial">Trial</option>
+          </select>
+        </div>
+        <div class="asub-field">
+          <label class="asub-label">Plan Name</label>
+          <input class="asub-input" id="assub-edit-plan-name" placeholder="Plan name">
+        </div>
+        <div class="asub-field">
+          <label class="asub-label">Plan ID</label>
+          <input class="asub-input" id="assub-edit-plan-id" placeholder="Plan code">
+        </div>
+      </div>
+      <div class="asub-form-row-3">
+        <div class="asub-field">
+          <label class="asub-label">Amount</label>
+          <input class="asub-input" id="assub-edit-amount" type="number" step="0.01" placeholder="0.00">
+        </div>
+        <div class="asub-field">
+          <label class="asub-label">Currency</label>
+          <input class="asub-input" id="assub-edit-currency" placeholder="KES">
+        </div>
+        <div class="asub-field">
+          <label class="asub-label">Interval</label>
+          <select class="asub-input asub-select" id="assub-edit-interval">
+            <option value="month">Monthly</option>
+            <option value="year">Yearly</option>
+            <option value="week">Weekly</option>
+            <option value="day">Daily</option>
+          </select>
+        </div>
+      </div>
+      <div class="asub-form-row-3">
+        <div class="asub-field">
+          <label class="asub-label">Job Post Limit</label>
+          <input class="asub-input" id="assub-edit-job-limit" type="number" placeholder="5">
+        </div>
+        <div class="asub-field asub-field-check" style="justify-content:flex-end;padding-top:18px;">
+          <label class="asub-checkbox-label">
+            <input type="checkbox" id="assub-edit-auto-renew" checked>
+            <span class="asub-checkbox-mark"></span>
+            Auto-Renew
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="asub-modal-foot">
+      <button class="asub-btn asub-btn-ghost" data-action="assubCloseEdit">Cancel</button>
+      <button class="asub-btn asub-btn-primary" id="assub-edit-save-btn" data-action="assubConfirmEdit">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+{{/* ── Subscription Detail Modal ── */}}
+<div class="asub-modal-overlay" id="assub-detail-modal" style="display:none" data-action="assubCloseDetail">
+  <div class="asub-modal asub-modal-lg">
+    <div class="asub-modal-head">
+      <h2 class="asub-modal-title">Subscription Detail</h2>
+      <button class="asub-modal-close" data-action="assubCloseDetail">&times;</button>
+    </div>
+    <div class="asub-modal-body" id="assub-detail-body">
+      <div class="asub-loading" id="assub-detail-loading">Loading...</div>
+      <div class="assub-detail-content" id="assub-detail-content" style="display:none">
+        <div class="assub-detail-tabs">
+          <button class="assub-detail-tab active" data-tab="info">Overview</button>
+          <button class="assub-detail-tab" data-tab="usage">Usage</button>
+          <button class="assub-detail-tab" data-tab="payments">Payments</button>
+          <button class="assub-detail-tab" data-tab="history">Timeline</button>
+        </div>
+
+        {{/* Overview Tab */}}
+        <div class="assub-detail-panel active" id="assub-detail-panel-info">
+          <div class="assub-detail-grid">
+            <div class="assub-detail-field">
+              <span class="assub-detail-label">User</span>
+              <span class="assub-detail-value" id="assub-dd-user"></span>
+            </div>
+            <div class="assub-detail-field">
+              <span class="assub-detail-label">Plan</span>
+              <span class="assub-detail-value" id="assub-dd-plan"></span>
+            </div>
+            <div class="assub-detail-field">
+              <span class="assub-detail-label">Status</span>
+              <span class="assub-detail-value" id="assub-dd-status"></span>
+            </div>
+            <div class="assub-detail-field">
+              <span class="assub-detail-label">Amount</span>
+              <span class="assub-detail-value" id="assub-dd-amount"></span>
+            </div>
+            <div class="assub-detail-field">
+              <span class="assub-detail-label">Interval</span>
+              <span class="assub-detail-value" id="assub-dd-interval"></span>
+            </div>
+            <div class="assub-detail-field">
+              <span class="assub-detail-label">Auto-Renew</span>
+              <span class="assub-detail-value" id="assub-dd-autorenew"></span>
+            </div>
+            <div class="assub-detail-field">
+              <span class="assub-detail-label">Start Date</span>
+              <span class="assub-detail-value" id="assub-dd-start"></span>
+            </div>
+            <div class="assub-detail-field">
+              <span class="assub-detail-label">End Date</span>
+              <span class="assub-detail-value" id="assub-dd-end"></span>
+            </div>
+            <div class="assub-detail-field">
+              <span class="assub-detail-label">Job Limit</span>
+              <span class="assub-detail-value" id="assub-dd-joblimit"></span>
+            </div>
+            <div class="assub-detail-field">
+              <span class="assub-detail-label">Pending Plan</span>
+              <span class="assub-detail-value" id="assub-dd-pendingplan"></span>
+            </div>
+          </div>
+        </div>
+
+        {{/* Usage Tab */}}
+        <div class="assub-detail-panel" id="assub-detail-panel-usage">
+          <div class="assub-detail-empty" id="assub-dd-usage-empty">No usage data available.</div>
+          <table class="asub-table" id="assub-dd-usage-table" style="display:none">
+            <thead><tr><th>Metric</th><th>Used</th><th>Limit</th><th>Period Start</th><th>Period End</th></tr></thead>
+            <tbody id="assub-dd-usage-body"></tbody>
+          </table>
+        </div>
+
+        {{/* Payments Tab */}}
+        <div class="assub-detail-panel" id="assub-detail-panel-payments">
+          <div class="assub-detail-empty" id="assub-dd-payments-empty">No payments found.</div>
+          <table class="asub-table" id="assub-dd-payments-table" style="display:none">
+            <thead><tr><th>Reference</th><th>Amount</th><th>Status</th><th>Method</th><th>Date</th></tr></thead>
+            <tbody id="assub-dd-payments-body"></tbody>
+          </table>
+        </div>
+
+        {{/* Timeline Tab */}}
+        <div class="assub-detail-panel" id="assub-detail-panel-history">
+          <div class="assub-detail-empty" id="assub-dd-history-empty">No history available.</div>
+          <div class="assub-timeline" id="assub-dd-history-list" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+    <div class="asub-modal-foot">
+      <button class="asub-btn asub-btn-ghost" data-action="assubCloseDetail">Close</button>
     </div>
   </div>
 </div>

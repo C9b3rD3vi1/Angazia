@@ -61,7 +61,7 @@
             </div>
             <div class="dash-nav-group">
                 <span class="dash-nav-label">Moderation</span>
-                <a href="/admin/moderation" class="dash-link {{if eq .ActivePage "moderation"}}active{{end}}"><span class="dash-link-icon">&#x1F4CB;</span><span class="dash-link-text">Moderation</span>{{if .PendingReports}}<span class="dash-badge danger">{{.PendingReports}}</span>{{end}}</a>
+                <a href="/admin/moderation" class="dash-link {{if eq .ActivePage "moderation"}}active{{end}}"><span class="dash-link-icon">&#x1F4CB;</span><span class="dash-link-text">Moderation</span><span class="dash-badge danger" id="sidebar-moderation-badge"{{if not .PendingReports}} style="display:none"{{end}}>{{.PendingReports}}</span></a>
                 <a href="/admin/reports" class="dash-link {{if eq .ActivePage "reports"}}active{{end}}"><span class="dash-link-icon">&#x1F6A9;</span><span class="dash-link-text">Reports</span></a>
                 <a href="/admin/audit" class="dash-link {{if eq .ActivePage "audit-logs"}}active{{end}}"><span class="dash-link-icon">&#x1F50D;</span><span class="dash-link-text">Audit Logs</span></a>
             </div>

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"time"
-	
+
 	"github.com/C9b3rD3vi1/Angazia/internal/config"
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
 	"github.com/C9b3rD3vi1/Angazia/internal/repository"
@@ -14,14 +14,14 @@ import (
 type PaymentRetryState string
 
 const (
-	PaymentRetryNone    PaymentRetryState = ""
-	PaymentRetryFirst   PaymentRetryState = "first_retry"
-	PaymentRetrySecond  PaymentRetryState = "second_retry"
-	PaymentRetryFinal   PaymentRetryState = "final_retry"
+	PaymentRetryNone   PaymentRetryState = ""
+	PaymentRetryFirst  PaymentRetryState = "first_retry"
+	PaymentRetrySecond PaymentRetryState = "second_retry"
+	PaymentRetryFinal  PaymentRetryState = "final_retry"
 )
 
 type AddPaymentMethodRequest struct {
-	Type        string `json:"type" validate:"required"`        // mpesa, card, bank
+	Type        string `json:"type" validate:"required"` // mpesa, card, bank
 	PhoneNumber string `json:"phone_number"`
 	CardToken   string `json:"card_token"`
 	SetDefault  bool   `json:"set_default"`
@@ -43,84 +43,117 @@ type SubscriptionService interface {
 	CreatePlan(ctx context.Context, req *CreatePlanRequest) (*models.SubscriptionPlan, error)
 	UpdatePlan(ctx context.Context, planID string, req *UpdatePlanRequest) (*models.SubscriptionPlan, error)
 	DeletePlan(ctx context.Context, planID string) error
-	
+
 	// Subscription management
 	Subscribe(ctx context.Context, userID string, req *SubscribeRequest) (*models.Subscription, error)
 	CancelSubscription(ctx context.Context, userID, subscriptionID string, reason string) error
 	GetCurrentSubscription(ctx context.Context, userID string) (*models.Subscription, error)
 	GetSubscription(ctx context.Context, subscriptionID string) (*models.Subscription, error)
 	ListUserSubscriptions(ctx context.Context, userID string, page, limit int) ([]*models.Subscription, int64, error)
-	
+
 	// Feature checking
 	CanAccessFeature(ctx context.Context, userID, feature string) (bool, error)
 	GetRemainingUsage(ctx context.Context, userID, metricKey string) (int, error)
 	TrackUsage(ctx context.Context, userID, metricKey string) error
-	
+
 	// Billing
 	GenerateInvoice(ctx context.Context, subscriptionID, paymentID string) (*models.Invoice, error)
 	GetInvoice(ctx context.Context, id string) (*models.Invoice, error)
 	GetInvoiceItems(ctx context.Context, invoiceID string) ([]*models.InvoiceItem, error)
 	GetInvoices(ctx context.Context, userID string, page, limit int) ([]*models.Invoice, int64, error)
-	
+
 	// Subscription lifecycle
 	RenewSubscription(ctx context.Context, subscriptionID string) error
 	ExpireSubscriptions(ctx context.Context) error
 	UpgradeSubscription(ctx context.Context, userID, subscriptionID, newPlanID string) (*models.Subscription, error)
 	DowngradeSubscription(ctx context.Context, userID, subscriptionID, newPlanID string) (*models.Subscription, error)
 	ReactivateSubscription(ctx context.Context, userID, subscriptionID string) (*models.Subscription, error)
-	
+
 	// Payment methods
 	GetPaymentMethods(ctx context.Context, userID string) ([]*models.PaymentMethod, error)
 	AddPaymentMethod(ctx context.Context, userID string, req *AddPaymentMethodRequest) (*models.PaymentMethod, error)
 	RemovePaymentMethod(ctx context.Context, userID, methodID string) error
 	SetDefaultPaymentMethod(ctx context.Context, userID, methodID string) error
-	
+
 	// Payment processing
 	SubscribeWithNewPayment(ctx context.Context, userID, planID, phoneNumber string) (*models.Subscription, *IntaSendChargeResponse, error)
 	UpgradeWithPayment(ctx context.Context, userID, subscriptionID, newPlanID, phoneNumber string) (*models.Subscription, *IntaSendChargeResponse, error)
 	VerifyPayment(ctx context.Context, transactionID, reference string) (*models.Payment, error)
 	RetryPayment(ctx context.Context, subscriptionID string) error
 	ProcessPaymentRetries(ctx context.Context) error
-	
+
 	// Webhook
 	HandleWebhook(ctx context.Context, payload *models.IntaSendWebhookPayload) error
 
 	// Proration
 	CalculateProration(ctx context.Context, subscriptionID, newPlanID string) (*CalculateProrationResult, error)
-	
+
 	// Invoice
 	GenerateInvoicePDF(ctx context.Context, invoiceID string) (string, error)
-	
+
 	// Plans
 	GetPlanFeatures(ctx context.Context, planID string) ([]*models.SubscriptionPlanFeature, error)
-	
+
 	// Admin
 	GetAllSubscriptions(ctx context.Context, filters map[string]interface{}, page, limit int) ([]*models.Subscription, int64, error)
 	GetSubscriptionHistory(ctx context.Context, subscriptionID string, page, limit int) ([]*models.SubscriptionHistory, int64, error)
+	GetSubscriptionUsage(ctx context.Context, subscriptionID string) ([]*models.SubscriptionUsage, error)
+	GetSubscriptionPayments(ctx context.Context, subscriptionID string, page, limit int) ([]*models.Payment, int64, error)
 	AdminAssignSubscription(ctx context.Context, userID, planID string) (*models.Subscription, error)
+	AdminUpdateSubscription(ctx context.Context, subscriptionID string, updates map[string]interface{}) (*models.Subscription, error)
+	ApplyPendingPlanChange(ctx context.Context, subscriptionID string) error
+	ClearPendingPlanChange(ctx context.Context, subscriptionID string) error
+	GetSubscriptionStats(ctx context.Context) (*SubscriptionStats, error)
+	ReconcilePendingSubscriptions(ctx context.Context) (*ReconciliationResult, error)
+}
+
+type SubscriptionStats struct {
+	TotalSubscriptions int64            `json:"total_subscriptions"`
+	StatusBreakdown    map[string]int64 `json:"status_breakdown"`
+	TotalRevenue       float64          `json:"total_revenue"`
+	RevenueThisMonth   float64          `json:"revenue_this_month"`
+	Currency           string           `json:"currency"`
+	PendingUpgrades    int64            `json:"pending_upgrades"`
+	StalePending       int64            `json:"stale_pending"`
+	PlanBreakdown      []PlanStat       `json:"plan_breakdown"`
+}
+
+type PlanStat struct {
+	PlanID string `json:"plan_id"`
+	Name   string `json:"name"`
+	Count  int64  `json:"count"`
+}
+
+type ReconciliationResult struct {
+	StalePendingFound  int      `json:"stale_pending_found"`
+	StaleUpgradesFound int      `json:"stale_upgrades_found"`
+	StalePaymentsFound int      `json:"stale_payments_found"`
+	SubscriptionsFixed int      `json:"subscriptions_fixed"`
+	PaymentsCancelled  int      `json:"payments_cancelled"`
+	Details            []string `json:"details"`
 }
 
 type SubscribeRequest struct {
-	PlanID     string `json:"plan_id" validate:"required"`
-	PaymentID  string `json:"payment_id" validate:"required"`
-	TrialDays  int    `json:"trial_days"`
-	AutoRenew  bool   `json:"auto_renew"`
+	PlanID    string `json:"plan_id" validate:"required"`
+	PaymentID string `json:"payment_id" validate:"required"`
+	TrialDays int    `json:"trial_days"`
+	AutoRenew bool   `json:"auto_renew"`
 }
 
 type CreatePlanRequest struct {
-	PlanID         string   `json:"plan_id" validate:"required"`
-	Name           string   `json:"name" validate:"required"`
-	Description    string   `json:"description"`
-	Price          float64  `json:"price" validate:"required,min=0"`
-	Currency       string   `json:"currency"`
-	Interval       string   `json:"interval" validate:"oneof=month year"`
-	IntervalCount  int      `json:"interval_count"`
-	TrialDays      int      `json:"trial_days"`
-	JobPostLimit   int      `json:"job_post_limit"`
-	SortOrder      int      `json:"sort_order"`
-	IsPopular      bool     `json:"is_popular"`
-	Features       []string `json:"features"`
-	FeatureFlags   map[string]interface{} `json:"feature_flags"`
+	PlanID        string                 `json:"plan_id" validate:"required"`
+	Name          string                 `json:"name" validate:"required"`
+	Description   string                 `json:"description"`
+	Price         float64                `json:"price" validate:"required,min=0"`
+	Currency      string                 `json:"currency"`
+	Interval      string                 `json:"interval" validate:"oneof=month year"`
+	IntervalCount int                    `json:"interval_count"`
+	TrialDays     int                    `json:"trial_days"`
+	JobPostLimit  int                    `json:"job_post_limit"`
+	SortOrder     int                    `json:"sort_order"`
+	IsPopular     bool                   `json:"is_popular"`
+	Features      []string               `json:"features"`
+	FeatureFlags  map[string]interface{} `json:"feature_flags"`
 }
 
 type UpdatePlanRequest struct {
@@ -176,11 +209,10 @@ func (s *SubscriptionServiceImpl) GetPlanByID(ctx context.Context, id string) (*
 	if err == nil {
 		return plan, nil
 	}
-	
+
 	// If not found, try by UUID
 	return s.subscriptionRepo.GetPlan(ctx, id)
 }
-
 
 func (s *SubscriptionServiceImpl) CreatePlan(ctx context.Context, req *CreatePlanRequest) (*models.SubscriptionPlan, error) {
 	features := make(models.StringArray, len(req.Features))
@@ -208,7 +240,7 @@ func (s *SubscriptionServiceImpl) CreatePlan(ctx context.Context, req *CreatePla
 		Features:      features,
 		FeatureFlags:  featureFlags,
 	}
-	
+
 	if plan.Currency == "" {
 		plan.Currency = "KES"
 	}
@@ -218,20 +250,20 @@ func (s *SubscriptionServiceImpl) CreatePlan(ctx context.Context, req *CreatePla
 	if plan.IntervalCount == 0 {
 		plan.IntervalCount = 1
 	}
-	
+
 	if err := s.subscriptionRepo.CreatePlan(ctx, plan); err != nil {
 		return nil, fmt.Errorf("failed to create plan: %w", err)
 	}
-	
+
 	return plan, nil
 }
 
 func (s *SubscriptionServiceImpl) UpdatePlan(ctx context.Context, planID string, req *UpdatePlanRequest) (*models.SubscriptionPlan, error) {
-	plan, err := s.subscriptionRepo.GetPlanByPlanID(ctx, planID)
+	plan, err := s.GetPlanByID(ctx, planID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if req.Name != nil {
 		plan.Name = *req.Name
 	}
@@ -253,20 +285,20 @@ func (s *SubscriptionServiceImpl) UpdatePlan(ctx context.Context, planID string,
 	if req.JobPostLimit != nil {
 		plan.JobPostLimit = *req.JobPostLimit
 	}
-	
+
 	if err := s.subscriptionRepo.UpdatePlan(ctx, plan); err != nil {
 		return nil, fmt.Errorf("failed to update plan: %w", err)
 	}
-	
+
 	return plan, nil
 }
 
 func (s *SubscriptionServiceImpl) DeletePlan(ctx context.Context, planID string) error {
-	plan, err := s.subscriptionRepo.GetPlanByPlanID(ctx, planID)
+	plan, err := s.GetPlanByID(ctx, planID)
 	if err != nil {
 		return err
 	}
-	
+
 	return s.subscriptionRepo.DeletePlan(ctx, plan.ID)
 }
 
@@ -277,22 +309,22 @@ func (s *SubscriptionServiceImpl) Subscribe(ctx context.Context, userID string, 
 	if err != nil {
 		return nil, fmt.Errorf("plan not found: %w", err)
 	}
-	
+
 	_, err = s.paymentRepo.GetPayment(ctx, req.PaymentID)
 	if err != nil {
 		return nil, fmt.Errorf("payment not found: %w", err)
 	}
-	
+
 	// Cancel any existing active subscription
 	existing, _ := s.subscriptionRepo.GetActiveSubscriptionByUser(ctx, userID)
 	if existing != nil {
 		s.CancelSubscription(ctx, userID, existing.ID, "New subscription")
 	}
-	
+
 	now := time.Now()
 	periodStart := now
 	periodEnd := s.calculatePeriodEnd(now, plan.Interval, plan.IntervalCount)
-	
+
 	// Handle trial
 	if req.TrialDays > 0 || plan.TrialDays > 0 {
 		trialDays := req.TrialDays
@@ -303,7 +335,7 @@ func (s *SubscriptionServiceImpl) Subscribe(ctx context.Context, userID string, 
 		periodStart = trialEnd
 		periodEnd = s.calculatePeriodEnd(trialEnd, plan.Interval, plan.IntervalCount)
 	}
-	
+
 	subscription := &models.Subscription{
 		UserID:             userID,
 		PlanID:             plan.PlanID,
@@ -322,16 +354,16 @@ func (s *SubscriptionServiceImpl) Subscribe(ctx context.Context, userID string, 
 		CurrentPeriodEnd:   periodEnd,
 		LastPaymentID:      &req.PaymentID,
 	}
-	
+
 	if req.TrialDays > 0 || plan.TrialDays > 0 {
 		trialEnd := now.AddDate(0, 0, plan.TrialDays)
 		subscription.TrialEndsAt = &trialEnd
 	}
-	
+
 	if err := s.subscriptionRepo.CreateSubscription(ctx, subscription); err != nil {
 		return nil, fmt.Errorf("failed to create subscription: %w", err)
 	}
-	
+
 	// Update employer profile
 	updates := map[string]interface{}{
 		"subscription_plan":       plan.PlanID,
@@ -339,10 +371,10 @@ func (s *SubscriptionServiceImpl) Subscribe(ctx context.Context, userID string, 
 		"subscription_job_posts":  plan.JobPostLimit,
 	}
 	s.userRepo.UpdateEmployerProfile(ctx, userID, updates)
-	
+
 	// Create subscription usage records
 	s.createUsageRecords(ctx, subscription.ID, userID, plan)
-	
+
 	// Log history
 	history := &models.SubscriptionHistory{
 		SubscriptionID: subscription.ID,
@@ -352,7 +384,7 @@ func (s *SubscriptionServiceImpl) Subscribe(ctx context.Context, userID string, 
 		Action:         "created",
 	}
 	s.subscriptionRepo.AddHistory(ctx, history)
-	
+
 	return subscription, nil
 }
 
@@ -361,15 +393,15 @@ func (s *SubscriptionServiceImpl) CancelSubscription(ctx context.Context, userID
 	if err != nil {
 		return err
 	}
-	
+
 	if sub.UserID != userID {
 		return fmt.Errorf("unauthorized")
 	}
-	
+
 	if err := s.subscriptionRepo.CancelSubscription(ctx, subscriptionID, time.Now()); err != nil {
 		return err
 	}
-	
+
 	// Log history
 	history := &models.SubscriptionHistory{
 		SubscriptionID: subscriptionID,
@@ -379,7 +411,7 @@ func (s *SubscriptionServiceImpl) CancelSubscription(ctx context.Context, userID
 		Reason:         reason,
 	}
 	s.subscriptionRepo.AddHistory(ctx, history)
-	
+
 	return nil
 }
 
@@ -405,7 +437,7 @@ func (s *SubscriptionServiceImpl) CanAccessFeature(ctx context.Context, userID, 
 	if err != nil || sub == nil {
 		return false, nil
 	}
-	
+
 	// Check feature flags
 	if sub.FeatureFlags != nil {
 		if val, ok := sub.FeatureFlags[feature]; ok {
@@ -414,7 +446,7 @@ func (s *SubscriptionServiceImpl) CanAccessFeature(ctx context.Context, userID, 
 			}
 		}
 	}
-	
+
 	// Default feature access
 	featureMap := map[string][]string{
 		"advanced_analytics": {"pro_monthly", "pro_yearly", "business_monthly"},
@@ -423,18 +455,18 @@ func (s *SubscriptionServiceImpl) CanAccessFeature(ctx context.Context, userID, 
 		"talent_pool":        {"pro_monthly", "pro_yearly", "business_monthly"},
 		"featured_jobs":      {"pro_monthly", "pro_yearly", "business_monthly"},
 	}
-	
+
 	allowedPlans, ok := featureMap[feature]
 	if !ok {
 		return true, nil
 	}
-	
+
 	for _, plan := range allowedPlans {
 		if sub.PlanID == plan {
 			return true, nil
 		}
 	}
-	
+
 	return false, nil
 }
 
@@ -443,25 +475,25 @@ func (s *SubscriptionServiceImpl) GetRemainingUsage(ctx context.Context, userID,
 	if err != nil || sub == nil {
 		return 0, nil
 	}
-	
+
 	usage, err := s.subscriptionRepo.GetUsage(ctx, sub.ID, metricKey)
 	if err != nil {
 		// Create usage record if not exists
 		periodStart := sub.CurrentPeriodStart
 		periodEnd := sub.CurrentPeriodEnd
-		
+
 		limit := s.getLimitForMetric(sub, metricKey)
 		usage, err = s.subscriptionRepo.GetOrCreateUsage(ctx, sub.ID, userID, metricKey, limit, periodStart, periodEnd)
 		if err != nil {
 			return 0, err
 		}
 	}
-	
+
 	remaining := usage.Limit - usage.CurrentUsage
 	if remaining < 0 {
 		remaining = 0
 	}
-	
+
 	return remaining, nil
 }
 
@@ -470,7 +502,7 @@ func (s *SubscriptionServiceImpl) TrackUsage(ctx context.Context, userID, metric
 	if err != nil || sub == nil {
 		return nil
 	}
-	
+
 	usage, err := s.subscriptionRepo.GetUsage(ctx, sub.ID, metricKey)
 	if err != nil {
 		limit := s.getLimitForMetric(sub, metricKey)
@@ -479,12 +511,12 @@ func (s *SubscriptionServiceImpl) TrackUsage(ctx context.Context, userID, metric
 			return err
 		}
 	}
-	
+
 	// Check if limit exceeded
 	if usage.CurrentUsage >= usage.Limit {
 		return fmt.Errorf("usage limit exceeded for %s", metricKey)
 	}
-	
+
 	return s.subscriptionRepo.IncrementUsage(ctx, usage.ID)
 }
 
@@ -495,16 +527,16 @@ func (s *SubscriptionServiceImpl) GenerateInvoice(ctx context.Context, subscript
 	if err != nil {
 		return nil, err
 	}
-	
+
 	payment, err := s.paymentRepo.GetPayment(ctx, paymentID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	invoiceNumber := fmt.Sprintf("INV-%d-%s", time.Now().Unix(), subscriptionID[:8])
 	tax := payment.Amount * 0.16
 	total := payment.Amount + tax
-	
+
 	invoice := &models.Invoice{
 		InvoiceNumber:  invoiceNumber,
 		UserID:         sub.UserID,
@@ -518,11 +550,11 @@ func (s *SubscriptionServiceImpl) GenerateInvoice(ctx context.Context, subscript
 		DueDate:        time.Now().AddDate(0, 0, 14),
 		PaidAt:         payment.PaidAt,
 	}
-	
+
 	if err := s.paymentRepo.CreateInvoice(ctx, invoice); err != nil {
 		return nil, err
 	}
-	
+
 	item := &models.InvoiceItem{
 		InvoiceID:   invoice.ID,
 		Description: fmt.Sprintf("%s Subscription - %s", sub.PlanName, sub.PlanID),
@@ -531,7 +563,7 @@ func (s *SubscriptionServiceImpl) GenerateInvoice(ctx context.Context, subscript
 		Total:       payment.Amount,
 	}
 	s.paymentRepo.CreateInvoiceItem(ctx, item)
-	
+
 	return invoice, nil
 }
 
@@ -554,33 +586,33 @@ func (s *SubscriptionServiceImpl) RenewSubscription(ctx context.Context, subscri
 	if err != nil {
 		return err
 	}
-	
+
 	if sub.Status != "active" {
 		return fmt.Errorf("subscription is not active")
 	}
-	
+
 	if !sub.AutoRenew {
 		return fmt.Errorf("auto-renew is disabled")
 	}
-	
+
 	// Calculate new period
 	newPeriodStart := sub.CurrentPeriodEnd
 	newPeriodEnd := s.calculatePeriodEnd(newPeriodStart, sub.Interval, 1)
-	
+
 	sub.CurrentPeriodStart = newPeriodStart
 	sub.CurrentPeriodEnd = newPeriodEnd
 	sub.StartDate = time.Now()
 	sub.EndDate = newPeriodEnd
 	sub.UpdatedAt = time.Now()
-	
+
 	if err := s.subscriptionRepo.UpdateSubscription(ctx, sub); err != nil {
 		return err
 	}
-	
+
 	// Reset usage for new period
 	s.subscriptionRepo.ResetUsage(ctx, sub.ID, "job_posts")
 	s.subscriptionRepo.ResetUsage(ctx, sub.ID, "api_calls")
-	
+
 	// Log history
 	history := &models.SubscriptionHistory{
 		SubscriptionID: sub.ID,
@@ -590,7 +622,7 @@ func (s *SubscriptionServiceImpl) RenewSubscription(ctx context.Context, subscri
 		Action:         "renewed",
 	}
 	s.subscriptionRepo.AddHistory(ctx, history)
-	
+
 	return nil
 }
 
@@ -599,7 +631,7 @@ func (s *SubscriptionServiceImpl) ExpireSubscriptions(ctx context.Context) error
 	if err != nil {
 		return err
 	}
-	
+
 	for _, sub := range expired {
 		// Trial expired — downgrade to free plan instead of marking expired
 		if sub.Status == "trialing" {
@@ -610,7 +642,7 @@ func (s *SubscriptionServiceImpl) ExpireSubscriptions(ctx context.Context) error
 				s.subscriptionRepo.UpdateSubscription(ctx, sub)
 				continue
 			}
-			
+
 			sub.Status = "active"
 			sub.PlanID = freePlan.PlanID
 			sub.PlanName = freePlan.Name
@@ -625,7 +657,7 @@ func (s *SubscriptionServiceImpl) ExpireSubscriptions(ctx context.Context) error
 			sub.AutoRenew = false
 			sub.UpdatedAt = time.Now()
 			s.subscriptionRepo.UpdateSubscription(ctx, sub)
-			
+
 			history := &models.SubscriptionHistory{
 				SubscriptionID: sub.ID,
 				UserID:         sub.UserID,
@@ -642,10 +674,10 @@ func (s *SubscriptionServiceImpl) ExpireSubscriptions(ctx context.Context) error
 			})
 			continue
 		}
-		
+
 		sub.Status = "expired"
 		s.subscriptionRepo.UpdateSubscription(ctx, sub)
-		
+
 		history := &models.SubscriptionHistory{
 			SubscriptionID: sub.ID,
 			UserID:         sub.UserID,
@@ -653,7 +685,7 @@ func (s *SubscriptionServiceImpl) ExpireSubscriptions(ctx context.Context) error
 		}
 		s.subscriptionRepo.AddHistory(ctx, history)
 	}
-	
+
 	return nil
 }
 
@@ -662,19 +694,19 @@ func (s *SubscriptionServiceImpl) UpgradeSubscription(ctx context.Context, userI
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if sub.UserID != userID {
 		return nil, fmt.Errorf("unauthorized")
 	}
-	
+
 	newPlan, err := s.subscriptionRepo.GetPlanByPlanID(ctx, newPlanID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	oldPlanID := sub.PlanID
 	oldAmount := sub.Amount
-	
+
 	// Update subscription
 	sub.PlanID = newPlan.PlanID
 	sub.PlanName = newPlan.Name
@@ -683,18 +715,18 @@ func (s *SubscriptionServiceImpl) UpgradeSubscription(ctx context.Context, userI
 	sub.FeatureFlags = newPlan.FeatureFlags
 	sub.Features = newPlan.Features
 	sub.UpdatedAt = time.Now()
-	
+
 	if err := s.subscriptionRepo.UpdateSubscription(ctx, sub); err != nil {
 		return nil, err
 	}
-	
+
 	// Update employer profile
 	updates := map[string]interface{}{
 		"subscription_plan":      newPlan.PlanID,
 		"subscription_job_posts": newPlan.JobPostLimit,
 	}
 	s.userRepo.UpdateEmployerProfile(ctx, userID, updates)
-	
+
 	// Log history
 	history := &models.SubscriptionHistory{
 		SubscriptionID: sub.ID,
@@ -706,7 +738,7 @@ func (s *SubscriptionServiceImpl) UpgradeSubscription(ctx context.Context, userI
 		Action:         "upgraded",
 	}
 	s.subscriptionRepo.AddHistory(ctx, history)
-	
+
 	return sub, nil
 }
 
@@ -715,19 +747,19 @@ func (s *SubscriptionServiceImpl) DowngradeSubscription(ctx context.Context, use
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if sub.UserID != userID {
 		return nil, fmt.Errorf("unauthorized")
 	}
-	
+
 	newPlan, err := s.subscriptionRepo.GetPlanByPlanID(ctx, newPlanID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	oldPlanID := sub.PlanID
 	oldAmount := sub.Amount
-	
+
 	sub.PlanID = newPlan.PlanID
 	sub.PlanName = newPlan.Name
 	sub.Amount = newPlan.Price
@@ -735,17 +767,17 @@ func (s *SubscriptionServiceImpl) DowngradeSubscription(ctx context.Context, use
 	sub.FeatureFlags = newPlan.FeatureFlags
 	sub.Features = newPlan.Features
 	sub.UpdatedAt = time.Now()
-	
+
 	if err := s.subscriptionRepo.UpdateSubscription(ctx, sub); err != nil {
 		return nil, err
 	}
-	
+
 	updates := map[string]interface{}{
 		"subscription_plan":      newPlan.PlanID,
 		"subscription_job_posts": newPlan.JobPostLimit,
 	}
 	s.userRepo.UpdateEmployerProfile(ctx, userID, updates)
-	
+
 	history := &models.SubscriptionHistory{
 		SubscriptionID: sub.ID,
 		UserID:         userID,
@@ -756,7 +788,7 @@ func (s *SubscriptionServiceImpl) DowngradeSubscription(ctx context.Context, use
 		Action:         "downgraded",
 	}
 	s.subscriptionRepo.AddHistory(ctx, history)
-	
+
 	return sub, nil
 }
 
@@ -867,6 +899,7 @@ func (s *SubscriptionServiceImpl) SubscribeWithNewPayment(ctx context.Context, u
 
 	now := time.Now()
 	expiresAt := now.Add(30 * time.Minute)
+
 	intent := &models.PaymentIntent{
 		UserID:      userID,
 		Amount:      plan.Price,
@@ -879,27 +912,75 @@ func (s *SubscriptionServiceImpl) SubscribeWithNewPayment(ctx context.Context, u
 	}
 	s.paymentRepo.CreatePaymentIntent(ctx, intent)
 
+	periodStart := now
+	periodEnd := s.calculatePeriodEnd(now, plan.Interval, plan.IntervalCount)
+
+	subscription := &models.Subscription{
+		UserID:             userID,
+		PlanID:             plan.PlanID,
+		PlanName:           plan.Name,
+		Amount:             plan.Price,
+		Currency:           plan.Currency,
+		Interval:           plan.Interval,
+		Status:             "pending",
+		StartDate:          now,
+		EndDate:            periodEnd,
+		AutoRenew:          true,
+		JobPostLimit:       plan.JobPostLimit,
+		FeatureFlags:       plan.FeatureFlags,
+		Features:           plan.Features,
+		CurrentPeriodStart: periodStart,
+		CurrentPeriodEnd:   periodEnd,
+	}
+
+	if err := s.subscriptionRepo.CreateSubscription(ctx, subscription); err != nil {
+		return nil, chargeResp, fmt.Errorf("failed to create pending subscription: %w", err)
+	}
+
 	payment := &models.Payment{
-		UserID:        userID,
-		Amount:        plan.Price,
-		Currency:      plan.Currency,
-		Status:        "pending",
-		PaymentMethod: "mpesa",
-		Reference:     reference,
-		Description:   fmt.Sprintf("%s %s - %s", plan.Name, plan.Interval, plan.PlanID),
+		UserID:         userID,
+		SubscriptionID: &subscription.ID,
+		Amount:         plan.Price,
+		Currency:       plan.Currency,
+		Status:         "pending",
+		PaymentMethod:  "mpesa",
+		Reference:      reference,
+		Description:    fmt.Sprintf("%s %s - %s", plan.Name, plan.Interval, plan.PlanID),
 	}
 	s.paymentRepo.CreatePayment(ctx, payment)
 
-	var subscription *models.Subscription
+	subscription.LastPaymentID = &payment.ID
+	s.subscriptionRepo.UpdateSubscription(ctx, subscription)
+
+	history := &models.SubscriptionHistory{
+		SubscriptionID: subscription.ID,
+		UserID:         userID,
+		NewPlanID:      plan.PlanID,
+		NewAmount:      plan.Price,
+		Action:         "pending",
+		Reason:         "Payment pending — awaiting confirmation",
+	}
+	s.subscriptionRepo.AddHistory(ctx, history)
+
 	if chargeResp.Status == "completed" || chargeResp.Status == "success" {
-		subscription, err = s.Subscribe(ctx, userID, &SubscribeRequest{
-			PlanID:    plan.PlanID,
-			PaymentID: payment.ID,
-			AutoRenew: true,
-		})
-		if err != nil {
-			return nil, chargeResp, fmt.Errorf("subscription creation failed: %w", err)
+		now2 := time.Now()
+		s.paymentRepo.UpdatePaymentStatus(ctx, payment.ID, "completed", chargeResp.TransactionID, &now2)
+
+		existing, _ := s.subscriptionRepo.GetActiveSubscriptionByUser(ctx, userID)
+		if existing != nil {
+			s.CancelSubscription(ctx, userID, existing.ID, "Replaced by new subscription")
 		}
+
+		subscription.Status = "active"
+		s.subscriptionRepo.UpdateSubscription(ctx, subscription)
+
+		s.userRepo.UpdateEmployerProfile(ctx, userID, map[string]interface{}{
+			"subscription_plan":       plan.PlanID,
+			"subscription_expires_at": periodEnd,
+			"subscription_job_posts":  plan.JobPostLimit,
+		})
+
+		s.createUsageRecords(ctx, subscription.ID, userID, plan)
 	}
 
 	return subscription, chargeResp, nil
@@ -942,24 +1023,43 @@ func (s *SubscriptionServiceImpl) UpgradeWithPayment(ctx context.Context, userID
 	s.paymentRepo.CreatePaymentIntent(ctx, intent)
 
 	payment := &models.Payment{
-		UserID:        userID,
-		Amount:        proration.DueNow,
-		Currency:      "KES",
-		Status:        "pending",
-		PaymentMethod: "mpesa",
-		Reference:     reference,
-		Description:   fmt.Sprintf("Upgrade proration - %s", newPlanID),
+		UserID:         userID,
+		SubscriptionID: &subscriptionID,
+		Amount:         proration.DueNow,
+		Currency:       "KES",
+		Status:         "pending",
+		PaymentMethod:  "mpesa",
+		Reference:      reference,
+		Description:    fmt.Sprintf("Upgrade proration - %s", newPlanID),
 	}
 	s.paymentRepo.CreatePayment(ctx, payment)
 
-	sub, err := s.UpgradeSubscription(ctx, userID, subscriptionID, newPlanID)
+	sub, err := s.subscriptionRepo.GetSubscription(ctx, subscriptionID)
 	if err != nil {
-		return nil, chargeResp, fmt.Errorf("upgrade failed: %w", err)
+		return nil, chargeResp, fmt.Errorf("subscription not found: %w", err)
 	}
+
+	pendingPlanID := newPlanID
+	sub.PendingPlanID = &pendingPlanID
+	sub.UpdatedAt = time.Now()
+	s.subscriptionRepo.UpdateSubscription(ctx, sub)
+
+	history := &models.SubscriptionHistory{
+		SubscriptionID: sub.ID,
+		UserID:         userID,
+		OldPlanID:      sub.PlanID,
+		NewPlanID:      newPlanID,
+		OldAmount:      sub.Amount,
+		NewAmount:      proration.DueNow,
+		Action:         "pending_upgrade",
+		Reason:         "Payment pending — awaiting confirmation",
+	}
+	s.subscriptionRepo.AddHistory(ctx, history)
 
 	if chargeResp.Status == "completed" || chargeResp.Status == "success" {
 		now := time.Now()
 		s.paymentRepo.UpdatePaymentStatus(ctx, payment.ID, "completed", chargeResp.TransactionID, &now)
+		s.applyPendingPlanChange(ctx, sub, newPlanID)
 	}
 
 	return sub, chargeResp, nil
@@ -1035,14 +1135,14 @@ func (s *SubscriptionServiceImpl) RetryPayment(ctx context.Context, subscription
 	}
 
 	payment := &models.Payment{
-		UserID:        sub.UserID,
+		UserID:         sub.UserID,
 		SubscriptionID: &sub.ID,
-		Amount:        sub.Amount,
-		Currency:      sub.Currency,
-		Status:        "pending",
-		PaymentMethod: string(pm.Type),
-		Reference:     reference,
-		Description:   fmt.Sprintf("Retry: %s Subscription", sub.PlanName),
+		Amount:         sub.Amount,
+		Currency:       sub.Currency,
+		Status:         "pending",
+		PaymentMethod:  string(pm.Type),
+		Reference:      reference,
+		Description:    fmt.Sprintf("Retry: %s Subscription", sub.PlanName),
 	}
 	return s.paymentRepo.CreatePayment(ctx, payment)
 }
@@ -1104,24 +1204,60 @@ func (s *SubscriptionServiceImpl) handlePaymentCompleted(ctx context.Context, da
 		return err
 	}
 
-	invoice, err := s.GenerateInvoice(ctx, payment.ID, payment.ID)
-	if err != nil {
-		return fmt.Errorf("invoice generation failed: %w", err)
-	}
-
-	if _, err := s.GenerateInvoicePDF(ctx, invoice.ID); err != nil {
-		log.Printf("Warning: PDF generation for invoice %s failed: %v", invoice.ID, err)
-	}
-
 	if payment.SubscriptionID != nil {
-		sub, _ := s.subscriptionRepo.GetSubscription(ctx, *payment.SubscriptionID)
-		if sub != nil && sub.Status == "past_due" {
-			sub.Status = "active"
-			s.subscriptionRepo.UpdateSubscription(ctx, sub)
+		sub, err := s.subscriptionRepo.GetSubscription(ctx, *payment.SubscriptionID)
+		if err == nil {
+			switch sub.Status {
+			case "pending":
+				existing, _ := s.subscriptionRepo.GetActiveSubscriptionByUser(ctx, sub.UserID)
+				if existing != nil && existing.ID != sub.ID {
+					s.CancelSubscription(ctx, sub.UserID, existing.ID, "Replaced by new subscription")
+				}
+
+				sub.Status = "active"
+				s.subscriptionRepo.UpdateSubscription(ctx, sub)
+
+				plan, planErr := s.subscriptionRepo.GetPlanByPlanID(ctx, sub.PlanID)
+				if planErr == nil {
+					s.userRepo.UpdateEmployerProfile(ctx, sub.UserID, map[string]interface{}{
+						"subscription_plan":       sub.PlanID,
+						"subscription_expires_at": sub.EndDate,
+						"subscription_job_posts":  sub.JobPostLimit,
+					})
+					s.createUsageRecords(ctx, sub.ID, sub.UserID, plan)
+				}
+
+				history := &models.SubscriptionHistory{
+					SubscriptionID: sub.ID,
+					UserID:         sub.UserID,
+					NewPlanID:      sub.PlanID,
+					NewAmount:      sub.Amount,
+					Action:         "activated",
+				}
+				s.subscriptionRepo.AddHistory(ctx, history)
+
+			case "active":
+				if sub.PendingPlanID != nil && *sub.PendingPlanID != "" {
+					s.applyPendingPlanChange(ctx, sub, *sub.PendingPlanID)
+				}
+
+			case "past_due":
+				sub.Status = "active"
+				sub.UpdatedAt = time.Now()
+				s.subscriptionRepo.UpdateSubscription(ctx, sub)
+			}
 		}
 	}
 
-	_ = invoice
+	if payment.SubscriptionID != nil {
+		invoice, err := s.GenerateInvoice(ctx, *payment.SubscriptionID, payment.ID)
+		if err != nil {
+			log.Printf("Warning: invoice generation failed: %v", err)
+		} else if _, err := s.GenerateInvoicePDF(ctx, invoice.ID); err != nil {
+			log.Printf("Warning: PDF generation for invoice %s failed: %v", invoice.ID, err)
+		}
+	}
+
 	return nil
 }
 
@@ -1138,18 +1274,48 @@ func (s *SubscriptionServiceImpl) handlePaymentFailed(ctx context.Context, data 
 
 	if payment.SubscriptionID != nil {
 		sub, err := s.subscriptionRepo.GetSubscription(ctx, *payment.SubscriptionID)
-		if err == nil && sub.Status == "active" {
-			sub.Status = "past_due"
-			sub.UpdatedAt = time.Now()
-			s.subscriptionRepo.UpdateSubscription(ctx, sub)
+		if err == nil {
+			switch sub.Status {
+			case "pending":
+				sub.Status = "failed"
+				sub.UpdatedAt = time.Now()
+				s.subscriptionRepo.UpdateSubscription(ctx, sub)
 
-			history := &models.SubscriptionHistory{
-				SubscriptionID: sub.ID,
-				UserID:         sub.UserID,
-				Action:         "payment_failed",
-				Reason:         "Payment gateway declined transaction",
+				history := &models.SubscriptionHistory{
+					SubscriptionID: sub.ID,
+					UserID:         sub.UserID,
+					Action:         "payment_failed",
+					Reason:         "Initial payment failed",
+				}
+				s.subscriptionRepo.AddHistory(ctx, history)
+
+			case "active":
+				if sub.PendingPlanID != nil && *sub.PendingPlanID != "" {
+					sub.PendingPlanID = nil
+					sub.UpdatedAt = time.Now()
+					s.subscriptionRepo.UpdateSubscription(ctx, sub)
+
+					history := &models.SubscriptionHistory{
+						SubscriptionID: sub.ID,
+						UserID:         sub.UserID,
+						Action:         "plan_change_failed",
+						Reason:         "Payment for plan change failed",
+					}
+					s.subscriptionRepo.AddHistory(ctx, history)
+				} else {
+					sub.Status = "past_due"
+					sub.UpdatedAt = time.Now()
+					s.subscriptionRepo.UpdateSubscription(ctx, sub)
+
+					history := &models.SubscriptionHistory{
+						SubscriptionID: sub.ID,
+						UserID:         sub.UserID,
+						Action:         "payment_failed",
+						Reason:         "Payment gateway declined transaction",
+					}
+					s.subscriptionRepo.AddHistory(ctx, history)
+				}
 			}
-			s.subscriptionRepo.AddHistory(ctx, history)
 		}
 	}
 
@@ -1248,6 +1414,14 @@ func (s *SubscriptionServiceImpl) GetSubscriptionHistory(ctx context.Context, su
 	return s.subscriptionRepo.GetSubscriptionHistory(ctx, subscriptionID, page, limit)
 }
 
+func (s *SubscriptionServiceImpl) GetSubscriptionUsage(ctx context.Context, subscriptionID string) ([]*models.SubscriptionUsage, error) {
+	return s.subscriptionRepo.GetAllUsage(ctx, subscriptionID)
+}
+
+func (s *SubscriptionServiceImpl) GetSubscriptionPayments(ctx context.Context, subscriptionID string, page, limit int) ([]*models.Payment, int64, error) {
+	return s.paymentRepo.ListSubscriptionPayments(ctx, subscriptionID, page, limit)
+}
+
 func (s *SubscriptionServiceImpl) AdminAssignSubscription(ctx context.Context, userID, planID string) (*models.Subscription, error) {
 	plan, err := s.subscriptionRepo.GetPlanByPlanID(ctx, planID)
 	if err != nil {
@@ -1314,6 +1488,252 @@ func (s *SubscriptionServiceImpl) AdminAssignSubscription(ctx context.Context, u
 	return subscription, nil
 }
 
+func (s *SubscriptionServiceImpl) AdminUpdateSubscription(ctx context.Context, subscriptionID string, updates map[string]interface{}) (*models.Subscription, error) {
+	sub, err := s.subscriptionRepo.GetSubscription(ctx, subscriptionID)
+	if err != nil {
+		return nil, fmt.Errorf("subscription not found: %w", err)
+	}
+
+	allowedFields := map[string]bool{
+		"plan_id": true, "plan_name": true, "amount": true, "currency": true,
+		"interval": true, "status": true, "job_post_limit": true, "auto_renew": true,
+	}
+
+	changeDesc := ""
+	for k, v := range updates {
+		if !allowedFields[k] {
+			continue
+		}
+		switch k {
+		case "plan_id":
+			sub.PlanID = toString(v)
+			changeDesc += "plan:" + toString(v) + " "
+		case "plan_name":
+			sub.PlanName = toString(v)
+		case "amount":
+			sub.Amount = toFloat64(v)
+		case "currency":
+			sub.Currency = toString(v)
+		case "interval":
+			sub.Interval = toString(v)
+		case "status":
+			sub.Status = toString(v)
+		case "job_post_limit":
+			sub.JobPostLimit = toInt(v)
+		case "auto_renew":
+			sub.AutoRenew = toBool(v)
+		}
+	}
+	sub.UpdatedAt = time.Now()
+
+	if err := s.subscriptionRepo.UpdateSubscription(ctx, sub); err != nil {
+		return nil, fmt.Errorf("failed to update subscription: %w", err)
+	}
+
+	if changeDesc != "" {
+		history := &models.SubscriptionHistory{
+			SubscriptionID: sub.ID,
+			UserID:         sub.UserID,
+			NewPlanID:      sub.PlanID,
+			NewAmount:      sub.Amount,
+			Action:         "admin_updated",
+			Reason:         changeDesc,
+		}
+		s.subscriptionRepo.AddHistory(ctx, history)
+	}
+
+	return sub, nil
+}
+
+func (s *SubscriptionServiceImpl) ApplyPendingPlanChange(ctx context.Context, subscriptionID string) error {
+	sub, err := s.subscriptionRepo.GetSubscription(ctx, subscriptionID)
+	if err != nil {
+		return fmt.Errorf("subscription not found: %w", err)
+	}
+	if sub.PendingPlanID == nil || *sub.PendingPlanID == "" {
+		return fmt.Errorf("no pending plan change for this subscription")
+	}
+	s.applyPendingPlanChange(ctx, sub, *sub.PendingPlanID)
+	return nil
+}
+
+func (s *SubscriptionServiceImpl) ClearPendingPlanChange(ctx context.Context, subscriptionID string) error {
+	sub, err := s.subscriptionRepo.GetSubscription(ctx, subscriptionID)
+	if err != nil {
+		return fmt.Errorf("subscription not found: %w", err)
+	}
+	if sub.PendingPlanID == nil || *sub.PendingPlanID == "" {
+		return fmt.Errorf("no pending plan change to clear")
+	}
+	sub.PendingPlanID = nil
+	sub.UpdatedAt = time.Now()
+	if err := s.subscriptionRepo.UpdateSubscription(ctx, sub); err != nil {
+		return fmt.Errorf("failed to clear pending plan change: %w", err)
+	}
+	history := &models.SubscriptionHistory{
+		SubscriptionID: sub.ID,
+		UserID:         sub.UserID,
+		NewPlanID:      sub.PlanID,
+		NewAmount:      sub.Amount,
+		Action:         "pending_cleared",
+		Reason:         "Admin cancelled pending plan change",
+	}
+	s.subscriptionRepo.AddHistory(ctx, history)
+	return nil
+}
+
+func (s *SubscriptionServiceImpl) GetSubscriptionStats(ctx context.Context) (*SubscriptionStats, error) {
+	stats := &SubscriptionStats{
+		StatusBreakdown: make(map[string]int64),
+	}
+
+	// Total subscriptions
+	s.subscriptionRepo.GetDB(ctx).Model(&models.Subscription{}).Count(&stats.TotalSubscriptions)
+
+	// Breakdown by status
+	type StatusCount struct {
+		Status string
+		Count  int64
+	}
+	var sc []StatusCount
+	s.subscriptionRepo.GetDB(ctx).Model(&models.Subscription{}).
+		Select("status, count(*) as count").
+		Group("status").Find(&sc)
+	for _, s := range sc {
+		stats.StatusBreakdown[s.Status] = s.Count
+	}
+
+	// Currency (default KES, query from subscriptions)
+	var currency string
+	s.subscriptionRepo.GetDB(ctx).Model(&models.Subscription{}).
+		Select("currency").
+		Where("currency != ''").
+		Limit(1).Scan(&currency)
+	if currency == "" {
+		currency = "KES"
+	}
+	stats.Currency = currency
+
+	// Total revenue from completed payments
+	s.paymentRepo.GetDB(ctx).Model(&models.Payment{}).
+		Where("status = ?", "completed").
+		Select("coalesce(sum(amount), 0)").Scan(&stats.TotalRevenue)
+
+	// Revenue this month
+	now := time.Now()
+	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	s.paymentRepo.GetDB(ctx).Model(&models.Payment{}).
+		Where("status = ? AND paid_at >= ?", "completed", startOfMonth).
+		Select("coalesce(sum(amount), 0)").Scan(&stats.RevenueThisMonth)
+
+	// Pending upgrades count
+	s.subscriptionRepo.GetDB(ctx).Model(&models.Subscription{}).
+		Where("pending_plan_id IS NOT NULL AND pending_plan_id != ''").
+		Count(&stats.PendingUpgrades)
+
+	// Stale pending subs (pending for > 24h)
+	s.subscriptionRepo.GetDB(ctx).Model(&models.Subscription{}).
+		Where("status = ? AND created_at < ?", "pending", time.Now().Add(-24*time.Hour)).
+		Count(&stats.StalePending)
+
+	// Plan breakdown
+	type PlanStatRow struct {
+		PlanID string
+		Name   string
+		Count  int64
+	}
+	var ps []PlanStatRow
+	s.subscriptionRepo.GetDB(ctx).Model(&models.Subscription{}).
+		Select("plan_id, plan_name as name, count(*) as count").
+		Group("plan_id, plan_name").Order("count desc").Find(&ps)
+	for _, p := range ps {
+		stats.PlanBreakdown = append(stats.PlanBreakdown, PlanStat{PlanID: p.PlanID, Name: p.Name, Count: p.Count})
+	}
+
+	return stats, nil
+}
+
+func (s *SubscriptionServiceImpl) ReconcilePendingSubscriptions(ctx context.Context) (*ReconciliationResult, error) {
+	result := &ReconciliationResult{}
+	now := time.Now()
+	staleThreshold := now.Add(-24 * time.Hour)
+
+	// Find stale pending subscriptions (created > 24h ago, never activated)
+	var stalePending []*models.Subscription
+	s.subscriptionRepo.GetDB(ctx).Where("status = ? AND created_at < ?", "pending", staleThreshold).Find(&stalePending)
+	result.StalePendingFound = len(stalePending)
+
+	for _, sub := range stalePending {
+		sub.Status = "failed"
+		sub.UpdatedAt = now
+		s.subscriptionRepo.UpdateSubscription(ctx, sub)
+		result.SubscriptionsFixed++
+		result.Details = append(result.Details, "Marked pending subscription "+sub.ID+" as failed")
+	}
+
+	// Find subscriptions with stale pending upgrades (> 48h)
+	var staleUpgrades []*models.Subscription
+	s.subscriptionRepo.GetDB(ctx).
+		Where("pending_plan_id IS NOT NULL AND pending_plan_id != '' AND updated_at < ?", now.Add(-48*time.Hour)).
+		Find(&staleUpgrades)
+	result.StaleUpgradesFound = len(staleUpgrades)
+
+	for _, sub := range staleUpgrades {
+		result.Details = append(result.Details, "Cleared stale pending plan change for subscription "+sub.ID+" ("+*sub.PendingPlanID+")")
+		sub.PendingPlanID = nil
+		sub.UpdatedAt = now
+		s.subscriptionRepo.UpdateSubscription(ctx, sub)
+		result.SubscriptionsFixed++
+	}
+
+	return result, nil
+}
+
+func toString(v interface{}) string {
+	if s, ok := v.(string); ok {
+		return s
+	}
+	return fmt.Sprintf("%v", v)
+}
+
+func toFloat64(v interface{}) float64 {
+	switch val := v.(type) {
+	case float64:
+		return val
+	case int:
+		return float64(val)
+	case string:
+		f := 0.0
+		fmt.Sscanf(val, "%f", &f)
+		return f
+	}
+	return 0
+}
+
+func toInt(v interface{}) int {
+	switch val := v.(type) {
+	case int:
+		return val
+	case float64:
+		return int(val)
+	case string:
+		i := 0
+		fmt.Sscanf(val, "%d", &i)
+		return i
+	}
+	return 0
+}
+
+func toBool(v interface{}) bool {
+	switch val := v.(type) {
+	case bool:
+		return val
+	case string:
+		return val == "true" || val == "1"
+	}
+	return false
+}
+
 // ========== HELPER METHODS ==========
 
 func (s *SubscriptionServiceImpl) calculatePeriodEnd(start time.Time, interval string, intervalCount int) time.Time {
@@ -1335,6 +1755,47 @@ func (s *SubscriptionServiceImpl) getLimitForMetric(sub *models.Subscription, me
 	default:
 		return 0
 	}
+}
+
+func (s *SubscriptionServiceImpl) applyPendingPlanChange(ctx context.Context, sub *models.Subscription, newPlanID string) {
+	newPlan, err := s.subscriptionRepo.GetPlanByPlanID(ctx, newPlanID)
+	if err != nil {
+		log.Printf("Warning: pending plan change failed, plan %s not found: %v", newPlanID, err)
+		return
+	}
+
+	oldPlanID := sub.PlanID
+	oldAmount := sub.Amount
+
+	sub.PlanID = newPlan.PlanID
+	sub.PlanName = newPlan.Name
+	sub.Amount = newPlan.Price
+	sub.JobPostLimit = newPlan.JobPostLimit
+	sub.FeatureFlags = newPlan.FeatureFlags
+	sub.Features = newPlan.Features
+	sub.PendingPlanID = nil
+	sub.UpdatedAt = time.Now()
+	s.subscriptionRepo.UpdateSubscription(ctx, sub)
+
+	s.userRepo.UpdateEmployerProfile(ctx, sub.UserID, map[string]interface{}{
+		"subscription_plan":      newPlan.PlanID,
+		"subscription_job_posts": newPlan.JobPostLimit,
+	})
+
+	action := "upgraded"
+	if newPlan.Price < oldAmount {
+		action = "downgraded"
+	}
+	history := &models.SubscriptionHistory{
+		SubscriptionID: sub.ID,
+		UserID:         sub.UserID,
+		OldPlanID:      oldPlanID,
+		NewPlanID:      newPlan.PlanID,
+		OldAmount:      oldAmount,
+		NewAmount:      newPlan.Price,
+		Action:         action,
+	}
+	s.subscriptionRepo.AddHistory(ctx, history)
 }
 
 func (s *SubscriptionServiceImpl) createUsageRecords(ctx context.Context, subscriptionID, userID string, plan *models.SubscriptionPlan) {

@@ -278,6 +278,7 @@ var AngaziaAPI = (function () {
       
       // Moderation
       moderation: function (params) { return apiGet('/admin/moderation', params); },
+      moderationPendingCount: function () { return apiGet('/admin/moderation/pending-count'); },
       approveContent: function (id) { return apiPost('/admin/moderation/' + id + '/approve'); },
       rejectContent: function (id, data) { return apiPost('/admin/moderation/' + id + '/reject', data); },
       
@@ -299,10 +300,16 @@ var AngaziaAPI = (function () {
       // Subscription Management
       listSubscriptions: function (params) { return apiGet('/admin/subscriptions', params); },
       getSubscription: function (id) { return apiGet('/admin/subscriptions/' + id); },
+      getSubscriptionDetail: function (id) { return apiGet('/admin/subscriptions/' + id + '/detail'); },
+      getSubscriptionStats: function () { return apiGet('/admin/subscriptions/stats'); },
+      updateSubscription: function (id, data) { return apiPut('/admin/subscriptions/' + id, data); },
       cancelSubscription: function (id, data) { return apiPost('/admin/subscriptions/' + id + '/cancel', data); },
       reactivateSubscription: function (id) { return apiPost('/admin/subscriptions/' + id + '/reactivate'); },
       changeSubscriptionPlan: function (id, data) { return apiPost('/admin/subscriptions/' + id + '/change-plan', data); },
       assignSubscription: function (data) { return apiPost('/admin/subscriptions', data); },
+      completePendingUpgrade: function (id) { return apiPost('/admin/subscriptions/' + id + '/complete-pending'); },
+      cancelPendingUpgrade: function (id) { return apiPost('/admin/subscriptions/' + id + '/cancel-pending'); },
+      reconcileSubscriptions: function () { return apiPost('/admin/subscriptions/reconcile'); },
     },
 
     notifications: {

@@ -4,13 +4,15 @@ import (
 	"context"
 	"time"
 
-	"gorm.io/gorm"
 	"github.com/google/uuid"
-	
+	"gorm.io/gorm"
+
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
 )
 
 type PaymentRepository interface {
+	GetDB(ctx context.Context) *gorm.DB
+
 	// Payment Methods
 	CreatePaymentMethod(ctx context.Context, pm *models.PaymentMethod) error
 	GetPaymentMethod(ctx context.Context, id string) (*models.PaymentMethod, error)
@@ -28,14 +30,15 @@ type PaymentRepository interface {
 	UpdatePaymentStatus(ctx context.Context, id, status string, transactionID string, paidAt *time.Time) error
 	UpdatePaymentReceipt(ctx context.Context, id, receiptURL string) error
 	ListUserPayments(ctx context.Context, userID string, page, limit int) ([]*models.Payment, int64, error)
-	
+	ListSubscriptionPayments(ctx context.Context, subscriptionID string, page, limit int) ([]*models.Payment, int64, error)
+
 	// Payment Intents
 	CreatePaymentIntent(ctx context.Context, intent *models.PaymentIntent) error
 	GetPaymentIntent(ctx context.Context, id string) (*models.PaymentIntent, error)
 	GetPaymentIntentByInvoiceID(ctx context.Context, invoiceID string) (*models.PaymentIntent, error)
 	UpdatePaymentIntentStatus(ctx context.Context, id, status string) error
 	DeleteExpiredIntents(ctx context.Context) error
-	
+
 	// Invoices
 	CreateInvoice(ctx context.Context, invoice *models.Invoice) error
 	GetInvoice(ctx context.Context, id string) (*models.Invoice, error)
@@ -44,7 +47,7 @@ type PaymentRepository interface {
 	UpdateInvoiceStatus(ctx context.Context, id, status string, paidAt *time.Time) error
 	UpdateInvoicePDF(ctx context.Context, id, pdfURL string) error
 	ListUserInvoices(ctx context.Context, userID string, page, limit int) ([]*models.Invoice, int64, error)
-	
+
 	// Invoice Items
 	CreateInvoiceItem(ctx context.Context, item *models.InvoiceItem) error
 	GetInvoiceItems(ctx context.Context, invoiceID string) ([]*models.InvoiceItem, error)
@@ -56,6 +59,10 @@ type PaymentRepositoryImpl struct {
 
 func NewPaymentRepository(db *gorm.DB) PaymentRepository {
 	return &PaymentRepositoryImpl{db: db}
+}
+
+func (r *PaymentRepositoryImpl) GetDB(ctx context.Context) *gorm.DB {
+	return r.db.WithContext(ctx)
 }
 
 func (r *PaymentRepositoryImpl) CreatePaymentMethod(ctx context.Context, pm *models.PaymentMethod) error {
@@ -163,7 +170,7 @@ func (r *PaymentRepositoryImpl) GetPaymentByTransactionID(ctx context.Context, t
 
 func (r *PaymentRepositoryImpl) UpdatePaymentStatus(ctx context.Context, id, status string, transactionID string, paidAt *time.Time) error {
 	updates := map[string]interface{}{
-		"status": status,
+		"status":     status,
 		"updated_at": time.Now(),
 	}
 	if transactionID != "" {
@@ -188,14 +195,14 @@ func (r *PaymentRepositoryImpl) UpdatePaymentReceipt(ctx context.Context, id, re
 func (r *PaymentRepositoryImpl) ListUserPayments(ctx context.Context, userID string, page, limit int) ([]*models.Payment, int64, error) {
 	var payments []*models.Payment
 	var total int64
-	
+
 	query := r.db.WithContext(ctx).Model(&models.Payment{}).
 		Where("user_id = ?", userID)
-	
+
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-	
+
 	offset := (page - 1) * limit
 	err := query.
 		Preload("Subscription").
@@ -203,7 +210,28 @@ func (r *PaymentRepositoryImpl) ListUserPayments(ctx context.Context, userID str
 		Offset(offset).
 		Limit(limit).
 		Find(&payments).Error
-	
+
+	return payments, total, err
+}
+
+func (r *PaymentRepositoryImpl) ListSubscriptionPayments(ctx context.Context, subscriptionID string, page, limit int) ([]*models.Payment, int64, error) {
+	var payments []*models.Payment
+	var total int64
+
+	query := r.db.WithContext(ctx).Model(&models.Payment{}).
+		Where("subscription_id = ?", subscriptionID)
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * limit
+	err := query.
+		Order("created_at DESC").
+		Offset(offset).
+		Limit(limit).
+		Find(&payments).Error
+
 	return payments, total, err
 }
 
@@ -284,7 +312,7 @@ func (r *PaymentRepositoryImpl) GetInvoiceByPaymentID(ctx context.Context, payme
 
 func (r *PaymentRepositoryImpl) UpdateInvoiceStatus(ctx context.Context, id, status string, paidAt *time.Time) error {
 	updates := map[string]interface{}{
-		"status": status,
+		"status":     status,
 		"updated_at": time.Now(),
 	}
 	if paidAt != nil {
@@ -306,14 +334,14 @@ func (r *PaymentRepositoryImpl) UpdateInvoicePDF(ctx context.Context, id, pdfURL
 func (r *PaymentRepositoryImpl) ListUserInvoices(ctx context.Context, userID string, page, limit int) ([]*models.Invoice, int64, error) {
 	var invoices []*models.Invoice
 	var total int64
-	
+
 	query := r.db.WithContext(ctx).Model(&models.Invoice{}).
 		Where("user_id = ?", userID)
-	
+
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-	
+
 	offset := (page - 1) * limit
 	err := query.
 		Preload("Subscription").
@@ -322,7 +350,7 @@ func (r *PaymentRepositoryImpl) ListUserInvoices(ctx context.Context, userID str
 		Offset(offset).
 		Limit(limit).
 		Find(&invoices).Error
-	
+
 	return invoices, total, err
 }
 

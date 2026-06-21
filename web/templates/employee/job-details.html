@@ -137,19 +137,7 @@ window._sessionUser = {
         <div class="job-action-card" id="apply-card">
           <h3 class="job-action-title">Interested in this position?</h3>
           <div id="application-status" class="job-application-status"></div>
-          <div id="apply-form" style="display: none;">
-            <div class="job-form-group">
-              <label class="job-form-label">Cover Letter</label>
-              <textarea id="cover-letter" class="job-textarea" rows="6" 
-                placeholder="Why are you a great fit for this role? Include relevant experience and skills..."></textarea>
-              <p class="job-form-hint">Minimum 50 characters recommended</p>
-            </div>
-            <div class="job-form-group">
-              <label class="job-form-label">Resume URL (Optional)</label>
-              <input type="text" id="resume-url" class="job-input" placeholder="Link to your resume or portfolio">
-            </div>
-            <button id="submit-application" class="emp-btn emp-btn-primary job-submit-btn">Submit Application</button>
-          </div>
+          <button id="apply-now-btn" class="emp-btn emp-btn-primary job-apply-btn" style="display: none;">Apply Now</button>
           <div id="already-applied" class="job-already-applied" style="display: none;">
             <div class="job-already-icon">✅</div>
             <p>You have already applied for this position</p>
@@ -157,6 +145,31 @@ window._sessionUser = {
           </div>
           <div id="login-to-apply" class="job-login-message" style="display: none;">
             <p>Please <a href="/login">log in</a> to apply for this position</p>
+          </div>
+        </div>
+
+        {{/* - Apply Modal - */}}
+        <div class="angazia-modal-overlay" id="apply-modal" style="display:none">
+          <div class="angazia-modal angazia-modal-md">
+            <div class="angazia-modal-header">
+              <h3>Apply for <span id="apply-modal-job-title">this position</span></h3>
+              <button class="angazia-modal-close" id="apply-modal-close">&times;</button>
+            </div>
+            <div class="angazia-modal-body">
+              <div class="emp-field">
+                <label class="emp-label">Cover Letter <span class="emp-req">*</span></label>
+                <textarea class="emp-textarea" id="apply-cover-letter" rows="6" placeholder="Why are you a great fit for this role? Include relevant experience and skills..."></textarea>
+                <div class="emp-form-hint">Minimum 50 characters recommended</div>
+              </div>
+              <div class="emp-field">
+                <label class="emp-label">Resume URL <span class="emp-hint">(Optional)</span></label>
+                <input type="text" class="emp-input" id="apply-resume-url" placeholder="Link to your resume or portfolio">
+              </div>
+            </div>
+            <div class="angazia-modal-footer">
+              <button class="emp-btn emp-btn-ghost" id="apply-modal-cancel">Cancel</button>
+              <button class="emp-btn emp-btn-primary" id="apply-modal-submit">Submit Application</button>
+            </div>
           </div>
         </div>
 
@@ -473,50 +486,7 @@ window._sessionUser = {
   color: var(--text);
   margin-bottom: 16px;
 }
-.job-form-group {
-  margin-bottom: 16px;
-}
-.job-form-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text);
-  margin-bottom: 6px;
-}
-.job-textarea {
-  width: 100%;
-  padding: 12px;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-family: var(--fb);
-  font-size: 13px;
-  color: var(--text);
-  resize: vertical;
-}
-.job-textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-.job-input {
-  width: 100%;
-  padding: 10px 12px;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 13px;
-  color: var(--text);
-}
-.job-input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-.job-form-hint {
-  font-size: 10px;
-  color: var(--muted2);
-  margin-top: 4px;
-}
-.job-submit-btn {
+.job-apply-btn {
   width: 100%;
   justify-content: center;
 }

@@ -10,12 +10,14 @@ import (
 
 type AdminPlanHandler struct {
 	subscriptionService services.SubscriptionService
+	adminService        services.AdminService
 	validator           *validator.Validate
 }
 
-func NewAdminPlanHandler(subscriptionService services.SubscriptionService) *AdminPlanHandler {
+func NewAdminPlanHandler(subscriptionService services.SubscriptionService, adminService services.AdminService) *AdminPlanHandler {
 	return &AdminPlanHandler{
 		subscriptionService: subscriptionService,
+		adminService:        adminService,
 		validator:           validator.New(),
 	}
 }
@@ -40,6 +42,9 @@ func (h *AdminPlanHandler) CreatePlan(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
+
+	adminIDStr, _ := adminID.(string)
+	h.adminService.LogAdminAction(c.Context(), adminIDStr, "create", "plan", plan.PlanID, c.IP(), c.Get("User-Agent"), nil, map[string]interface{}{"name": req.Name, "price": req.Price, "interval": req.Interval})
 
 	return utils.SuccessCreated(c, "Plan created successfully", plan)
 }
@@ -91,6 +96,9 @@ func (h *AdminPlanHandler) UpdatePlan(c *fiber.Ctx) error {
 		return utils.InternalServerError(c, err.Error())
 	}
 
+	adminIDStr, _ := adminID.(string)
+	h.adminService.LogAdminAction(c.Context(), adminIDStr, "update", "plan", planID, c.IP(), c.Get("User-Agent"), nil, nil)
+
 	return utils.SuccessWithMessage(c, "Plan updated successfully", plan)
 }
 
@@ -110,9 +118,10 @@ func (h *AdminPlanHandler) DeletePlan(c *fiber.Ctx) error {
 		return utils.InternalServerError(c, err.Error())
 	}
 
+	adminIDStr, _ := adminID.(string)
+	h.adminService.LogAdminAction(c.Context(), adminIDStr, "delete", "plan", planID, c.IP(), c.Get("User-Agent"), nil, nil)
 	return utils.SuccessWithMessage(c, "Plan deleted successfully", nil)
 }
-
 
 // TogglePlanActive enables/disables a plan
 func (h *AdminPlanHandler) TogglePlanActive(c *fiber.Ctx) error {
@@ -151,6 +160,9 @@ func (h *AdminPlanHandler) TogglePlanActive(c *fiber.Ctx) error {
 	if req.IsActive {
 		status = "enabled"
 	}
+
+	adminIDStr, _ := adminID.(string)
+	h.adminService.LogAdminAction(c.Context(), adminIDStr, "toggle_active", "plan", plan.PlanID, c.IP(), c.Get("User-Agent"), nil, map[string]interface{}{"is_active": req.IsActive, "status": status})
 
 	return utils.SuccessWithMessage(c, "Plan "+status+" successfully", nil)
 }

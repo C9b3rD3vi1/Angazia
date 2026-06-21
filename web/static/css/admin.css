@@ -2840,6 +2840,251 @@ input[type="checkbox"]:checked + .asub-checkbox-mark { background: var(--accent)
   border: 1px solid rgba(61,155,233,0.2);
 }
 
+.assub-status-pending {
+  background: rgba(245,166,35,0.1);
+  color: #f5a623;
+  border: 1px solid rgba(245,166,35,0.2);
+}
+
+.assub-status-past_due {
+  background: rgba(255,79,79,0.1);
+  color: var(--danger);
+  border: 1px solid rgba(255,79,79,0.2);
+}
+
+.assub-status-failed {
+  background: rgba(139,92,246,0.1);
+  color: #8b5cf6;
+  border: 1px solid rgba(139,92,246,0.2);
+}
+
+.assub-status-unknown {
+  background: rgba(156,163,175,0.1);
+  color: #9ca3af;
+  border: 1px solid rgba(156,163,175,0.2);
+}
+
+/* Subscription Stats */
+.assub-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.assub-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.assub-stat-value {
+  font-family: var(--fm);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.assub-stat-label {
+  font-family: var(--fm);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted2);
+}
+
+/* Loading indicator */
+.asub-loading {
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  padding: 32px;
+}
+
+/* Detail Modal - large variant */
+.asub-modal-lg {
+  width: 720px;
+}
+
+.assub-detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.assub-detail-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.assub-detail-tab {
+  font-family: var(--fm);
+  font-size: 10px;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.assub-detail-tab:hover {
+  color: var(--text);
+}
+
+.assub-detail-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.assub-detail-panel {
+  display: none;
+}
+
+.assub-detail-panel.active {
+  display: block;
+}
+
+.assub-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.assub-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.assub-detail-label {
+  font-family: var(--fm);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted2);
+}
+
+.assub-detail-value {
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.assub-detail-empty {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--muted2);
+  text-align: center;
+  padding: 24px;
+}
+
+/* Timeline */
+.assub-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.assub-timeline-item {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 16px;
+  position: relative;
+}
+
+.assub-timeline-item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 20px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+
+.assub-timeline-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 2px;
+  background: var(--s2);
+  border: 2px solid var(--border);
+}
+
+.assub-timeline-dot-activated,
+.assub-timeline-dot-upgraded,
+.assub-timeline-dot-downgraded {
+  border-color: var(--accent);
+  background: rgba(0,229,160,0.2);
+}
+
+.assub-timeline-dot-cancelled,
+.assub-timeline-dot-expired,
+.assub-timeline-dot-payment_failed,
+.assub-timeline-dot-failed {
+  border-color: var(--danger);
+  background: rgba(255,79,79,0.2);
+}
+
+.assub-timeline-dot-pending,
+.assub-timeline-dot-pending_upgrade,
+.assub-timeline-dot-pending_cleared {
+  border-color: #f5a623;
+  background: rgba(245,166,35,0.2);
+}
+
+.assub-timeline-dot-plan_change_failed {
+  border-color: #8b5cf6;
+  background: rgba(139,92,246,0.2);
+}
+
+.assub-timeline-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.assub-timeline-action {
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.assub-timeline-detail {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.assub-timeline-date {
+  font-family: var(--fm);
+  font-size: 9px;
+  color: var(--muted2);
+}
+
+/* Outline button variant */
+.asub-btn-outline {
+  color: var(--accent);
+  border-color: rgba(0,229,160,0.3);
+}
+
+.asub-btn-outline:hover {
+  background: rgba(0,229,160,0.06);
+  border-color: var(--accent);
+}
+
 .assub-cell-actions {
   display: flex;
   gap: 4px;

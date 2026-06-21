@@ -128,6 +128,8 @@ func (h *AdminHandler) SuspendUser(c *fiber.Ctx) error {
 	if err := h.adminService.SuspendUser(c.Context(), userID); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
+	adminID, _ := c.Locals("user_id").(string)
+	h.adminService.LogAdminAction(c.Context(), adminID, "suspend", "user", userID, c.IP(), c.Get("User-Agent"), nil, map[string]interface{}{"is_active": false})
 	return utils.SuccessWithMessage(c, "User suspended successfully", nil)
 }
 
@@ -141,6 +143,8 @@ func (h *AdminHandler) ActivateUser(c *fiber.Ctx) error {
 	if err := h.adminService.ActivateUser(c.Context(), userID); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
+	adminID, _ := c.Locals("user_id").(string)
+	h.adminService.LogAdminAction(c.Context(), adminID, "activate", "user", userID, c.IP(), c.Get("User-Agent"), nil, map[string]interface{}{"is_active": true})
 	return utils.SuccessWithMessage(c, "User activated successfully", nil)
 }
 
@@ -154,6 +158,8 @@ func (h *AdminHandler) DeleteUser(c *fiber.Ctx) error {
 	if err := h.adminService.DeleteUser(c.Context(), userID); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
+	adminID, _ := c.Locals("user_id").(string)
+	h.adminService.LogAdminAction(c.Context(), adminID, "delete", "user", userID, c.IP(), c.Get("User-Agent"), nil, nil)
 	return utils.SuccessWithMessage(c, "User deleted successfully", nil)
 }
 
@@ -167,6 +173,8 @@ func (h *AdminHandler) VerifyUser(c *fiber.Ctx) error {
 	if err := h.adminService.VerifyUser(c.Context(), userID); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
+	adminID, _ := c.Locals("user_id").(string)
+	h.adminService.LogAdminAction(c.Context(), adminID, "verify", "user", userID, c.IP(), c.Get("User-Agent"), nil, map[string]interface{}{"is_verified": true})
 	return utils.SuccessWithMessage(c, "User verified successfully", nil)
 }
 
@@ -306,6 +314,7 @@ func (h *AdminHandler) ApproveContent(c *fiber.Ctx) error {
 	if err := h.adminService.ApproveContent(c.Context(), id, adminID); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
+	h.adminService.LogAdminAction(c.Context(), adminID, "approve", "moderation", id, c.IP(), c.Get("User-Agent"), nil, map[string]interface{}{"status": "approved"})
 	return utils.SuccessWithMessage(c, "Content approved successfully", nil)
 }
 
@@ -331,7 +340,17 @@ func (h *AdminHandler) RejectContent(c *fiber.Ctx) error {
 	if err := h.adminService.RejectContent(c.Context(), id, adminID, req.Reason); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
+	h.adminService.LogAdminAction(c.Context(), adminID, "reject", "moderation", id, c.IP(), c.Get("User-Agent"), nil, map[string]interface{}{"status": "rejected", "reason": req.Reason})
 	return utils.SuccessWithMessage(c, "Content rejected successfully", nil)
+}
+
+// GetPendingModerationCount returns the count of pending moderation items
+func (h *AdminHandler) GetPendingModerationCount(c *fiber.Ctx) error {
+	count, err := h.adminService.GetPendingReportsCount(c.Context())
+	if err != nil {
+		return utils.InternalServerError(c, err.Error())
+	}
+	return utils.Success(c, fiber.Map{"count": count})
 }
 
 // GetSettings returns system settings
@@ -366,6 +385,8 @@ func (h *AdminHandler) UpdateSetting(c *fiber.Ctx) error {
 	if err := h.adminService.UpdateSetting(c.Context(), key, req.Value); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
+	adminID, _ := c.Locals("user_id").(string)
+	h.adminService.LogAdminAction(c.Context(), adminID, "update", "setting", key, c.IP(), c.Get("User-Agent"), nil, map[string]interface{}{"value": req.Value})
 	return utils.SuccessWithMessage(c, "Setting updated successfully", nil)
 }
 
@@ -394,6 +415,8 @@ func (h *AdminHandler) CreateSetting(c *fiber.Ctx) error {
 	if err := h.adminService.CreateSetting(c.Context(), req.Key, req.Value, req.Type, req.Category, req.Description, req.IsPublic); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
+	adminID, _ := c.Locals("user_id").(string)
+	h.adminService.LogAdminAction(c.Context(), adminID, "create", "setting", req.Key, c.IP(), c.Get("User-Agent"), nil, map[string]interface{}{"value": req.Value, "type": req.Type, "category": req.Category})
 	return utils.SuccessWithMessage(c, "Setting created successfully", nil)
 }
 
@@ -525,13 +548,41 @@ func (h *AdminHandler) GetAuditLogs(c *fiber.Ctx) error {
 		return utils.InternalServerError(c, err.Error())
 	}
 
+	// Enrich logs with entity names
+	entityIDsByType := make(map[string][]string)
+	for _, log := range logs {
+		if log.EntityID != "" {
+			entityIDsByType[log.EntityType] = append(entityIDsByType[log.EntityType], log.EntityID)
+		}
+	}
+	entityNames := make(map[string]map[string]string)
+	for eType, ids := range entityIDsByType {
+		names, err := h.adminService.GetEntityNames(c.Context(), eType, ids)
+		if err == nil {
+			entityNames[eType] = names
+		}
+	}
+
+	type enrichedLog struct {
+		*models.AdminActionLog
+		EntityName string `json:"entity_name"`
+	}
+
+	enriched := make([]enrichedLog, len(logs))
+	for i, log := range logs {
+		enriched[i].AdminActionLog = log
+		if names, ok := entityNames[log.EntityType]; ok {
+			enriched[i].EntityName = names[log.EntityID]
+		}
+	}
+
 	totalPages := int(total) / limit
 	if int(total)%limit > 0 {
 		totalPages++
 	}
 
 	return utils.Success(c, fiber.Map{
-		"logs":        logs,
+		"logs":        enriched,
 		"total":       total,
 		"page":        page,
 		"limit":       limit,
@@ -558,6 +609,7 @@ func (h *AdminHandler) ReportContent(c *fiber.Ctx) error {
 	if err := h.adminService.ReportContent(c.Context(), userID, req); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
+	h.adminService.LogAdminAction(c.Context(), userID, "report", req.EntityType, req.EntityID, c.IP(), c.Get("User-Agent"), nil, map[string]interface{}{"reason_id": req.ReasonID, "description": req.Description})
 	return utils.SuccessCreated(c, "Content reported successfully", nil)
 }
 
@@ -741,6 +793,7 @@ func (h *AdminHandler) ApproveCompanyVerification(c *fiber.Ctx) error {
 	if err := h.adminService.ApproveCompanyVerification(c.Context(), adminID, companyID); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
+	h.adminService.LogAdminAction(c.Context(), adminID, "approve", "company", companyID, c.IP(), c.Get("User-Agent"), nil, map[string]interface{}{"verification_status": "approved"})
 	return utils.SuccessWithMessage(c, "Company verification approved", nil)
 }
 
@@ -763,5 +816,6 @@ func (h *AdminHandler) RejectCompanyVerification(c *fiber.Ctx) error {
 	if err := h.adminService.RejectCompanyVerification(c.Context(), adminID, companyID, req.Reason); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
+	h.adminService.LogAdminAction(c.Context(), adminID, "reject", "company", companyID, c.IP(), c.Get("User-Agent"), nil, map[string]interface{}{"verification_status": "rejected", "reason": req.Reason})
 	return utils.SuccessWithMessage(c, "Company verification rejected", nil)
 }

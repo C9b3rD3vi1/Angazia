@@ -31,6 +31,7 @@ func SetupAdminRoutes(router fiber.Router, adminHandler *handlers.AdminHandler) 
 
 	// Moderation Queue
 	admin.Get("/moderation", adminHandler.GetModerationQueue)
+	admin.Get("/moderation/pending-count", adminHandler.GetPendingModerationCount)
 	admin.Post("/moderation/:id/approve", adminHandler.ApproveContent)
 	admin.Post("/moderation/:id/reject", adminHandler.RejectContent)
 
@@ -63,10 +64,16 @@ func SetupAdminSubscriptionRoutes(router fiber.Router, subHandler *handlers.Admi
 	admin := router.Group("/admin/subscriptions", middleware.AuthMiddleware(), middleware.RequireRole("admin"))
 
 	admin.Get("/", subHandler.ListSubscriptions)
+	admin.Get("/stats", subHandler.GetSubscriptionStats)
+	admin.Post("/reconcile", subHandler.ReconcileSubscriptions)
 	admin.Get("/:id", subHandler.GetSubscription)
+	admin.Get("/:id/detail", subHandler.GetSubscriptionDetail)
+	admin.Put("/:id", subHandler.UpdateSubscription)
 	admin.Post("/:id/cancel", subHandler.CancelSubscription)
 	admin.Post("/:id/reactivate", subHandler.ReactivateSubscription)
 	admin.Post("/:id/change-plan", subHandler.ChangePlan)
+	admin.Post("/:id/complete-pending", subHandler.CompletePendingUpgrade)
+	admin.Post("/:id/cancel-pending", subHandler.CancelPendingUpgrade)
 	admin.Post("/", subHandler.AssignSubscription)
 }
 

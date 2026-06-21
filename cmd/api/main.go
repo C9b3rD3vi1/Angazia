@@ -186,13 +186,17 @@ func main() {
 		_ = pkgredis.NewSessionManager(redisWrapped, 24*time.Hour)
 	}
 
-	// ========== SEED SUBSCRIPTION PLANS ==========
-	// This will create default plans if they don't exist
+	// ========== SEED DATA ==========
 	ctx := context.Background()
 	if cfg.IsDevelopment() {
 		log.Println("🌱 Seeding subscription plans...")
 		if err := database.SeedSubscriptionPlans(ctx, subscriptionSvc); err != nil {
 			log.Printf("Warning: Failed to seed subscription plans: %v", err)
+		}
+
+		log.Println("🌱 Seeding report reasons...")
+		if err := database.SeedReportReasons(ctx, adminSvc); err != nil {
+			log.Printf("Warning: Failed to seed report reasons: %v", err)
 		}
 	}
 
@@ -219,7 +223,7 @@ func main() {
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionSvc)
 	notificationHandler := handlers.NewNotificationHandler(notificationSvc)
 	alertHandler := handlers.NewAlertHandler(alertSvc)
-	planHandler := handlers.NewAdminPlanHandler(subscriptionSvc)
+	planHandler := handlers.NewAdminPlanHandler(subscriptionSvc, adminSvc)
 	webHandler := handlers.NewWebHandler(companyService)
 	if notificationSvc != nil {
 		webHandler = handlers.NewWebHandlerWithAll(companyService, notificationSvc, subscriptionSvc, jobSvc, testimonialSvc, contactSvc)
@@ -395,7 +399,7 @@ func main() {
 	routes.SetupAdminPlanRoutes(api, planHandler)
 
 	// Admin subscription management routes
-	adminSubHandler := handlers.NewAdminSubscriptionHandler(subscriptionSvc)
+	adminSubHandler := handlers.NewAdminSubscriptionHandler(subscriptionSvc, adminSvc)
 	routes.SetupAdminSubscriptionRoutes(api, adminSubHandler)
 
 	// 2FA routes
