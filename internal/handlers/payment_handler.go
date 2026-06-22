@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
-	
+
 	"github.com/C9b3rD3vi1/Angazia/internal/models"
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
@@ -20,68 +20,77 @@ func NewSubscriptionHandler(subscriptionService services.SubscriptionService) *S
 	}
 }
 
-// GetPlans returns available subscription plans
 func (h *SubscriptionHandler) GetPlans(c *fiber.Ctx) error {
 	plans, err := h.subscriptionService.GetPlans(c.Context())
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
-	
 	return utils.Success(c, plans)
 }
 
-// GetCurrentSubscription returns user's current subscription
 func (h *SubscriptionHandler) GetCurrentSubscription(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
-	subscription, err := h.subscriptionService.GetCurrentSubscription(c.Context(), userID.(string))
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+
+	subscription, err := h.subscriptionService.GetCurrentSubscription(c.Context(), uid)
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
-	
+
 	return utils.Success(c, subscription)
 }
 
-// CancelSubscription cancels user's subscription
 func (h *SubscriptionHandler) CancelSubscription(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	var req struct {
 		SubscriptionID string `json:"subscription_id"`
 	}
-	
+
 	if err := c.BodyParser(&req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
-	if err := h.subscriptionService.CancelSubscription(c.Context(), userID.(string), req.SubscriptionID, "user_requested"); err != nil {
+
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+
+	if err := h.subscriptionService.CancelSubscription(c.Context(), uid, req.SubscriptionID, "user_requested"); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
-	
+
 	return utils.SuccessWithMessage(c, "Subscription cancelled successfully", nil)
 }
 
-// GetInvoices returns user's invoices
 func (h *SubscriptionHandler) GetInvoices(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "20"))
-	
-	invoices, total, err := h.subscriptionService.GetInvoices(c.Context(), userID.(string), page, limit)
+
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+
+	invoices, total, err := h.subscriptionService.GetInvoices(c.Context(), uid, page, limit)
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
-	
+
 	return utils.Success(c, fiber.Map{
 		"invoices": invoices,
 		"total":    total,
@@ -90,7 +99,6 @@ func (h *SubscriptionHandler) GetInvoices(c *fiber.Ctx) error {
 	})
 }
 
-// Subscribe creates a new subscription via M-Pesa
 func (h *SubscriptionHandler) Subscribe(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	if userID == nil {
@@ -105,7 +113,12 @@ func (h *SubscriptionHandler) Subscribe(c *fiber.Ctx) error {
 		return utils.BadRequest(c, err.Error())
 	}
 
-	sub, chargeResp, err := h.subscriptionService.SubscribeWithNewPayment(c.Context(), userID.(string), req.PlanID, req.PhoneNumber)
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+
+	sub, chargeResp, err := h.subscriptionService.SubscribeWithNewPayment(c.Context(), uid, req.PlanID, req.PhoneNumber)
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
@@ -116,7 +129,6 @@ func (h *SubscriptionHandler) Subscribe(c *fiber.Ctx) error {
 	})
 }
 
-// Webhook handles IntaSend payment callbacks
 func (h *SubscriptionHandler) Webhook(c *fiber.Ctx) error {
 	var payload models.IntaSendWebhookPayload
 	if err := c.BodyParser(&payload); err != nil {
@@ -130,7 +142,6 @@ func (h *SubscriptionHandler) Webhook(c *fiber.Ctx) error {
 	return utils.Success(c, nil)
 }
 
-// VerifyPayment checks the status of a payment
 func (h *SubscriptionHandler) VerifyPayment(c *fiber.Ctx) error {
 	transactionID := c.Query("transaction_id")
 	reference := c.Query("reference")
@@ -143,7 +154,6 @@ func (h *SubscriptionHandler) VerifyPayment(c *fiber.Ctx) error {
 	return utils.Success(c, payment)
 }
 
-// ReactivateSubscription reactivates a cancelled/expired subscription
 func (h *SubscriptionHandler) ReactivateSubscription(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 
@@ -154,7 +164,12 @@ func (h *SubscriptionHandler) ReactivateSubscription(c *fiber.Ctx) error {
 		return utils.BadRequest(c, err.Error())
 	}
 
-	sub, err := h.subscriptionService.ReactivateSubscription(c.Context(), userID.(string), req.SubscriptionID)
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+
+	sub, err := h.subscriptionService.ReactivateSubscription(c.Context(), uid, req.SubscriptionID)
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
@@ -162,7 +177,6 @@ func (h *SubscriptionHandler) ReactivateSubscription(c *fiber.Ctx) error {
 	return utils.SuccessWithMessage(c, "Subscription reactivated", sub)
 }
 
-// UpgradeSubscription upgrades a subscription with prorated billing
 func (h *SubscriptionHandler) UpgradeSubscription(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 
@@ -175,9 +189,14 @@ func (h *SubscriptionHandler) UpgradeSubscription(c *fiber.Ctx) error {
 		return utils.BadRequest(c, err.Error())
 	}
 
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+
 	phoneNumber := req.PhoneNumber
 	if phoneNumber == "" {
-		pm, err := h.subscriptionService.GetPaymentMethods(c.Context(), userID.(string))
+		pm, err := h.subscriptionService.GetPaymentMethods(c.Context(), uid)
 		if err == nil {
 			for _, m := range pm {
 				if m.PhoneNumber != "" {
@@ -188,7 +207,7 @@ func (h *SubscriptionHandler) UpgradeSubscription(c *fiber.Ctx) error {
 		}
 	}
 
-	sub, chargeResp, err := h.subscriptionService.UpgradeWithPayment(c.Context(), userID.(string), req.SubscriptionID, req.NewPlanID, phoneNumber)
+	sub, chargeResp, err := h.subscriptionService.UpgradeWithPayment(c.Context(), uid, req.SubscriptionID, req.NewPlanID, phoneNumber)
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
@@ -199,7 +218,6 @@ func (h *SubscriptionHandler) UpgradeSubscription(c *fiber.Ctx) error {
 	})
 }
 
-// DowngradeSubscription downgrades a subscription with prorated credit
 func (h *SubscriptionHandler) DowngradeSubscription(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 
@@ -211,7 +229,12 @@ func (h *SubscriptionHandler) DowngradeSubscription(c *fiber.Ctx) error {
 		return utils.BadRequest(c, err.Error())
 	}
 
-	sub, err := h.subscriptionService.DowngradeSubscription(c.Context(), userID.(string), req.SubscriptionID, req.NewPlanID)
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+
+	sub, err := h.subscriptionService.DowngradeSubscription(c.Context(), uid, req.SubscriptionID, req.NewPlanID)
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
@@ -219,11 +242,15 @@ func (h *SubscriptionHandler) DowngradeSubscription(c *fiber.Ctx) error {
 	return utils.SuccessWithMessage(c, "Subscription downgraded", sub)
 }
 
-// GetPaymentMethods returns saved payment methods
 func (h *SubscriptionHandler) GetPaymentMethods(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 
-	methods, err := h.subscriptionService.GetPaymentMethods(c.Context(), userID.(string))
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+
+	methods, err := h.subscriptionService.GetPaymentMethods(c.Context(), uid)
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
@@ -231,7 +258,6 @@ func (h *SubscriptionHandler) GetPaymentMethods(c *fiber.Ctx) error {
 	return utils.Success(c, methods)
 }
 
-// AddPaymentMethod saves a new payment method
 func (h *SubscriptionHandler) AddPaymentMethod(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 
@@ -240,7 +266,12 @@ func (h *SubscriptionHandler) AddPaymentMethod(c *fiber.Ctx) error {
 		return utils.BadRequest(c, err.Error())
 	}
 
-	pm, err := h.subscriptionService.AddPaymentMethod(c.Context(), userID.(string), &req)
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+
+	pm, err := h.subscriptionService.AddPaymentMethod(c.Context(), uid, &req)
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
@@ -248,34 +279,39 @@ func (h *SubscriptionHandler) AddPaymentMethod(c *fiber.Ctx) error {
 	return utils.SuccessCreated(c, "Payment method added", pm)
 }
 
-// RemovePaymentMethod deletes a payment method
 func (h *SubscriptionHandler) RemovePaymentMethod(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	methodID := c.Params("id")
 
-	if err := h.subscriptionService.RemovePaymentMethod(c.Context(), userID.(string), methodID); err != nil {
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+
+	if err := h.subscriptionService.RemovePaymentMethod(c.Context(), uid, methodID); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
 
 	return utils.SuccessWithMessage(c, "Payment method removed", nil)
 }
 
-// SetDefaultPaymentMethod sets a payment method as default
 func (h *SubscriptionHandler) SetDefaultPaymentMethod(c *fiber.Ctx) error {
 	userID := c.Locals("user_id")
 	methodID := c.Params("id")
 
-	if err := h.subscriptionService.SetDefaultPaymentMethod(c.Context(), userID.(string), methodID); err != nil {
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+
+	if err := h.subscriptionService.SetDefaultPaymentMethod(c.Context(), uid, methodID); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
 
 	return utils.SuccessWithMessage(c, "Default payment method updated", nil)
 }
 
-// GetProration calculates prorated charges for plan change
 func (h *SubscriptionHandler) GetProration(c *fiber.Ctx) error {
-	userID := c.Locals("user_id")
-
 	var req struct {
 		SubscriptionID string `json:"subscription_id" validate:"required"`
 		NewPlanID      string `json:"new_plan_id" validate:"required"`
@@ -284,7 +320,6 @@ func (h *SubscriptionHandler) GetProration(c *fiber.Ctx) error {
 		return utils.BadRequest(c, err.Error())
 	}
 
-	_ = userID
 	proration, err := h.subscriptionService.CalculateProration(c.Context(), req.SubscriptionID, req.NewPlanID)
 	if err != nil {
 		return utils.BadRequest(c, err.Error())
@@ -293,10 +328,7 @@ func (h *SubscriptionHandler) GetProration(c *fiber.Ctx) error {
 	return utils.Success(c, proration)
 }
 
-// RetryPayment retries a failed payment
 func (h *SubscriptionHandler) RetryPayment(c *fiber.Ctx) error {
-	userID := c.Locals("user_id")
-
 	var req struct {
 		SubscriptionID string `json:"subscription_id" validate:"required"`
 	}
@@ -304,7 +336,6 @@ func (h *SubscriptionHandler) RetryPayment(c *fiber.Ctx) error {
 		return utils.BadRequest(c, err.Error())
 	}
 
-	_ = userID
 	if err := h.subscriptionService.RetryPayment(c.Context(), req.SubscriptionID); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}

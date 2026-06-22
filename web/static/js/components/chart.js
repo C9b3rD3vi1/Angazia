@@ -295,7 +295,7 @@ var AngaziaChart = (function () {
       var sliceAngle = (v / total) * 2 * Math.PI;
       var color = d.color || colors.palette[i % colors.palette.length];
       var path = describeArc(cx, cy, outerR, angle, angle + sliceAngle) +
-        describeArc(cx, cy, innerR, angle + sliceAngle, angle, true);
+        describeArc(cx, cy, innerR, angle + sliceAngle, angle);
       var p = document.createElementNS(svgNS, 'path');
       p.setAttribute('d', path);
       p.setAttribute('fill', color);
@@ -520,7 +520,7 @@ var AngaziaChart = (function () {
 
   var tooltipEl = null;
   function showTooltip(e, html) {
-    if (!tooltipEl) {
+    if (!tooltipEl || !document.body.contains(tooltipEl)) {
       tooltipEl = document.createElement('div');
       tooltipEl.className = 'angazia-chart-tooltip';
       tooltipEl.style.cssText = 'position:fixed;z-index:99999;background:#1f2937;color:#fff;padding:6px 12px;border-radius:8px;font-family:var(--fm,\'Inter\',sans-serif);font-size:12px;font-weight:500;pointer-events:none;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.2);max-width:300px;white-space:normal;';

@@ -568,7 +568,7 @@ func (s *AuthServiceImpl) ChangePassword(ctx context.Context, userID, oldPasswor
 	}
 
 	// Blacklist all active tokens for this user
-	go s.blacklistAllUserTokens(ctx, userID)
+	go s.blacklistAllUserTokens(context.Background(), userID)
 
 	// Send confirmation email
 	go s.emailSvc.SendPasswordChangedEmail(user.Email, user.Email)

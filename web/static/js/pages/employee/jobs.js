@@ -254,7 +254,7 @@
         
         // Skills
         if (selectedSkills.size > 0) {
-          matches = matches && selectedSkills.has(job.required_skills.some(s => selectedSkills.has(s)));
+          matches = matches && job.required_skills.some(s => selectedSkills.has(s));
         }
         
         return matches;

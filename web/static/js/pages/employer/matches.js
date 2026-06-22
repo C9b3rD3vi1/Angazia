@@ -205,8 +205,8 @@
   }
 
   function executeInterview() {
-    var candidateId = pendingInterviewCandidateId;
-    if (!candidateId) return;
+    var employeeId = pendingInterviewCandidateId;
+    if (!employeeId) return;
     var date = els.interviewDate ? els.interviewDate.value : '';
     if (!date) { if (els.interviewDate) els.interviewDate.focus(); return; }
     var time = els.interviewTime ? els.interviewTime.value : '';
@@ -217,10 +217,22 @@
 
     setInterviewLoading(true);
 
-    AngaziaAPI.applications.interview(candidateId, {
-      interview_date: new Date(scheduledAt).toISOString(),
-      interview_type: type,
-      notes: notes
+    AngaziaAPI.applications.jobApplications(currentJobId).then(function (apps) {
+      var appList = Array.isArray(apps) ? apps : (apps && apps.applications ? apps.applications : []);
+      var application = null;
+      for (var i = 0; i < appList.length; i++) {
+        var a = appList[i];
+        if (a.employee_id === employeeId || (a.employee && a.employee.id === employeeId) || a.candidate_id === employeeId) {
+          application = a;
+          break;
+        }
+      }
+      if (!application) throw new Error('No application found for this candidate');
+      return AngaziaAPI.applications.interview(application.id, {
+        interview_date: new Date(scheduledAt).toISOString(),
+        interview_type: type,
+        notes: notes
+      });
     }).then(function () {
       hideInterviewModal();
       var btn = pendingInterviewBtn;

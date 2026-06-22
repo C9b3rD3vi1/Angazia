@@ -627,6 +627,13 @@
     setupListeners();
     loadData();
     startAutoRefresh();
+
+    window.addEventListener('beforeunload', function () {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+      }
+    });
   }
 
   if (document.readyState === 'loading') {

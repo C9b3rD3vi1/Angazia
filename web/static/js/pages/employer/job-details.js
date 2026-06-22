@@ -363,66 +363,6 @@
     }
   }
 
-  function hideJobConfirmModal() {
-    if (elements.confirmModal) elements.confirmModal.style.display = 'none';
-    pendingJobAction = null;
-  }
-
-  function executeJobAction() {
-    if (!pendingJobAction) return;
-    if (pendingJobAction === 'close') {
-      executeCloseJob();
-    } else if (pendingJobAction === 'delete') {
-      executeDeleteJob();
-    }
-    hideJobConfirmModal();
-  }
-
-  // Close job
-  function closeJob() {
-    showJobConfirmModal(
-      'Close Job',
-      `Are you sure you want to close "${jobData ? jobData.title : 'this job'}"? It will no longer accept new applications.`,
-      'emp-btn-warning',
-      'Yes, Close Job',
-      'close'
-    );
-  }
-
-  async function executeCloseJob() {
-    showToast('Closing job...', 'info');
-    try {
-      await AngaziaAPI.jobs.close(jobId);
-      jobData.is_active = false;
-      renderJobDetails(jobData);
-    } catch (error) {
-      console.error('Failed to close job:', error);
-    }
-  }
-
-  // Delete job
-  function deleteJob() {
-    showJobConfirmModal(
-      'Delete Job',
-      `Are you sure you want to permanently delete "${jobData ? jobData.title : 'this job'}"? This action cannot be undone. All associated applications will also be removed.`,
-      'emp-btn-danger',
-      'Yes, Delete Job',
-      'delete'
-    );
-  }
-
-  async function executeDeleteJob() {
-    showToast('Deleting job...', 'info');
-    try {
-      await AngaziaAPI.jobs.delete(jobId);
-      setTimeout(() => {
-        window.location.href = '/employer/jobs';
-      }, 1500);
-    } catch (error) {
-      console.error('Failed to delete job:', error);
-    }
-  }
-
   // UI State Management
   function showLoading() {
     if (elements.loading) elements.loading.style.display = 'block';

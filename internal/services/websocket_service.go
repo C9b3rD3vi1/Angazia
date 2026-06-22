@@ -10,32 +10,32 @@ import (
 
 // Client represents a WebSocket client
 type Client struct {
-	ID         string
-	UserID     string
-	Conn       *websocket.Conn
-	Send       chan []byte
-	LastPing   time.Time
-	UserAgent  string
-	IPAddress  string
+	ID        string
+	UserID    string
+	Conn      *websocket.Conn
+	Send      chan []byte
+	LastPing  time.Time
+	UserAgent string
+	IPAddress string
 }
 
 // WebSocketHub manages all WebSocket connections
 type WebSocketHub struct {
 	// Registered clients
 	clients map[*Client]bool
-	
+
 	// Register requests from clients
 	Register chan *Client
-	
+
 	// Unregister requests from clients
 	Unregister chan *Client
-	
+
 	// Broadcast to all clients
 	broadcast chan []byte
-	
+
 	// User-specific messages
 	userMessages map[string]chan []byte
-	
+
 	// Mutex for protecting maps
 	mu sync.RWMutex
 }
@@ -64,20 +64,20 @@ func GetHub() *WebSocketHub {
 func (h *WebSocketHub) run() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case client := <-h.Register:
 			h.mu.Lock()
 			h.clients[client] = true
-			
+
 			// Create user-specific message channel if not exists
 			if _, ok := h.userMessages[client.UserID]; !ok {
 				h.userMessages[client.UserID] = make(chan []byte, 100)
 				go h.userMessageHandler(client.UserID)
 			}
 			h.mu.Unlock()
-			
+
 		case client := <-h.Unregister:
 			h.mu.Lock()
 			if _, ok := h.clients[client]; ok {
@@ -85,9 +85,9 @@ func (h *WebSocketHub) run() {
 				close(client.Send)
 			}
 			h.mu.Unlock()
-			
+
 		case message := <-h.broadcast:
-			h.mu.RLock()
+			h.mu.Lock()
 			for client := range h.clients {
 				select {
 				case client.Send <- message:
@@ -96,8 +96,8 @@ func (h *WebSocketHub) run() {
 					delete(h.clients, client)
 				}
 			}
-			h.mu.RUnlock()
-			
+			h.mu.Unlock()
+
 		case <-ticker.C:
 			h.pingClients()
 		}
@@ -126,25 +126,24 @@ func (h *WebSocketHub) SendToUser(userID string, message interface{}) error {
 	if err != nil {
 		return err
 	}
-	
+
 	h.mu.RLock()
 	ch, ok := h.userMessages[userID]
 	h.mu.RUnlock()
-	
+
 	if ok {
 		select {
 		case ch <- data:
 		default:
 			// Channel full, create new one
-			go func() {
-				h.mu.Lock()
-				h.userMessages[userID] = make(chan []byte, 100)
-				h.mu.Unlock()
-				h.userMessages[userID] <- data
-			}()
+			h.mu.Lock()
+			h.userMessages[userID] = make(chan []byte, 100)
+			newCh := h.userMessages[userID]
+			h.mu.Unlock()
+			newCh <- data
 		}
 	}
-	
+
 	return nil
 }
 
@@ -152,12 +151,12 @@ func (h *WebSocketHub) SendToUser(userID string, message interface{}) error {
 func (h *WebSocketHub) pingClients() {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	
+
 	for client := range h.clients {
 		if client.Conn == nil {
 			continue
 		}
-		
+
 		if err := client.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 			go func(c *Client) {
 				h.Unregister <- c

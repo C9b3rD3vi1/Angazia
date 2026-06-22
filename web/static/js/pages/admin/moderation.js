@@ -425,12 +425,13 @@
   window.amRefresh = amRefresh;
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  document.addEventListener('DOMContentLoaded', init);
 
   if (els.autoRefresh && els.autoRefresh.checked !== false) {
     setTimeout(startPolling, POLL_MS);
   }
+
+  window.addEventListener('beforeunload', function () {
+    stopPolling();
+  });
 })();

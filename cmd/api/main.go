@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -241,8 +242,32 @@ func main() {
 	engine := html.New(cfg.TemplateDir, ".html")
 	engine.Reload(cfg.IsDevelopment())
 	engine.AddFunc("unescape", func(s string) template.HTML {
-		// WARNING: bypasses html/template auto-escaping. Only use with trusted content.
-		return template.HTML(s)
+		safeTags := []string{"p", "br", "b", "i", "u", "strong", "em", "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6", "pre", "code", "blockquote", "a", "span", "div"}
+		reTag := regexp.MustCompile(`<\/?([a-zA-Z0-9]+)(\s[^>]*)?>`)
+		sanitized := reTag.ReplaceAllStringFunc(s, func(match string) string {
+			parts := reTag.FindStringSubmatch(match)
+			if len(parts) < 2 {
+				return match
+			}
+			for _, t := range safeTags {
+				if strings.EqualFold(parts[1], t) {
+					return match
+				}
+			}
+			return template.HTMLEscapeString(match)
+		})
+		sanitized = strings.NewReplacer(
+			"javascript:", "",
+			"onclick=", "disabled-onclick=",
+			"onload=", "disabled-onload=",
+			"onerror=", "disabled-onerror=",
+			"onmouseover=", "disabled-onmouseover=",
+			"onfocus=", "disabled-onfocus=",
+			"onblur=", "disabled-onblur=",
+			"onchange=", "disabled-onchange=",
+			"onsubmit=", "disabled-onsubmit=",
+		).Replace(sanitized)
+		return template.HTML(sanitized)
 	})
 	engine.AddFunc("formatNumber", func(n interface{}) string {
 		var i int64

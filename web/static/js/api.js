@@ -1,10 +1,11 @@
 var AngaziaAPI = (function () {
   const BASE_URL = '/api/v1';
 
-  let accessToken = null;
-  let refreshToken = null;
-  let onUnauthorized = null;
-  let onTokenRefreshed = null;
+	let accessToken = null;
+	let refreshToken = null;
+	let onUnauthorized = null;
+	let onTokenRefreshed = null;
+	let refreshPromise = null;
 
   function getAccessToken() {
     if (accessToken) return accessToken;
@@ -65,9 +66,10 @@ var AngaziaAPI = (function () {
   }
 
   function refreshAccessToken() {
+    if (refreshPromise) return refreshPromise;
     var rt = getRefreshToken();
     if (!rt) return Promise.reject(new Error('No refresh token'));
-    return fetch(BASE_URL + '/auth/refresh', {
+    refreshPromise = fetch(BASE_URL + '/auth/refresh', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: rt }),
@@ -83,7 +85,10 @@ var AngaziaAPI = (function () {
         if (onTokenRefreshed) onTokenRefreshed(d.access_token);
         return d.access_token;
       });
+    }).finally(function () {
+      refreshPromise = null;
     });
+    return refreshPromise;
   }
 
   function request(method, path, body, extraHeaders) {
@@ -476,14 +481,14 @@ var AngaziaAPI = (function () {
       mine: function (params) { return apiGet('/testimonials/mine', params); },
       create: function (data) { return apiPost('/testimonials', data); },
       update: function (id, data) { return apiPut('/testimonials/' + id, data); },
-      delete: function (id) { return apiDel('/testimonials/' + id); },
+      delete: function (id) { return apiDelete('/testimonials/' + id); },
       approved: function (params) { return apiGet('/testimonials', params); },
       admin: {
         list: function (params) { return apiGet('/admin/testimonials', params); },
         approve: function (id) { return apiPost('/admin/testimonials/' + id + '/approve'); },
         reject: function (id) { return apiPost('/admin/testimonials/' + id + '/reject'); },
         feature: function (id) { return apiPost('/admin/testimonials/' + id + '/feature'); },
-        del: function (id) { return apiDel('/admin/testimonials/' + id); },
+        del: function (id) { return apiDelete('/admin/testimonials/' + id); },
       },
     },
   };

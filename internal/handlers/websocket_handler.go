@@ -34,7 +34,7 @@ func NewWebSocketHandler(allowedOrigins ...string) *WebSocketHandler {
 
 func (h *WebSocketHandler) checkOrigin(ctx *fasthttp.RequestCtx) bool {
 	if len(h.allowedOrigins) == 0 {
-		return false
+		return true
 	}
 	origin := string(ctx.Request.Header.Peek("Origin"))
 	if origin == "" {

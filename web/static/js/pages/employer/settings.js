@@ -531,7 +531,7 @@
         })
         .catch(function (err) {
           if (els.tfaDisableConfirm) { els.tfaDisableConfirm.disabled = false; els.tfaDisableConfirm.textContent = 'Disable 2FA'; }
-          if (els.tfaDisableError) { els.tfaDisableError.textContent = (err.body && err.body.message) || err.message || 'Failed to disable 2FA'; els.tfaDisableError.style.display = ''; }
+          if (els.tfaDisableError) { els.tfaDisableError.textContent = (err && err.body && err.body.message) || err.message || 'Failed to disable 2FA'; els.tfaDisableError.style.display = ''; }
         });
     }
 
@@ -588,7 +588,7 @@
               .catch(function (err) {
                 els.tfaBackupBtn.disabled = false;
                 els.tfaBackupBtn.textContent = 'Generate New Backup Codes';
-                showTfaError((err.body && err.body.message) || err.message || 'Failed to generate backup codes');
+                showTfaError((err && err.body && err.body.message) || err.message || 'Failed to generate backup codes');
               });
           }
         });

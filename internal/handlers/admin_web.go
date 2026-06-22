@@ -798,7 +798,10 @@ func (h *AdminWebHandler) NotificationsPage(c *fiber.Ctx) error {
 }
 
 func (h *AdminWebHandler) ProfilePage(c *fiber.Ctx) error {
-	email := c.Locals("user_email").(string)
+	email, ok := c.Locals("user_email").(string)
+	if !ok {
+		email = ""
+	}
 	uid, _ := c.Locals("user_id").(string)
 
 	profileName := email
@@ -835,12 +838,18 @@ func (h *AdminWebHandler) ProfilePage(c *fiber.Ctx) error {
 }
 
 func (h *AdminWebHandler) ProfileUpdatePassword(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(string)
+	userID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return utils.Unauthorized(c, "")
+	}
 	oldPwd := c.FormValue("current_password")
 	newPwd := c.FormValue("new_password")
 	confirm := c.FormValue("confirm_password")
 
-	email := c.Locals("user_email").(string)
+	email, ok := c.Locals("user_email").(string)
+	if !ok {
+		email = ""
+	}
 	profileName := email
 	profileRole := "admin"
 	if uid := userID; uid != "" {

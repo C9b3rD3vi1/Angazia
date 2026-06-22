@@ -1,7 +1,6 @@
 (function () {
   'use strict';
 
-  var API = '/api/v1/employer';
   var state = {
     members: [],
     invitations: [],
@@ -69,24 +68,6 @@
     hide(els.content);
     els.errorMsg.textContent = msg || 'An unexpected error occurred.';
     show(els.error);
-  }
-
-  function api(path, opts) {
-    opts = opts || {};
-    var headers = {};
-    var token = localStorage.getItem('angazia_access_token');
-    if (token) headers['Authorization'] = 'Bearer ' + token;
-    if (opts.body) headers['Content-Type'] = 'application/json';
-    return fetch(API + path, {
-      method: opts.method || 'GET',
-      headers: headers,
-      body: opts.body ? JSON.stringify(opts.body) : undefined
-    }).then(function (r) {
-      return r.json().then(function (data) {
-        if (!r.ok) throw new Error(data.message || data.error || 'Request failed');
-        return data;
-      });
-    });
   }
 
   function flash(msg, type) {
@@ -179,11 +160,11 @@
     state.members = [];
     state.invitations = [];
 
-    api('/team').then(function (res) {
-      state.members = res.data || [];
-      return api('/team/invitations');
+    AngaziaAPI.get('/employer/team').then(function (res) {
+      state.members = Array.isArray(res) ? res : (res && res.data ? res.data : []);
+      return AngaziaAPI.get('/employer/team/invitations');
     }).then(function (res) {
-      state.invitations = res.data || [];
+      state.invitations = Array.isArray(res) ? res : (res && res.data ? res.data : []);
       loading(false);
       show(els.content);
       renderMembers();
@@ -229,7 +210,7 @@
     els.inviteSubmit.disabled = true;
     els.inviteSubmit.classList.add('emp-btn-loading');
 
-    api('/team/invite', { method: 'POST', body: { email: email, role: role } }).then(function () {
+    AngaziaAPI.post('/employer/team/invite', { email: email, role: role }).then(function () {
       closeInviteModal();
       flash('Invitation sent to ' + email, 'success');
       loadTeam();
@@ -279,7 +260,7 @@
       'Remove',
       'icon-danger',
       function (done) {
-        api('/team/' + id, { method: 'DELETE' }).then(function () {
+        AngaziaAPI.del('/employer/team/' + id).then(function () {
           flash(name + ' removed from team', 'success');
           done();
         }).catch(function (err) { done(err); });
@@ -294,7 +275,7 @@
       'Cancel Invitation',
       'icon-warning',
       function (done) {
-        api('/team/invitations/' + id, { method: 'DELETE' }).then(function () {
+        AngaziaAPI.del('/employer/team/invitations/' + id).then(function () {
           flash('Invitation cancelled', 'success');
           done();
         }).catch(function (err) { done(err); });
@@ -324,7 +305,7 @@
     els.roleSubmit.disabled = true;
     els.roleSubmit.classList.add('emp-btn-loading');
 
-    api('/team/' + id + '/role', { method: 'PUT', body: { role: role } }).then(function () {
+    AngaziaAPI.put('/employer/team/' + id + '/role', { role: role }).then(function () {
       closeRoleModal();
       flash('Role updated successfully', 'success');
       loadTeam();

@@ -472,5 +472,9 @@
         }
       });
     }
+
+    window.addEventListener('beforeunload', function () {
+      stopAutoRefresh();
+    });
   });
 })();

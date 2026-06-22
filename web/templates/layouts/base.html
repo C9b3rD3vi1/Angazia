@@ -100,7 +100,7 @@
         </div>
     </div>
     <div class="footer-bottom">
-        <div class="footer-copy">&copy; 2024 ANGAZIA &mdash; ALL RIGHTS RESERVED</div>
+        <div class="footer-copy">&copy; <span id="copyright-year"></span> ANGAZIA &mdash; ALL RIGHTS RESERVED</div>
         <div class="footer-badges"><span class="footer-badge">MADE IN KENYA</span><span class="footer-badge">&#x1F1F0;&#x1F1EA; TECH HUB</span></div>
     </div>
 </footer>
@@ -109,6 +109,7 @@ document.addEventListener('DOMContentLoaded',function(){initNavbar();initAvatarD
 function initNavbar(){var h=document.getElementById('hamburger'),m=document.getElementById('mobile-menu'),n=document.getElementById('navbar');if(h&&m){h.addEventListener('click',function(){this.classList.toggle('is-open');m.classList.toggle('is-open');document.body.classList.toggle('menu-open');});}if(n){window.addEventListener('scroll',function(){if(window.scrollY>50)n.classList.add('scrolled');else n.classList.remove('scrolled');});}}
 function initAvatarDropdown(){var a=document.getElementById('avatar-btn'),d=document.getElementById('avatar-dropdown');if(a&&d){a.addEventListener('click',function(e){e.stopPropagation();d.classList.toggle('open');});document.addEventListener('click',function(){d.classList.remove('open');});}}
 function initFlashMessages(){var f=document.querySelector('#flash-message');if(f){setTimeout(function(){f.classList.add('flash-fade');setTimeout(function(){if(f.parentNode)f.parentNode.removeChild(f);},400);},5000);}}
+var cy=document.getElementById('copyright-year');if(cy)cy.textContent=new Date().getFullYear();
 </script>
 {{if .Scripts}}<script>{{.Scripts}}</script>{{end}}
 </body>

@@ -40,7 +40,7 @@
     poolNewName: document.getElementById('cand-new-pool-name'),
     poolCreateToggle: document.getElementById('cand-create-toggle'),
     poolSave: document.getElementById('cand-pool-save'),
-    poolSaveLabel: document.getElementById('cand-pool-save').querySelector('.emp-btn-label'),
+    poolSaveLabel: elements.poolSave && document.getElementById('cand-pool-save').querySelector('.emp-btn-label'),
     poolCancel: document.getElementById('cand-pool-cancel'),
     poolClose: document.getElementById('cand-pool-close'),
     poolError: document.getElementById('cand-pool-error'),
@@ -511,7 +511,8 @@
     var btn = e.currentTarget;
     var candidateId = btn.getAttribute('data-id');
     if (!candidateId) return;
-    var nameEl = btn.closest('.emp-candidate-card').querySelector('.emp-candidate-name');
+    var card = btn.closest('.emp-candidate-card');
+    var nameEl = card && card.querySelector('.emp-candidate-name');
     var candidateName = nameEl ? nameEl.textContent.trim() : '';
     openPoolPicker(candidateId, candidateName);
   }

@@ -31,7 +31,7 @@
           var date = formatDate(inv.created_at || inv.due_date);
           var badge = statusBadge(inv.status);
           return '<tr>' +
-            '<td><strong>' + (inv.invoice_number || inv.id.slice(0, 8)) + '</strong></td>' +
+            '<td><strong>' + (inv.invoice_number || (inv && inv.id && inv.id.slice(0, 8))) + '</strong></td>' +
             '<td>' + date + '</td>' +
             '<td>' + (inv.plan_name || '-') + '</td>' +
             '<td>' + (inv.total || inv.amount ? 'KSh ' + Number(inv.total || inv.amount).toLocaleString() : '-') + '</td>' +

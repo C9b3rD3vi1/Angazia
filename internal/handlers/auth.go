@@ -236,9 +236,6 @@ func (h *AuthHandler) AdminLogin(c *fiber.Ctx) error {
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		return utils.Unauthorized(c, "Invalid admin credentials")
 	}
-	if err != nil {
-		return utils.InternalServerError(c, "Failed to authenticate admin")
-	}
 
 	ipAddress := c.IP()
 	if forwarded := c.Get("X-Forwarded-For"); forwarded != "" {

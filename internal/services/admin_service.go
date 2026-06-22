@@ -143,15 +143,18 @@ func (s *SearchServiceImpl) SearchJobs(ctx context.Context, filters models.Searc
 
 	searchTimeMs := time.Since(startTime).Milliseconds()
 
-	return &models.SearchResponse{
+	resp := &models.SearchResponse{
 		Results:      results,
 		Total:        total,
 		Page:         page,
 		Limit:        limit,
 		TotalPages:   totalPages,
-		Facets:       *facets,
 		SearchTimeMs: searchTimeMs,
-	}, nil
+	}
+	if facets != nil {
+		resp.Facets = *facets
+	}
+	return resp, nil
 }
 
 func (s *SearchServiceImpl) SearchCandidates(ctx context.Context, filters models.SearchFilters, page, limit int) (*models.SearchResponse, error) {
@@ -886,7 +889,10 @@ func (s *AdminServiceImpl) LogAdminAction(ctx context.Context, adminID, action, 
 		IPAddress:  ipAddress,
 		UserAgent:  userAgent,
 	}
-	return s.adminRepo.LogAction(ctx, log)
+	if err := s.adminRepo.LogAction(ctx, log); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *AdminServiceImpl) GetAuditLogs(ctx context.Context, filters map[string]interface{}, page, limit int) ([]*models.AdminActionLog, int64, error) {

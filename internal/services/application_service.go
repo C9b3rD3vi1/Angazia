@@ -34,18 +34,18 @@ type ApplicationService interface {
 }
 
 type ApplyRequest struct {
-	JobID       string `json:"job_id" validate:"required"`
-	CoverLetter string `json:"cover_letter" validate:"required,min=50"`
-	ResumeURL   string `json:"resume_url"`
+	JobID        string `json:"job_id" validate:"required"`
+	CoverLetter  string `json:"cover_letter" validate:"required,min=50"`
+	ResumeURL    string `json:"resume_url"`
 	PortfolioURL string `json:"portfolio_url"`
 }
 
 type ApplicationListResponse struct {
 	Applications []*models.Application `json:"applications"`
-	Total        int64                  `json:"total"`
-	Page         int                    `json:"page"`
-	Limit        int                    `json:"limit"`
-	TotalPages   int                    `json:"total_pages"`
+	Total        int64                 `json:"total"`
+	Page         int                   `json:"page"`
+	Limit        int                   `json:"limit"`
+	TotalPages   int                   `json:"total_pages"`
 }
 
 type JobApplicationStats struct {
@@ -59,11 +59,11 @@ type JobApplicationStats struct {
 }
 
 type ApplicationServiceImpl struct {
-	cfg                *config.Config
-	applicationRepo    repository.ApplicationRepository
-	jobRepo            repository.JobRepository
-	userRepo           repository.UserRepository
-	emailService       EmailService
+	cfg                 *config.Config
+	applicationRepo     repository.ApplicationRepository
+	jobRepo             repository.JobRepository
+	userRepo            repository.UserRepository
+	emailService        EmailService
 	notificationService NotificationService
 }
 
@@ -155,7 +155,7 @@ func (s *ApplicationServiceImpl) Apply(ctx context.Context, employeeID string, r
 	}
 
 	if s.notificationService != nil {
-		go s.notificationService.NotifyNewApplication(context.Background(), req.JobID, job.EmployerID, employeeID)
+		go s.notificationService.NotifyNewApplication(ctx, req.JobID, job.EmployerID, employeeID)
 	}
 
 	return application, nil
@@ -350,7 +350,7 @@ func (s *ApplicationServiceImpl) ShortlistApplication(ctx context.Context, appli
 	}
 
 	if s.notificationService != nil {
-		go s.notificationService.NotifyApplicationStatusChange(context.Background(), applicationID, application.EmployeeID, "shortlisted")
+		go s.notificationService.NotifyApplicationStatusChange(ctx, applicationID, application.EmployeeID, "shortlisted")
 	}
 
 	return nil
@@ -384,7 +384,7 @@ func (s *ApplicationServiceImpl) RejectApplication(ctx context.Context, applicat
 	}
 
 	if s.notificationService != nil {
-		go s.notificationService.NotifyApplicationStatusChange(context.Background(), applicationID, application.EmployeeID, "rejected")
+		go s.notificationService.NotifyApplicationStatusChange(ctx, applicationID, application.EmployeeID, "rejected")
 	}
 
 	return nil
@@ -436,7 +436,7 @@ func (s *ApplicationServiceImpl) ScheduleInterview(ctx context.Context, applicat
 	}
 
 	if s.notificationService != nil {
-		go s.notificationService.NotifyInterviewScheduled(context.Background(), applicationID, application.EmployeeID, employerID, interviewDate)
+		go s.notificationService.NotifyInterviewScheduled(ctx, applicationID, application.EmployeeID, employerID, interviewDate)
 	}
 
 	return nil
@@ -471,7 +471,7 @@ func (s *ApplicationServiceImpl) MarkAsHired(ctx context.Context, applicationID 
 	}
 
 	if s.notificationService != nil {
-		go s.notificationService.NotifyApplicationStatusChange(context.Background(), applicationID, application.EmployeeID, "hired")
+		go s.notificationService.NotifyApplicationStatusChange(ctx, applicationID, application.EmployeeID, "hired")
 	}
 
 	return nil

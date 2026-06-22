@@ -49,6 +49,10 @@
         startPolling();
       }
     });
+
+    window.addEventListener('beforeunload', function () {
+      stopPolling();
+    });
   }
 
   /* ── Count-Up Animation ── */

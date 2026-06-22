@@ -216,7 +216,7 @@ func (s *NotificationServiceImpl) SendBulkNotifications(ctx context.Context, use
 		go func(uid string) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			s.SendNotification(context.Background(), uid, input)
+			s.SendNotification(ctx, uid, input)
 		}(userID)
 	}
 	wg.Wait()
@@ -674,13 +674,13 @@ func (s *NotificationServiceImpl) StartDeferredDeliveryRoutine(ctx context.Conte
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		// Run once immediately on start
-		s.deliverDeferredNotifications(context.Background())
+		s.deliverDeferredNotifications(ctx)
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				s.deliverDeferredNotifications(context.Background())
+				s.deliverDeferredNotifications(ctx)
 			}
 		}
 	}()

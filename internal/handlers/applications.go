@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	
+
 	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
 )
@@ -17,9 +17,9 @@ type ApplicationHandler struct {
 }
 
 type ApplyRequest struct {
-	JobID       string `json:"job_id" validate:"required"`
-	CoverLetter string `json:"cover_letter"`
-	ResumeURL   string `json:"resume_url"`
+	JobID        string `json:"job_id" validate:"required"`
+	CoverLetter  string `json:"cover_letter"`
+	ResumeURL    string `json:"resume_url"`
 	PortfolioURL string `json:"portfolio_url"`
 }
 
@@ -53,20 +53,24 @@ func (h *ApplicationHandler) Apply(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	var req ApplyRequest
 	if err := c.BodyParser(&req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	if err := h.validator.Struct(req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
-	application, err := h.applicationService.Apply(c.Context(), userID.(string), &services.ApplyRequest{
-		JobID:       req.JobID,
-		CoverLetter: req.CoverLetter,
-		ResumeURL:   req.ResumeURL,
+
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+	application, err := h.applicationService.Apply(c.Context(), uid, &services.ApplyRequest{
+		JobID:        req.JobID,
+		CoverLetter:  req.CoverLetter,
+		ResumeURL:    req.ResumeURL,
 		PortfolioURL: req.PortfolioURL,
 	})
 	if err != nil {
@@ -78,7 +82,7 @@ func (h *ApplicationHandler) Apply(c *fiber.Ctx) error {
 		}
 		return utils.Error(c, status, err.Error())
 	}
-	
+
 	return utils.SuccessCreated(c, "Application submitted successfully", application)
 }
 
@@ -97,20 +101,24 @@ func (h *ApplicationHandler) WithdrawApplication(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	applicationID := c.Params("id")
 	if applicationID == "" {
 		return utils.BadRequest(c, "Application ID is required")
 	}
-	
-	if err := h.applicationService.WithdrawApplication(c.Context(), applicationID, userID.(string)); err != nil {
+
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+	if err := h.applicationService.WithdrawApplication(c.Context(), applicationID, uid); err != nil {
 		status := fiber.StatusInternalServerError
 		if err.Error() == "application not found" {
 			status = fiber.StatusNotFound
 		}
 		return utils.Error(c, status, err.Error())
 	}
-	
+
 	return utils.SuccessWithMessage(c, "Application withdrawn successfully", nil)
 }
 
@@ -129,14 +137,22 @@ func (h *ApplicationHandler) GetApplication(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	role := c.Locals("user_role").(string)
-	
+	role, ok := c.Locals("user_role").(string)
+	if !ok {
+		return utils.Unauthorized(c, "User role not found")
+	}
+
 	applicationID := c.Params("id")
 	if applicationID == "" {
 		return utils.BadRequest(c, "Application ID is required")
 	}
-	
-	application, err := h.applicationService.GetApplication(c.Context(), applicationID, userID.(string), role)
+
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+
+	application, err := h.applicationService.GetApplication(c.Context(), applicationID, uid, role)
 	if err != nil {
 		status := fiber.StatusInternalServerError
 		if err.Error() == "application not found" {
@@ -146,7 +162,7 @@ func (h *ApplicationHandler) GetApplication(c *fiber.Ctx) error {
 		}
 		return utils.Error(c, status, err.Error())
 	}
-	
+
 	return utils.Success(c, application)
 }
 
@@ -164,15 +180,19 @@ func (h *ApplicationHandler) ListMyApplications(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "20"))
-	
-	result, err := h.applicationService.ListMyApplications(c.Context(), userID.(string), page, limit)
+
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+	result, err := h.applicationService.ListMyApplications(c.Context(), uid, page, limit)
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
-	
+
 	return utils.Success(c, result)
 }
 
@@ -192,17 +212,21 @@ func (h *ApplicationHandler) ListJobApplications(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	jobID := c.Params("jobId")
 	if jobID == "" {
 		return utils.BadRequest(c, "Job ID is required")
 	}
-	
+
 	status := c.Query("status", "")
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "20"))
-	
-	result, err := h.applicationService.ListJobApplications(c.Context(), jobID, userID.(string), status, page, limit)
+
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+	result, err := h.applicationService.ListJobApplications(c.Context(), jobID, uid, status, page, limit)
 	if err != nil {
 		statusCode := fiber.StatusInternalServerError
 		if err.Error() == "job not found" {
@@ -212,7 +236,7 @@ func (h *ApplicationHandler) ListJobApplications(c *fiber.Ctx) error {
 		}
 		return utils.Error(c, statusCode, err.Error())
 	}
-	
+
 	return utils.Success(c, result)
 }
 
@@ -231,16 +255,20 @@ func (h *ApplicationHandler) ListCompanyApplications(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	status := c.Query("status", "")
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "20"))
-	
-	result, err := h.applicationService.ListCompanyApplications(c.Context(), userID.(string), status, page, limit)
+
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+	result, err := h.applicationService.ListCompanyApplications(c.Context(), uid, status, page, limit)
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
-	
+
 	return utils.Success(c, result)
 }
 
@@ -258,18 +286,24 @@ func (h *ApplicationHandler) ShortlistApplication(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	applicationID := c.Params("id")
 	if applicationID == "" {
 		return utils.BadRequest(c, "Application ID is required")
 	}
-	
+
 	var req struct {
 		Notes string `json:"notes"`
 	}
-	c.BodyParser(&req)
-	
-	if err := h.applicationService.ShortlistApplication(c.Context(), applicationID, userID.(string), req.Notes); err != nil {
+	if err := c.BodyParser(&req); err != nil {
+		return utils.BadRequest(c, "Invalid request body")
+	}
+
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+	if err := h.applicationService.ShortlistApplication(c.Context(), applicationID, uid, req.Notes); err != nil {
 		statusCode := fiber.StatusInternalServerError
 		if err.Error() == "application not found" {
 			statusCode = fiber.StatusNotFound
@@ -278,7 +312,7 @@ func (h *ApplicationHandler) ShortlistApplication(c *fiber.Ctx) error {
 		}
 		return utils.Error(c, statusCode, err.Error())
 	}
-	
+
 	return utils.SuccessWithMessage(c, "Application shortlisted successfully", nil)
 }
 
@@ -296,18 +330,25 @@ func (h *ApplicationHandler) RejectApplication(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	applicationID := c.Params("id")
 	if applicationID == "" {
 		return utils.BadRequest(c, "Application ID is required")
 	}
-	
+
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+
 	var req struct {
 		Notes string `json:"notes"`
 	}
-	c.BodyParser(&req)
-	
-	if err := h.applicationService.RejectApplication(c.Context(), applicationID, userID.(string), req.Notes); err != nil {
+	if err := c.BodyParser(&req); err != nil {
+		return utils.BadRequest(c, "Invalid request body")
+	}
+
+	if err := h.applicationService.RejectApplication(c.Context(), applicationID, uid, req.Notes); err != nil {
 		statusCode := fiber.StatusInternalServerError
 		if err.Error() == "application not found" {
 			statusCode = fiber.StatusNotFound
@@ -316,7 +357,7 @@ func (h *ApplicationHandler) RejectApplication(c *fiber.Ctx) error {
 		}
 		return utils.Error(c, statusCode, err.Error())
 	}
-	
+
 	return utils.SuccessWithMessage(c, "Application rejected", nil)
 }
 
@@ -343,9 +384,15 @@ func (h *ApplicationHandler) SaveNotes(c *fiber.Ctx) error {
 	var req struct {
 		Notes string `json:"notes"`
 	}
-	c.BodyParser(&req)
+	if err := c.BodyParser(&req); err != nil {
+		return utils.BadRequest(c, "Invalid request body")
+	}
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
 
-	if err := h.applicationService.SaveNotes(c.Context(), applicationID, userID.(string), req.Notes); err != nil {
+	if err := h.applicationService.SaveNotes(c.Context(), applicationID, uid, req.Notes); err != nil {
 		statusCode := fiber.StatusInternalServerError
 		if err.Error() == "application not found" {
 			statusCode = fiber.StatusNotFound
@@ -372,22 +419,26 @@ func (h *ApplicationHandler) ScheduleInterview(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	applicationID := c.Params("id")
 	if applicationID == "" {
 		return utils.BadRequest(c, "Application ID is required")
 	}
-	
+
 	var req ScheduleInterviewRequest
 	if err := c.BodyParser(&req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	if err := h.validator.Struct(req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
-	if err := h.applicationService.ScheduleInterview(c.Context(), applicationID, userID.(string), req.InterviewDate, req.InterviewType); err != nil {
+
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+	if err := h.applicationService.ScheduleInterview(c.Context(), applicationID, uid, req.InterviewDate, req.InterviewType); err != nil {
 		statusCode := fiber.StatusInternalServerError
 		if err.Error() == "application not found" {
 			statusCode = fiber.StatusNotFound
@@ -396,7 +447,7 @@ func (h *ApplicationHandler) ScheduleInterview(c *fiber.Ctx) error {
 		}
 		return utils.Error(c, statusCode, err.Error())
 	}
-	
+
 	return utils.SuccessWithMessage(c, "Interview scheduled successfully", nil)
 }
 
@@ -412,13 +463,20 @@ func (h *ApplicationHandler) GetApplicationStats(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	role := c.Locals("user_role").(string)
-	
-	stats, err := h.applicationService.GetApplicationStats(c.Context(), userID.(string), role)
+	role, ok := c.Locals("user_role").(string)
+	if !ok {
+		return utils.Unauthorized(c, "User role not found")
+	}
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+
+	stats, err := h.applicationService.GetApplicationStats(c.Context(), uid, role)
 	if err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
-	
+
 	return utils.Success(c, stats)
 }
 
@@ -435,22 +493,26 @@ func (h *ApplicationHandler) BulkShortlist(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	var req struct {
 		ApplicationIDs []string `json:"application_ids"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	if len(req.ApplicationIDs) == 0 {
 		return utils.BadRequest(c, "No application IDs provided")
 	}
-	
-	if err := h.applicationService.BulkShortlist(c.Context(), req.ApplicationIDs, userID.(string)); err != nil {
+
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+	if err := h.applicationService.BulkShortlist(c.Context(), req.ApplicationIDs, uid); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
-	
+
 	return utils.SuccessWithMessage(c, "Applications shortlisted successfully", nil)
 }
 
@@ -466,16 +528,20 @@ func (h *ApplicationHandler) MarkAsHired(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	applicationID := c.Params("id")
 	if applicationID == "" {
 		return utils.BadRequest(c, "Application ID is required")
 	}
-	
-	if err := h.applicationService.MarkAsHired(c.Context(), applicationID, userID.(string)); err != nil {
+
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+	if err := h.applicationService.MarkAsHired(c.Context(), applicationID, uid); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
-	
+
 	return utils.SuccessWithMessage(c, "Candidate marked as hired", nil)
 }
 
@@ -491,21 +557,25 @@ func (h *ApplicationHandler) BulkReject(c *fiber.Ctx) error {
 	if userID == nil {
 		return utils.Unauthorized(c, "User not authenticated")
 	}
-	
+
 	var req struct {
 		ApplicationIDs []string `json:"application_ids"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return utils.BadRequest(c, err.Error())
 	}
-	
+
 	if len(req.ApplicationIDs) == 0 {
 		return utils.BadRequest(c, "No application IDs provided")
 	}
-	
-	if err := h.applicationService.BulkReject(c.Context(), req.ApplicationIDs, userID.(string)); err != nil {
+
+	uid, ok := userID.(string)
+	if !ok {
+		return utils.Unauthorized(c, "User ID not found")
+	}
+	if err := h.applicationService.BulkReject(c.Context(), req.ApplicationIDs, uid); err != nil {
 		return utils.InternalServerError(c, err.Error())
 	}
-	
+
 	return utils.SuccessWithMessage(c, "Applications rejected successfully", nil)
 }

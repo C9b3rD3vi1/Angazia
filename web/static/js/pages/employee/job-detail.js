@@ -289,7 +289,7 @@
     
     try {
       const applications = await AngaziaAPI.applications.myApplications({ limit: 100 });
-      let apps = applications.data || applications || [];
+      let apps = (applications && applications.data) || applications || [];
       
       hasApplied = apps.some(app => app.job_id === jobId || app.job?.id === jobId);
       

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 
+	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 	"github.com/C9b3rD3vi1/Angazia/internal/repository"
 	"github.com/C9b3rD3vi1/Angazia/internal/services"
-	"github.com/C9b3rD3vi1/Angazia/internal/pkg/utils"
 )
 
 type UnsubscribeHandler struct {
@@ -51,18 +51,18 @@ func (h *UnsubscribeHandler) Unsubscribe(c *fiber.Ctx) error {
 
 // UpdatePreferences updates user email preferences
 func (h *UnsubscribeHandler) UpdatePreferences(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(string)
-	if userID == "" {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok || userID == "" {
 		return utils.Unauthorized(c, "")
 	}
 
 	var req struct {
-		JobAlerts          *bool   `json:"job_alerts"`
-		ApplicationUpdates *bool   `json:"application_updates"`
-		MarketingEmails    *bool   `json:"marketing_emails"`
-		SecurityAlerts     *bool   `json:"security_alerts"`
-		Newsletter         *bool   `json:"newsletter"`
-		DigestFrequency    string  `json:"digest_frequency"`
+		JobAlerts          *bool  `json:"job_alerts"`
+		ApplicationUpdates *bool  `json:"application_updates"`
+		MarketingEmails    *bool  `json:"marketing_emails"`
+		SecurityAlerts     *bool  `json:"security_alerts"`
+		Newsletter         *bool  `json:"newsletter"`
+		DigestFrequency    string `json:"digest_frequency"`
 	}
 
 	if err := c.BodyParser(&req); err != nil {
@@ -98,8 +98,8 @@ func (h *UnsubscribeHandler) UpdatePreferences(c *fiber.Ctx) error {
 
 // GetPreferences returns user email preferences
 func (h *UnsubscribeHandler) GetPreferences(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(string)
-	if userID == "" {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok || userID == "" {
 		return utils.Unauthorized(c, "")
 	}
 

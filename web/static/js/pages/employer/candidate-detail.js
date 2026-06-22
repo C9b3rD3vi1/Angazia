@@ -352,7 +352,7 @@
         renderProfile(data);
       })
       .catch(function (err) {
-        showError(err.body && err.body.error ? err.body.error : err.message);
+        showError(err && err.body && err.body.error ? err.body.error : err.message);
       });
   }
 

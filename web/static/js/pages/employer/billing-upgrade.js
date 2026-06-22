@@ -10,6 +10,7 @@
   if (!btn) return;
 
   var planId = btn.getAttribute('data-plan');
+  var pollTimer = null;
 
   function showError(msg) {
     if (errDiv) {
@@ -119,17 +120,17 @@
             successDiv.style.display = '';
           }
           btn.textContent = 'Waiting for payment...';
-          var poll = setInterval(function () {
+          pollTimer = setInterval(function () {
             AngaziaAPI.subscriptions.current().then(function (sub) {
               if (sub && sub.plan_id === planId && sub.status === 'active') {
-                clearInterval(poll);
+                clearInterval(pollTimer);
                 if (successDiv) successDiv.textContent = 'Upgrade successful!';
                 btn.textContent = 'Upgraded!';
                 setTimeout(function () { window.location.href = '/employer/billing'; }, 1500);
               }
             });
           }, 3000);
-          setTimeout(function () { clearInterval(poll); btn.disabled = false; btn.textContent = 'Confirm Upgrade'; }, 120000);
+          setTimeout(function () { clearInterval(pollTimer); pollTimer = null; btn.disabled = false; btn.textContent = 'Confirm Upgrade'; }, 120000);
         } else {
           if (successDiv) {
             successDiv.textContent = 'Successfully upgraded to ' + (planId.charAt(0).toUpperCase() + planId.slice(1)) + '!';
@@ -147,4 +148,11 @@
   });
 
   loadPlanAndSub();
+
+  window.addEventListener('beforeunload', function () {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  });
 })();
